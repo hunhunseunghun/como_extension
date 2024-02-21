@@ -30,7 +30,7 @@ export const getBinanceColumns = (
       const urlSymbol = row.original.symbol?.endsWith('BTC')
         ? symbol?.slice(0, -3) + '_BTC'
         : row.original?.symbol?.endsWith('USDT')
-          ? (symbol.slice(0, -4) = 'USDT')
+          ? symbol.slice(0, -4) + 'USDT'
           : 'BTC_USDT';
       const binanceTradeURL = `https://www.binance.com/en/trade/${urlSymbol}?type=spot`;
       const savedCoins = favoriteCoins?.upbit?.join(',');
@@ -93,13 +93,9 @@ export const getBinanceColumns = (
       </div>
     ),
     cell: ({ getValue, row, cell }) => {
-      const lastPrice = getValue() as string;
+      const lastPrice = Number(getValue() as string);
       const bidPrice = row.original.b || '0';
       const bidAskStatus = Number(lastPrice) <= Number(bidPrice) ? 'BID' : 'ASK';
-      const flashProps = {
-        ...row.original,
-        ask_bid: bidAskStatus,
-      };
 
       switch (exchangeMarketType) {
         case 'USDT':
@@ -107,7 +103,7 @@ export const getBinanceColumns = (
             <FlashCell
               key={cell.id}
               flashKey={cell.id}
-              ticker={flashProps}
+              bidAskStatus={bidAskStatus ? bidAskStatus : ''}
               className={'flex flex-col items-end font-medium'}>
               <span>${lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </FlashCell>
@@ -117,7 +113,7 @@ export const getBinanceColumns = (
             <FlashCell
               key={cell.id}
               flashKey={cell.id}
-              ticker={flashProps}
+              bidAskStatus={bidAskStatus ? bidAskStatus : ''}
               className={'flex flex-col items-end font-medium'}>
               <span>{lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</span>
             </FlashCell>

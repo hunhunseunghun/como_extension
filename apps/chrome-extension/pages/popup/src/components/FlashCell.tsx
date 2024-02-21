@@ -1,27 +1,25 @@
 // FlashContent.tsx
 import { useEffect, useState } from 'react';
 
-import type { UpbitTicker, BithumbTicker, BinanceTicker } from '@/types';
-
 type FlashContentProps = {
-  ticker?: UpbitTicker | BithumbTicker | BinanceTicker;
+  bidAskStatus: string;
   children: React.ReactNode;
   flashKey: string;
   className: string;
 };
 
-export default function FlashCell({ ticker, children, flashKey, className }: FlashContentProps) {
+export default function FlashCell({ bidAskStatus, children, flashKey, className }: FlashContentProps) {
   const [flash, setFlash] = useState(false);
 
   useEffect(() => {
-    if (ticker && ticker.ask_bid) {
+    if (bidAskStatus.length) {
       setFlash(true);
       const timer = setTimeout(() => setFlash(false), 300);
       return () => clearTimeout(timer);
     }
-  }, [ticker?.ask_bid]);
+  }, [bidAskStatus]);
 
-  const flashClass = ticker?.ask_bid === 'ASK' ? 'text-blue-500' : ticker?.ask_bid === 'BID' ? 'text-red-500' : '';
+  const flashClass = bidAskStatus === 'ASK' ? 'text-blue-500' : bidAskStatus === 'BID' ? 'text-red-500' : '';
 
   return (
     <div className={`${className} transition-all duration-500 ease-out ${flash ? flashClass : ''}`} key={`${flashKey}`}>

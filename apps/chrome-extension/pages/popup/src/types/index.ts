@@ -87,6 +87,7 @@ export type BithumbTicker = {
 };
 
 export type BinanceTicker = {
+  market: string;
   symbol: string; // 업비트: "market": "KRW-BTC"
   priceChange: string; // 업비트: "change_price": -50000.0
   priceChangePercent: string; // 업비트: "change_rate": -0.00077

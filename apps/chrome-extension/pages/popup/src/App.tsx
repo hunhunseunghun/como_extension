@@ -155,33 +155,59 @@ const App = () => {
 
   usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading, updatedVersionHandler);
 
-  const tableData = useMemo(() => {
+  const tableData = useMemo<TickerTypes>(() => {
     if (!Object.values(tickers).length) return fallbackData;
-    return exchangePlatform !== 'binance'
-      ? Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${exchangeMarketType}-`))
-      : Object.values(tickers).filter(ticker => ticker.market?.endsWith(`${exchangeMarketType}`));
+
+    switch (exchangePlatform) {
+      case 'upbit':
+        return Object.values(tickers).filter(
+          (ticker): ticker is UpbitTicker => 'market' in ticker && ticker.market?.startsWith(`${exchangeMarketType}-`),
+        );
+      case 'bithumb':
+        return Object.values(tickers).filter(
+          (ticker): ticker is BithumbTicker =>
+            'market' in ticker && ticker.market?.startsWith(`${exchangeMarketType}-`),
+        );
+      case 'binance':
+        return Object.values(tickers).filter(
+          (ticker): ticker is BinanceTicker => 'symbol' in ticker && ticker.symbol?.endsWith(`${exchangeMarketType}`),
+        );
+      default:
+        return fallbackData;
+    }
   }, [tickers, exchangePlatform, exchangeMarketType]);
 
-  const columns = useMemo<ColumnDef<TickerTypes>[]>(() => {
-    const columnArgs: [
-      boolean,
-      React.Dispatch<React.SetStateAction<boolean>>,
-      number,
-      MarketType,
-      FavoriteCoins,
-      React.Dispatch<React.SetStateAction<FavoriteCoins>>,
-      boolean,
-    ] = [coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins, favoriteFunc];
-    return exchangePlatform === 'upbit'
-      ? getUpbitColumns(...columnArgs)
-      : exchangePlatform === 'bithumb'
-        ? getBithumbColumns(...columnArgs)
-        : getBinanceColumns(exchangeMarketType, favoriteCoins, setFavoriteCoins, favoriteFunc);
+  const columns = useMemo(() => {
+    const columnArgs = [
+      coinNameKR,
+      setCoinNameKR,
+      exchangeRateUSD,
+      exchangeMarketType,
+      favoriteCoins,
+      setFavoriteCoins,
+      favoriteFunc,
+    ] as const;
+
+    switch (exchangePlatform) {
+      case 'upbit':
+        return getUpbitColumns(...columnArgs) as ColumnDef<UpbitTicker>[];
+      case 'bithumb':
+        return getBithumbColumns(...columnArgs) as ColumnDef<BithumbTicker>[];
+      case 'binance':
+        return getBinanceColumns(
+          exchangeMarketType,
+          favoriteCoins,
+          setFavoriteCoins,
+          favoriteFunc,
+        ) as ColumnDef<BinanceTicker>[];
+      default:
+        return;
+    }
   }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc]);
 
-  const table = useReactTable({
+  const table = useReactTable<UpbitTicker | BithumbTicker | BinanceTicker>({
     data: tableData,
-    columns,
+    columns: columns ?? [],
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

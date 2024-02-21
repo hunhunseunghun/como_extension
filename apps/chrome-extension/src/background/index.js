@@ -304,7 +304,7 @@ class Binance extends ExchangeData {
       const tickersArray = await response.json();
 
       this.tickers = tickersArray.reduce((acc, ticker) => {
-        if (ticker.symbol) acc[ticker.symbol] = { ...ticker };
+        if (ticker.symbol) acc[ticker.symbol] = { ...ticker, market: symbol };
         return acc;
       }, {});
       // 팝업이 이미 연결된 경우 즉시 전송

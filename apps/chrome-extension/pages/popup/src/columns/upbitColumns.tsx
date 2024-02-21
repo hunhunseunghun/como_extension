@@ -109,7 +109,7 @@ export const getUpbitColumns = (
             <FlashCell
               key={cell.id}
               flashKey={cell.id}
-              ticker={row.original}
+              bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
               className={'flex flex-col items-end font-medium'}>
               <span>{valueKRW?.toLocaleString()}</span>
               <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
@@ -126,7 +126,7 @@ export const getUpbitColumns = (
             <FlashCell
               key={cell.id}
               flashKey={cell.id}
-              ticker={row.original}
+              bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
               className={'flex flex-col items-end font-medium'}>
               <span>{valueKRW.toFixed(8)}</span>
             </FlashCell>
@@ -136,7 +136,7 @@ export const getUpbitColumns = (
             <FlashCell
               key={cell.id}
               flashKey={cell.id}
-              ticker={row.original}
+              bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
               className={'flex flex-col items-end font-medium'}>
               <span>${valueKRW.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </FlashCell>

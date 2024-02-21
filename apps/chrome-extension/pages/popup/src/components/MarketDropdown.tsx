@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { UpbitTicker, BithumbTicker } from '@/types';
+import { UpbitTicker, BithumbTicker, BinanceTicker } from '@/types';
 import { RowPinningState } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,11 +23,13 @@ const platformData = {
   binance: { key: 'binance', label: '바이낸스', logo: BinanceLogo },
 } as const;
 
+type TickerTypes = UpbitTicker[] | BithumbTicker[] | BinanceTicker[];
+
 interface MarketDropdownProps {
   exchangePlatform: 'upbit' | 'bithumb' | 'binance'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
   setExchangePlatform: (platform: keyof typeof platformData) => void;
   setIsLoading: (loading: boolean) => void;
-  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: UpbitTicker | BithumbTicker }>>;
+  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>;
   setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
 }
 
