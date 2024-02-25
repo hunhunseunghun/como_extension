@@ -1,5 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { Ticker } from '@/types';
+import { BithumbTicker } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
@@ -13,7 +13,7 @@ export const getBithumbColumns = (
   favoriteCoins: { upbit: string[]; bithumb: string[] },
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
   favoriteFunc: boolean,
-): ColumnDef<Ticker>[] => [
+): ColumnDef<BithumbTicker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
     id: 'market',

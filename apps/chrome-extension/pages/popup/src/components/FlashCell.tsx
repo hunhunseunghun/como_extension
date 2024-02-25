@@ -1,7 +1,7 @@
 // FlashContent.tsx
 import { useEffect, useState } from 'react';
 
-import type { UpbitTicker, BithumbTicker } from '@/types';
+import type { UpbitTicker, BithumbTicker, BinanceTicker } from '@/types';
 
 type FlashContentProps = {
   ticker?: UpbitTicker | BithumbTicker | BinanceTicker;
@@ -10,7 +10,7 @@ type FlashContentProps = {
   className: string;
 };
 
-export function FlashCell({ ticker, children, flashKey, className }: FlashContentProps) {
+export default function FlashCell({ ticker, children, flashKey, className }: FlashContentProps) {
   const [flash, setFlash] = useState(false);
 
   useEffect(() => {

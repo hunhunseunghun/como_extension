@@ -1,5 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { Ticker } from '@/types';
+import { UpbitTicker } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
@@ -13,7 +13,7 @@ export const getUpbitColumns = (
   favoriteCoins: { upbit: string[]; bithumb: string[] },
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
   favoriteFunc: boolean,
-): ColumnDef<Ticker>[] => [
+): ColumnDef<UpbitTicker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
     id: 'market',

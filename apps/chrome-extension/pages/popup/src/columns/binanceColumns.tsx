@@ -1,15 +1,14 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { Ticker } from '@/types';
+import { BinanceTicker } from '@/types';
 import { Star, ArrowDownUp, ChevronsUpDown } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
 
 export const getBinanceColumns = (
-  exchangeRateUSD: number,
   exchangeMarketType: 'USDT' | 'BTC',
-  favoriteCoins: { upbit: string[]; bithumb: string[] },
-  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
+  favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
+  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
-): ColumnDef<Ticker>[] => [
+): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
     id: 'symbol',
@@ -85,7 +84,7 @@ export const getBinanceColumns = (
     enableHiding: false,
   },
   {
-    accessorFn: () => (row.c ? row.c : row.lastPrice),
+    accessorFn: row => (row.c ? row.c : row.lastPrice),
     id: 'lastPrice',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -94,10 +93,11 @@ export const getBinanceColumns = (
       </div>
     ),
     cell: ({ getValue, row, cell }) => {
-      const lastPrice = getValue();
+      const lastPrice = getValue() as string;
       const bidPrice = row.original.b || '0';
       const bidAskStatus = Number(lastPrice) <= Number(bidPrice) ? 'BID' : 'ASK';
       const flashProps = {
+        ...row.original,
         ask_bid: bidAskStatus,
       };
 
@@ -119,7 +119,7 @@ export const getBinanceColumns = (
               flashKey={cell.id}
               ticker={flashProps}
               className={'flex flex-col items-end font-medium'}>
-              <span>{lastPrice.toFixed(8)}</span>
+              <span>{lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</span>
             </FlashCell>
           );
       }
@@ -127,7 +127,7 @@ export const getBinanceColumns = (
     enableHiding: false,
   },
   {
-    accessorFn: row => (row.P ? row.P : row.priceChangePercent),
+    accessorFn: row => (row.P ? (row.P as string) : (row.priceChangePercent as string)),
     id: 'priceChangePercent',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -200,9 +200,9 @@ export const getBinanceColumns = (
   // },
   {
     accessorFn: row => {
-      const ask = parseFloat(row.a) || 0;
-      const bid = parseFloat(row.b) || 0;
-      const lastPrice = parseFloat(row.c) || 0;
+      const ask = parseFloat(row.a as string) || 0;
+      const bid = parseFloat(row.b as string) || 0;
+      const lastPrice = parseFloat(row.c as string) || 0;
       return lastPrice === 0 ? 0 : (((ask - bid) / lastPrice) * 100).toFixed(2);
     },
     id: 'bid_ask_spread',
@@ -213,7 +213,7 @@ export const getBinanceColumns = (
       </div>
     ),
     cell: ({ getValue }) => {
-      const spread = parseFloat(getValue());
+      const spread = parseFloat(getValue() as string);
       let spreadClass = 'text-gray-500';
 
       if (spread < 0.05) spreadClass = 'text-green-500';
@@ -228,8 +228,8 @@ export const getBinanceColumns = (
   // 체결 강도 (Volume Ratio)
   {
     accessorFn: row => {
-      const buyVolume = parseFloat(row.Q) || 0; // 실제 매수 거래량 필드로 교체 필요
-      const sellVolume = parseFloat(row.q) || 0; // 실제 매도 거래량 필드로 교체 필요
+      const buyVolume = parseFloat(row.Q as string) || 0; // 실제 매수 거래량 필드로 교체 필요
+      const sellVolume = parseFloat(row.q as string) || 0; // 실제 매도 거래량 필드로 교체 필요
       return sellVolume === 0 ? 0 : (buyVolume / sellVolume).toFixed(2);
     },
     id: 'volume_ratio',
@@ -240,7 +240,7 @@ export const getBinanceColumns = (
       </div>
     ),
     cell: ({ getValue }) => {
-      const ratio = parseFloat(getValue());
+      const ratio = parseFloat(getValue() as string);
       let ratioClass = 'text-gray-500';
 
       if (ratio > 2) ratioClass = 'text-green-500';
@@ -253,7 +253,7 @@ export const getBinanceColumns = (
     },
   },
   {
-    accessorFn: row => (row.q ? row.q : row.quoteVolume),
+    accessorFn: row => (row.q ? (row.q as string) : (row.quoteVolume as string)),
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>

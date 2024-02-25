@@ -1,5 +1,6 @@
-export type ExchangePlatform = 'upbit';
+export type ExchangePlatform = 'upbit' | 'bithumb' | 'binance';
 export type MarketType = 'KRW' | 'BTC' | 'USDT';
+export type FavoriteCoins = { upbit: string[]; bithumb: string[]; binance: string[] };
 export type UpbitTicker = {
   market: string;
   trade_date: string;
@@ -85,7 +86,7 @@ export type BithumbTicker = {
   english_name?: string;
 };
 
-export type BainanceTicker = {
+export type BinanceTicker = {
   symbol: string; // 업비트: "market": "KRW-BTC"
   priceChange: string; // 업비트: "change_price": -50000.0
   priceChangePercent: string; // 업비트: "change_rate": -0.00077
@@ -123,6 +124,5 @@ export type BainanceTicker = {
   F?: number; // 첫 번째 거래 ID (업비트에는 해당 필드 없음)
   L?: number; // 마지막 거래 ID (업비트에는 해당 필드 없음)
   n?: number; // 거래 횟수 → 업비트: "trade_count"
+  ask_bid?: 'ASK' | 'BID';
 };
-
-export type Ticker = UpbitTicker | BithumbTicker;

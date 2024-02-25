@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import '@/styles/App.css';
-import { Ticker } from '@/types';
+import { UpbitTicker, BithumbTicker, BinanceTicker, ExchangePlatform, MarketType, FavoriteCoins } from '@/types';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -16,6 +16,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getUpbitColumns } from '@/columns/upbitColumns';
 import { getBithumbColumns } from '@/columns/bithumbColumns';
+import { getBinanceColumns } from '@/columns/binanceColumns';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LoadingSpinner } from '@/components/ui/loadingSpinner';
 import { Input } from '@/components/ui/input';
@@ -29,14 +30,11 @@ import { Search } from 'lucide-react';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 타입 정의
-type ExchangePlatform = 'upbit' | 'bithumb';
-type MarketType = 'KRW' | 'BTC' | 'USDT';
-type FavoriteCoins = { upbit: string[]; bithumb: string[] };
-
-const fallbackData: Ticker[] = [];
+type TickerTypes = UpbitTicker[] | BithumbTicker[] | BinanceTicker[];
+const fallbackData: TickerTypes = [];
 
 const usePort = (
-  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: Ticker }>>,
+  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>,
   setExchangePlatform: React.Dispatch<React.SetStateAction<ExchangePlatform>>,
   setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
@@ -88,11 +86,11 @@ const usePort = (
 };
 
 const useFavorites = () => {
-  const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({ upbit: [], bithumb: [] });
+  const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({ upbit: [], bithumb: [], binance: [] });
 
   useEffect(() => {
     chrome.storage.local.get('favoriteCoins', result => {
-      const stored = result?.favoriteCoins || { upbit: [], bithumb: [] };
+      const stored = result?.favoriteCoins || { upbit: [], bithumb: [], binance: [] };
       setFavoriteCoins(stored);
     });
   }, []);
@@ -124,7 +122,7 @@ const useWideSize = () => {
 };
 
 const App = () => {
-  const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({});
+  const [tickers, setTickers] = useState<{ [key: string]: TickerTypes }>({});
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -159,10 +157,12 @@ const App = () => {
 
   const tableData = useMemo(() => {
     if (!Object.values(tickers).length) return fallbackData;
-    return Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${exchangeMarketType}-`));
+    return exchangePlatform !== 'binance'
+      ? Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${exchangeMarketType}-`))
+      : Object.values(tickers).filter(ticker => ticker.market?.endsWith(`${exchangeMarketType}`));
   }, [tickers, exchangePlatform, exchangeMarketType]);
 
-  const columns = useMemo<ColumnDef<Ticker>[]>(() => {
+  const columns = useMemo<ColumnDef<TickerTypes>[]>(() => {
     const columnArgs: [
       boolean,
       React.Dispatch<React.SetStateAction<boolean>>,
@@ -176,7 +176,7 @@ const App = () => {
       ? getUpbitColumns(...columnArgs)
       : exchangePlatform === 'bithumb'
         ? getBithumbColumns(...columnArgs)
-        : getBinanceColumns(exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins, favoriteFunc);
+        : getBinanceColumns(exchangeMarketType, favoriteCoins, setFavoriteCoins, favoriteFunc);
   }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc]);
 
   const table = useReactTable({

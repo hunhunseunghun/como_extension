@@ -8,11 +8,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ExchangePlatform } from '@/types';
 import { ChevronDown } from 'lucide-react';
 
 const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
 type ExchangeMarketType = (typeof marketTypes)[number];
-type ExchangePlatform = 'upbit' | 'bithumb';
 
 interface MarketTypeDropDownProps {
   exchangeMarketType: ExchangeMarketType;
