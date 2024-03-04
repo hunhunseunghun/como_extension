@@ -339,6 +339,7 @@ async function initialize() {
 
   // 데이터 초기화 및 시작
   await exchangeRateManager.initialize();
+
   // await upbit.start();
   // await bithumb.start();
 
@@ -369,7 +370,6 @@ chrome.runtime.onConnect.addListener(port => {
   }
 
   port;
-
   port.onDisconnect.addListener(() => {
     activePort = null;
   });
