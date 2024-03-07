@@ -209,7 +209,7 @@ const App = () => {
   }, [wideSize, table]);
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
+    <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
       <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
         <nav className="flex-shrink-0">
           <div className="flex justify-between items-center mx-auto w-full px-1.5 py-1">

@@ -36,7 +36,6 @@ class ExchangeRateManager {
       exchangeRateUSD: null,
       updatedDate: null,
       favoriteCoins: { upbit: [], bithumb: [] },
-      wideSize: false,
     };
   }
 
@@ -132,7 +131,7 @@ class ExchangeData {
     this.markets = [];
     this.marketsInfo = null;
     this.tickers = null;
-    this.reconnectDelay = 3000;
+    this.reconnectDelay = 1000;
     this.isActive = false;
   }
 
@@ -143,6 +142,8 @@ class ExchangeData {
         headers: { Accept: 'application/json' },
       });
       const tickersArray = await response.json();
+
+      console.log('init api success : ', this.name);
       this.tickers = tickersArray.reduce((acc, ticker) => {
         if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
         return acc;
@@ -164,7 +165,7 @@ class ExchangeData {
     this.port.onDisconnect.addListener(() => {
       console.log(`${this.name} popup disconnected`);
       this.port = null;
-      if (this.socket) this.socket.close();
+      // if (this.socket) this.socket.close();
       return;
     });
     if (this.isActive && this.tickers) {
@@ -173,16 +174,23 @@ class ExchangeData {
   }
 
   async connectWebSocket() {
+    console.log(this.name, 'connect websocket excute');
     if (!this.isActive) return;
     if (this.socket && this.socket?.readyState === WebSocket.OPEN) return;
 
-    if (this.socket) this.socket.close();
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
     this.socket = new WebSocket(this.wsUrl);
 
     this.socket.onopen = () => {
-      if (this.socket.readyState === WebSocket.OPEN) {
-        this.socket.send(JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }]));
+      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+        console.warn(`${this.name} WebSocket opened but socket is invalid or not open`);
+        return;
       }
+
+      this.socket.send(JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }]));
     };
 
     this.socket.onmessage = async event => {
@@ -206,7 +214,11 @@ class ExchangeData {
     this.socket.onclose = event => {
       this.socket = null;
       console.log('웹소켓 닫힌 이유 , 코드 : ', event.code, '이유', event.reason);
-      if (this.isActive) setTimeout(() => this.connectWebSocket(), this.reconnectDelay);
+      if (this.isActive)
+        setTimeout(() => {
+          console.log(this.name, 'websocket 재연결 setTimeout');
+          this.connectWebSocket();
+        }, this.reconnectDelay);
     };
   }
 
@@ -221,9 +233,10 @@ class ExchangeData {
   setActive(active) {
     this.isActive = active;
     if (active) {
-      this.connectWebSocket();
+      this.start();
+      // this.connectWebSocket();
     } else if (this.socket) {
-      this.socket.close();
+      // this.socket.close();
     }
   }
 }
@@ -326,8 +339,8 @@ async function initialize() {
 
   // 데이터 초기화 및 시작
   await exchangeRateManager.initialize();
-  await upbit.start();
-  await bithumb.start();
+  // await upbit.start();
+  // await bithumb.start();
 
   if (activePort) {
     if (activeExchange === 'upbit' && upbit.tickers) {
@@ -365,13 +378,4 @@ chrome.runtime.onConnect.addListener(port => {
   port.postMessage({ type: 'activeExchange', data: activeExchange });
 });
 
-// 팝업 open시 initicker 강제 전송
-chrome.runtime.onMessage.addListener(message => {
-  if (message === 'popupOpened') {
-    initialize();
-    console.log('강제 initialize', message, ExchangeData.tickers);
-  }
-});
-
-// backgroundScript실행시 initialize
 initialize();
