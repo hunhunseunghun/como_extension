@@ -29,28 +29,32 @@ chrome.runtime.onMessage.addListener(message => {
 
 // ExchangeRateManager 클래스 (환율 관리)
 class ExchangeRateManager {
-  #storageKey = 'como_extension';
-  #defaultStorage = {
-    uiTheme: null,
-    exchangeRateUSD: null,
-    updatedDate: null,
-    favoriteCoins: { upbit: [], bithumb: [] },
-  };
-
   constructor() {
     this.port = null;
     this.exchangeRateUSD = null;
+    this.storages = {
+      exchangeRateUSD: null,
+      updatedDate: null,
+      favoriteCoins: { upbit: [], bithumb: [] },
+      wideSize: false,
+    };
   }
 
   async initialize() {
-    chrome.runtime.onInstalled.addListener(() =>
-      chrome.storage.local.set({ [this.#storageKey]: this.#defaultStorage }),
+    const keys = Object.keys(this.storages);
+    const results = await Promise.all(
+      keys.map(
+        key =>
+          new Promise(resolve => {
+            chrome.storage.local.get(key, result => resolve(result));
+          }),
+      ),
     );
+    results.forEach((result, index) => {
+      this.storages[keys[index]] = result[keys[index]];
+    });
 
-    const { [this.#storageKey]: storage } = await chrome.storage.local.get(this.#storageKey);
-    const currentStorage = storage || this.#defaultStorage;
-
-    if (!currentStorage.exchangeRateUSD || currentStorage.updatedDate !== CURRENT_DATE) {
+    if (!this.storages.exchangeRateUSD || this.storages.updatedDate !== CURRENT_DATE) {
       await this.updateExchangeRate();
     }
   }
@@ -112,9 +116,8 @@ class ExchangeRateManager {
   }
 
   async saveExchangeRate(rate, date) {
-    const storage = { ...this.#defaultStorage, exchangeRateUSD: rate, updatedDate: date };
-    await chrome.storage.local.set({ [this.#storageKey]: storage });
-    if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: rate ? rate : storage.exchangeRateUSD });
+    await chrome.storage.local.set({ exchangeRateUSD: rate, currentDate: date });
+    if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: rate || this.storages.exchangeRateUSD });
   }
 }
 
@@ -173,7 +176,7 @@ class ExchangeData {
     if (!this.isActive) return;
     if (this.socket && this.socket?.readyState === WebSocket.OPEN) return;
 
-    // if (this.socket) this.socket.close();
+    if (this.socket) this.socket.close();
     this.socket = new WebSocket(this.wsUrl);
 
     this.socket.onopen = () => {
@@ -276,17 +279,17 @@ class BithumbData extends ExchangeData {
 }
 
 // 상태 저장 및 관리
-const STORAGE_KEY = 'como_extension_state';
+const STORAGE_KEY = 'activeExchangePlatform';
 let activeExchange = null;
 
 async function saveActiveExchange(exchange) {
-  await chrome.storage.local.set({ [STORAGE_KEY]: { activeExchange: exchange } });
+  await chrome.storage.local.set({ [STORAGE_KEY]: exchange });
   activeExchange = exchange;
 }
 
 async function loadActiveExchange() {
   const { [STORAGE_KEY]: state } = await chrome.storage.local.get(STORAGE_KEY);
-  return state?.activeExchange || 'upbit';
+  return state || 'upbit';
 }
 
 async function handleExchangeChange(exchange) {

@@ -87,19 +87,38 @@ const useFavorites = () => {
   const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({ upbit: [], bithumb: [] });
 
   useEffect(() => {
-    chrome.storage.local.get('como_extension', result => {
-      const stored = result?.como_extension?.favoriteCoins || { upbit: [], bithumb: [] };
+    chrome.storage.local.get('favoriteCoins', result => {
+      const stored = result?.favoriteCoins || { upbit: [], bithumb: [] };
       setFavoriteCoins(stored);
     });
   }, []);
 
   useEffect(() => {
     chrome.storage.local.set({
-      como_extension: { favoriteCoins },
+      favoriteCoins: favoriteCoins,
     });
   }, [favoriteCoins]);
 
   return [favoriteCoins, setFavoriteCoins] as const;
+};
+
+const useWideSize = () => {
+  const [wideSize, setWideSize] = useState<boolean>(false);
+
+  useEffect(() => {
+    chrome.storage.local.get('wideSize', result => {
+      const stored = result?.wideSize || false;
+
+      console.log('STORED :', stored);
+      setWideSize(stored);
+    });
+  }, []);
+
+  useEffect(() => {
+    chrome.storage.local.set({ wideSize: wideSize });
+  }, [wideSize]);
+
+  return [wideSize, setWideSize] as const;
 };
 
 const App = () => {
@@ -108,7 +127,7 @@ const App = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
-  const [wideSize, setWideSize] = useState<boolean>(true);
+  const [wideSize, setWideSize] = useWideSize();
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
   const [exchangeMarketType, setExchangeMarketType] = useState<MarketType>('KRW');
@@ -120,7 +139,6 @@ const App = () => {
 
   useEffect(() => {
     chrome.runtime.sendMessage('popupOpened');
-    console.log('popup opened');
   }, []);
 
   usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading);
