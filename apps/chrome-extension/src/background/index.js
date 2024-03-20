@@ -15,7 +15,6 @@ chrome.runtime.onInstalled.addListener(details => {
   // como extension 설치 or 업데이트시 update note icon 변경
   if (details.reason === 'update') {
     updatedVersion = details?.previousVersion || null;
-    console.log('when installed or update  :', details?.previousVersion, updatedVersion);
   }
 });
 
@@ -317,9 +316,8 @@ class BinanceData extends ExchangeData {
   }
 
   async connectWebSocket() {
-    console.log('binance websocket start');
     if (!this.isActive) return;
-    console.log('binance websocket start active', this.active);
+
     if (this.socket && this.socket?.readyState === WebSocket.OPEN) return;
 
     if (this.socket) {
@@ -457,7 +455,6 @@ chrome.runtime.onConnect.addListener(port => {
 
   //updated version post
   if (activePort) {
-    console.log(activePort, 'post updated version to pop up : ', updatedVersion);
     activePort.postMessage({ type: 'updatedVersion', data: updatedVersion });
   }
 

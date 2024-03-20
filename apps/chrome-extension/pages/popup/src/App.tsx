@@ -737,40 +737,6 @@ const App = () => {
     }));
   }, [table, viewportWidth]);
 
-  // 디버깅 로그
-  useEffect(() => {
-    console.log('Viewport Width:', viewportWidth);
-    console.log('Chart Column Width:', chartColumnWidth);
-    console.log('Remaining Width:', remainingWidth);
-    console.log('Non-Chart Columns Count:', nonChartColumns.length);
-    console.log('Equal Column Width:', equalColumnWidth);
-    console.log('Adjusted Column Widths:', adjustedColumnWidths);
-    console.log(
-      'Total Width:',
-      adjustedColumnWidths.reduce((sum, col) => sum + col.width, 0),
-    );
-
-    // 열 구성 디버깅
-    console.log(`Exchange: ${exchangePlatform}`);
-    console.log(
-      'Columns:',
-      table.getAllColumns().map(col => ({
-        id: col.id,
-        visible: col.getIsVisible(),
-      })),
-    );
-
-    // 실제 행 높이 디버깅
-    const rows = parentRef.current?.querySelectorAll('tr');
-    if (rows && rows.length > 0) {
-      const actualHeight = rows[0].getBoundingClientRect().height;
-      console.log(`Actual Row Height: ${actualHeight}px`);
-      if (actualHeight !== 48) {
-        console.warn('Row height mismatch! Expected 48px, but got', actualHeight);
-      }
-    }
-  }, [viewportWidth, adjustedColumnWidths, centerRows, exchangePlatform, table]);
-
   // favoriteCoins와 rowPinning 동기화
   useEffect(() => {
     if (isLoading || !favoriteFunc) {
