@@ -485,17 +485,17 @@ const App = () => {
           );
         },
         cell: ({ getValue, row, cell }) => {
-          const value = (getValue() as number).toLocaleString();
-          const changeRateValue = changeRateUSD > 0 ? (getValue() as number) / changeRateUSD : 0;
+          const valueKRW = (getValue() as number).toLocaleString();
+          const changeRateKRW = changeRateUSD > 0 ? (getValue() as number) / changeRateUSD : 0;
 
           switch (marketType) {
             case 'KRW':
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-                  <div className="flex flex-col items-end  font-medium ">
-                    <span>{value}</span>
+                  <div className="flex flex-col items-end font-medium ">
+                    <span>{valueKRW}</span>
                     <span key={changeRateUSD} className="text-[10px] text-gray-500">
-                      {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
+                      {changeRateUSD > 0 && `$${changeRateKRW.toLocaleString()}`}
                     </span>
                   </div>
                 </FlashCell>
@@ -503,10 +503,12 @@ const App = () => {
             case 'BTC':
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-                  <div className="flex flex-col items-end  font-medium ">
-                    <span>{value}</span>
-                    <span key={changeRateUSD} className="text-[10px] text-gray-500">
-                      {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
+                  <div className="flex flex-col items-end font-medium ">
+                    <span>{String(getValue() as number)}</span>
+                    <span
+                      key={(valueKRW / (getValue() as number)).toLocaleString()}
+                      className="text-[10px] text-gray-500">
+                      {(valueKRW / (getValue() as number)).toLocaleString()}
                     </span>
                   </div>
                 </FlashCell>
@@ -515,10 +517,7 @@ const App = () => {
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
                   <div className="flex flex-col items-end  font-medium ">
-                    <span>{value}</span>
-                    <span key={changeRateUSD} className="text-[10px] text-gray-500">
-                      {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
-                    </span>
+                    <span>{(getValue() as number).toFixed(2).toLocaleString()}</span>
                   </div>
                 </FlashCell>
               );
