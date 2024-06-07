@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import './App.css';
+import '@/styles/App.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import {
   useReactTable,
