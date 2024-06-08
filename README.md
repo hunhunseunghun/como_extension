@@ -24,32 +24,19 @@
 
 ```
 como
-   ├ apps                           # webpack의 entry point 입니다.
-       └ chrome-extension           # chrome 브라우저용 확장프로그램 입니다.
-           ├ dist                   # 
-           ├ public                 # 메타데이터와 권한을 정의하는 manifest.json이 위치합니다.
-           ├ src                    # chrome 서비스워커 / background script가 위치합니다.
-           └ pages                  #
-              └ popup               #  
-                 └ src              # 
-                    ├ componets     # 전역 재사용 가능한 컴포넌트들이 위치합니다.
-                    ├ types         
-como
-   ├ apps                           # Turborepo의 애플리케이션 단위 프로젝트 폴더
-       └ chrome-extension           # Chrome 브라우저용 확장 프로그램
+   ├ packages                       # 애플리케이션에서 공유하는 모듈(타입,UI,Config)
+   └ **apps**                           # Turborepo의 애플리케이션 단위 프로젝트 폴더
+       └ **chrome-extension**           # Chrome 브라우저용 확장 프로그램
            ├ dist                   # Vite로 빌드된 최종 번들 파일이 저장되는 폴더
            ├ public                 # 메타데이터와 권한을 정의하는 manifest.json이 위치
-           ├ src                    # 확장 프로그램의 핵심 소스 코드
-              └ background          # Chrome 확장의 background script 및 Fetching,WebSocket 로직
-           └ pages                   # 확장 프로그램의 UI 페이지 구성
-              └ popup                # 확장 프로그램의 팝업 페이지
-                 └ src               # 팝업 페이지 관련 소스 코드
-                    ├ components     # 재사용 가능한 컴포넌트
-                    ├ types          # TypeScript 인터페이스 및 타입 정의
-                    ├ styles         # Tailwind CSS 스타일 파일
-                    ├ utils          # 팝업 내에서 사용하는 유틸리티 함수
-
-
+           ├ **src**                    # **확장 프로그램의 핵심 소스 코드**
+              └ **background**          # **Chrome 확장의 background script 및** Fetching,WebSocket 로직
+           └ **pages**                  # 확장 프로그램의 UI 페이지 구성
+              └ **popup**               # 확장 프로그램의 팝업 페이지
+                 └ **src**              # 팝업 페이지 관련 소스 코드
+                    ├ **components**    # 재사용 가능한 컴포넌트
+                    ├ **types**         # **TypeScript 인터페이스 및 타입 정의**
+                    ├ **styles**        # **Tailwind CSS 스타일 파일**
 ```
 
 
