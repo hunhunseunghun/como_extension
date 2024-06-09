@@ -18,14 +18,12 @@
 <img alt="shadcnui" src ="https://img.shields.io/badge/shadcnui-white?&style=for-the-badge&logo=shadcnui&logoColor=black"/>
 <img alt="tailwindcss" src ="https://img.shields.io/badge/tailwindcss-white?&style=for-the-badge&logo=tailwindcss&logoColor=#06B6D4"/>
 
-
-
 ## 디렉토리
 
 ```
 como
    ├ packages                       # 애플리케이션에서 공유하는 모듈(타입,UI,Config)
-   └ **apps**                           # Turborepo의 애플리케이션 단위 프로젝트 폴더
+   └ <strong>apps</strong>          # Turborepo의 애플리케이션 단위 프로젝트 폴더
        └ **chrome-extension**           # Chrome 브라우저용 확장 프로그램
            ├ dist                   # Vite로 빌드된 최종 번들 파일이 저장되는 폴더
            ├ public                 # 메타데이터와 권한을 정의하는 manifest.json이 위치
@@ -38,7 +36,6 @@ como
                     ├ **types**         # **TypeScript 인터페이스 및 타입 정의**
                     ├ **styles**        # **Tailwind CSS 스타일 파일**
 ```
-
 
 ## Contributing
 
