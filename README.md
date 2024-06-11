@@ -27,14 +27,14 @@ como
        └ *chrome-extension           # Chrome 브라우저용 확장 프로그램
            ├ dist                    # Vite로 빌드된 최종 번들 파일이 저장되는 폴더
            ├ public                  # 메타데이터와 권한을 정의하는 manifest.json이 위치
-           ├ *src                    # **확장 프로그램의 핵심 소스 코드**
-              └ *background          # **Chrome 확장의 background script 및** Fetching,WebSocket 로직
+           ├ *src                    # 확장 프로그램의 핵심 소스 코드
+              └ *background          # Chrome 확장의 background script 및 Fetching,WebSocket 로직
            └ *pages                  # 확장 프로그램의 UI 페이지 구성
               └ *popup               # 확장 프로그램의 팝업 페이지
                  └ *src              # 팝업 페이지 관련 소스 코드
                     ├ *components    # 재사용 가능한 컴포넌트
-                    ├ *types         # **TypeScript 인터페이스 및 타입 정의**
-                    ├ *styles        # **Tailwind CSS 스타일 파일**
+                    ├ *types         # TypeScript 인터페이스 및 타입 정의
+                    ├ *styles        # Tailwind CSS 스타일 파일
 ```
 
 ## Contributing
