@@ -5,6 +5,46 @@ class UpbitData {
     this.upbitMarkets = [];
     this.upbitMarketsInfo = null;
     this.tickersInitData = null;
+    this.exchangeRate = null;
+  }
+
+  async fetchExchangeRate() {
+    try {
+    
+    const API_URL  = "https://www.koreaexim.go.kr/site/program/financial/exchangeJSON"
+    const AUTH_KEY  = "lhvJTBDL3jYjY7HvXsMBLacy5TEjsavr"
+    const DATA_TYPE "AP01"
+    
+    const DATE  = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+      .format(new Date())
+      .replace(/\./g, "")  
+      .replace(/ /g, ""); 
+
+   const REQUEST_URL =`${API_URL}?authkey=${AUTH_KEY}&data=AP01&searchdate=${TODAY}`
+
+   console.log(REQUEST_URL)
+
+    const response = await fetch(REQUEST_URL,{
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+
+
+    })
+  
+    this.exchangeRate = response
+  
+  
+  
+  } catch (error) {
+      console.error(" 환율 fetching error :", error);
+    }
   }
 
   // popup 연결 시 port 처리
@@ -32,7 +72,9 @@ class UpbitData {
       });
       const data = await response.json();
       const cautionFilteredData = data.map(item => {
-        const isCautionTrue = item.market_event?.caution === true;
+        const isCautionTrue = item.market_event?.caution
+          ? Object.values(item.market_event.caution).some(value => value === true)
+          : false;
         if (item.market_event) item.market_event.caution = isCautionTrue;
         return item;
       });
@@ -131,5 +173,7 @@ chrome.runtime.onConnect.addListener(port => {
   upbitData.connectPopup(port);
 });
 
+//환율
+upbitData.fetchExchangeRate()
 // Upbit 데이터 수집 시작
 upbitData.connectUpbitData();
