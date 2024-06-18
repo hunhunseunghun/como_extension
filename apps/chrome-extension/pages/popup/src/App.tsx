@@ -15,7 +15,6 @@ import {
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { useTheme } from '@/components/ThemeProvider';
 import { ModeToggle } from '@/components/ModeToggle';
 import { SizeToggle } from '@/components/SizeToggle';
 import { MarketDropdown } from '@/components/MarketDropdown';
@@ -73,7 +72,6 @@ type Ticker = {
 };
 
 const App = () => {
-  const { theme, setTheme } = useTheme();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({
     'KRW-ETH': {
@@ -147,26 +145,28 @@ const App = () => {
       },
     },
   });
+
   const [tableData, setTableData] = useState<Ticker[]>(Object.values(tickers));
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [wideSize, setWideSize] = useState<boolean>(false);
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
+  const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
 
   const connectBackgroundStream = async () => {
     const port = await chrome.runtime.connect({ name: 'popup' });
 
     if (port) {
       port.onMessage.addListener(message => {
-        if (message.type === 'upbitTickers') {
-          setTickers(message.data);
-          console.log('upbitTickers', message.data);
-        } else if (message.type === 'upbitWebsocketTicker') {
+        if (message.type === 'upbitWebsocketTicker') {
           setTickers(prevTickers => ({
             ...prevTickers,
             [message.data?.code]: { ...prevTickers[message.data?.code], ...message.data },
           }));
-          console.log('upbitWebsocketTicker', message.data);
+        } else if (message.type === 'upbitTickers') {
+          setTickers(message.data);
+        } else if (message.type === 'changeRateUSD') {
+          setChangeRateUSD(message.data);
         }
       });
 
@@ -176,9 +176,11 @@ const App = () => {
       });
     }
   };
-  // useEffect(() => {
-  //   connectBackgroundStream(); // 컴포넌트가 로드될 때 연결 시도
-  // }, []);
+
+  useEffect(() => {
+    //로컬스토리지 오늘자 환율
+    connectBackgroundStream(); // 컴포넌트가 로드될 때 연결 시도
+  }, []);
   useEffect(() => {
     setTableData(Object.values(tickers));
   }, [tickers]);
@@ -354,24 +356,24 @@ const App = () => {
     ],
     [coinNameKR],
   );
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setTickers(prevTickers => {
-        const newAskBid = prevTickers['KRW-BTC'].ask_bid === 'BID' ? 'ASK' : 'BID';
-        const newTickers = {
-          ...prevTickers,
-          'KRW-BTC': {
-            ...prevTickers['KRW-BTC'],
-            ask_bid: newAskBid,
-          },
-        };
+  // useEffect(() => {
+  //   const intervalId = setInterval(() => {
+  //     setTickers(prevTickers => {
+  //       const newAskBid = prevTickers['KRW-BTC'].ask_bid === 'BID' ? 'ASK' : 'BID';
+  //       const newTickers = {
+  //         ...prevTickers,
+  //         'KRW-BTC': {
+  //           ...prevTickers['KRW-BTC'],
+  //           ask_bid: newAskBid as 'ASK' | 'BID',
+  //         },
+  //       };
 
-        return newTickers;
-      });
-    }, 1000);
+  //       return newTickers;
+  //     });
+  //   }, 1000);
 
-    return () => clearInterval(intervalId);
-  }, []);
+  //   return () => clearInterval(intervalId);
+  // }, []);
 
   useEffect(() => {
     if (wideSize) {
@@ -403,6 +405,7 @@ const App = () => {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <span>USD CHANGE RATE : {changeRateUSD}</span>
       <div>
         <nav>
           <div className="flex justify-between items-center mx-auto w-full px-1.5 py-1">
@@ -410,8 +413,8 @@ const App = () => {
               <img src={comoLogo} className="size-6" />
             </section>
             <section className="flex gap-1">
-              <ModeToggle variant="outline" />
-              <SizeToggle variant="outline" wideSize={wideSize} setWideSize={setWideSize} />
+              <ModeToggle />
+              <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
             </section>
           </div>
           <div className="flex justify-between mx-auto w-full  px-1.5 py-1">

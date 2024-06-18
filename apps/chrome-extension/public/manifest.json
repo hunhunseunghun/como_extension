@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "__MSG_extensionDescription__",
   "permissions": ["tabs", "storage", "alarms", "notifications"],
-  "host_permissions": ["https://api.upbit.com/*"],
+  "host_permissions": ["https://api.upbit.com/*", "https://www.koreaexim.go.kr/*"],
   "background": {
     "service_worker": "background.iife.js",
     "type": "module"

@@ -1,10 +1,10 @@
 // FlashContent.tsx
 import { useEffect, useState } from 'react';
-import type { Ticker } from '@/types';
 import { TableCell } from '@/components/ui/table';
+import type { UpbitTicker } from '@/types/upbitTicker';
 
 type FlashContentProps = {
-  ticker?: Ticker;
+  ticker?: UpbitTicker;
   children: React.ReactNode;
 };
 

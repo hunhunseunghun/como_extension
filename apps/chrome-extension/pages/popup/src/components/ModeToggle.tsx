@@ -10,7 +10,7 @@ export function ModeToggle() {
   return (
     <Toggle
       className="hover:cursor-pointer hover:bg-accent size-6 min-w-6 border-1"
-      variants="outline"
+      variant="outline"
       onClick={switchTheme}>
       <Moon
         size={14}

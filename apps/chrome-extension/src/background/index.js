@@ -1,3 +1,14 @@
+const CURRENT_DATE = String(
+  new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date()),
+)
+  .replace(/\./g, '')
+  .replace(/ /g, '');
+
 class UpbitData {
   constructor() {
     this.socket = null;
@@ -5,46 +16,7 @@ class UpbitData {
     this.upbitMarkets = [];
     this.upbitMarketsInfo = null;
     this.tickersInitData = null;
-    this.exchangeRate = null;
-  }
-
-  async fetchExchangeRate() {
-    try {
-    
-    const API_URL  = "https://www.koreaexim.go.kr/site/program/financial/exchangeJSON"
-    const AUTH_KEY  = "lhvJTBDL3jYjY7HvXsMBLacy5TEjsavr"
-    const DATA_TYPE "AP01"
-    
-    const DATE  = new Intl.DateTimeFormat('ko-KR', {
-      timeZone: 'Asia/Seoul',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    })
-      .format(new Date())
-      .replace(/\./g, "")  
-      .replace(/ /g, ""); 
-
-   const REQUEST_URL =`${API_URL}?authkey=${AUTH_KEY}&data=AP01&searchdate=${TODAY}`
-
-   console.log(REQUEST_URL)
-
-    const response = await fetch(REQUEST_URL,{
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-
-
-    })
-  
-    this.exchangeRate = response
-  
-  
-  
-  } catch (error) {
-      console.error(" 환율 fetching error :", error);
-    }
+    this.changeRateUSD = null;
   }
 
   // popup 연결 시 port 처리
@@ -59,6 +31,38 @@ class UpbitData {
 
     if (this.tickersInitData && this.port) {
       this.port.postMessage({ type: 'upbitTickers', data: this.tickersInitData });
+    }
+
+    if (this.port && this.changeRateUSD) {
+      this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+    }
+  }
+
+  async fetchExchangeRate() {
+    try {
+      const API_URL = 'https://www.koreaexim.go.kr/site/program/financial/exchangeJSON';
+      const AUTH_KEY = 'lhvJTBDL3jYjY7HvXsMBLacy5TEjsavr';
+      const DATA_TYPE = 'AP01';
+
+      const REQUEST_URL = `${API_URL}?authkey=${AUTH_KEY}&data=AP01&searchdate=${CURRENT_DATE}`;
+
+      const response = await fetch(REQUEST_URL, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const responeseArray = await response.json();
+      const changeRateUSD = responeseArray.filter(rate => rate.cur_unit === 'USD')[0]?.deal_bas_r?.replace(/,/g, '');
+
+      chrome.storage.local.set({ como_extension: { changeRate: Number(changeRateUSD), updatedDate: CURRENT_DATE } });
+
+      this.changeRateUSD = Number(changeRateUSD);
+
+      console.log('this.changeRateUSD', this.changeRateUSD);
+    } catch (error) {
+      console.error(' 환율 fetching error :', error);
     }
   }
 
@@ -165,6 +169,26 @@ class UpbitData {
   }
 }
 
+async function initializeStorage() {
+  // when extensions install, chrome localstorage initialize
+  chrome.runtime.onInstalled.addListener(() =>
+    chrome.storage.local.set({ como_extension: { changeRate: null, updatedDate: null } }),
+  );
+
+  const result = await chrome.storage.local.get(['como_extension']);
+
+  console.log('backgournd storage result :', result);
+  const comoStorage = result.como_extension ?? { changeRate: null, updatedDate: null };
+
+  console.log('📌 Storage Data background :', comoStorage);
+
+  if (!comoStorage.changeRate && comoStorage.updatedDate !== CURRENT_DATE) {
+    await upbitData.fetchExchangeRate();
+  } else if (!result) {
+    await chrome.storage.local.set({ como_extension: { changeRate: null, updatedDate: null } });
+  }
+}
+
 // UpbitData 인스턴스를 생성
 const upbitData = new UpbitData();
 
@@ -173,7 +197,7 @@ chrome.runtime.onConnect.addListener(port => {
   upbitData.connectPopup(port);
 });
 
-//환율
-upbitData.fetchExchangeRate()
+initializeStorage();
+
 // Upbit 데이터 수집 시작
 upbitData.connectUpbitData();
