@@ -16,6 +16,7 @@ class UpbitData {
     this.upbitMarkets = [];
     this.upbitMarketsInfo = null;
     this.tickersInitData = null;
+    this.comoLocalStorage = { como_extension: { ui_theme: null, changeRateUSD: null, updatedDate: null } };
     this.changeRateUSD = null;
   }
 
@@ -38,32 +39,95 @@ class UpbitData {
     }
   }
 
+  getDynamicUserAgent() {
+    // 크롬 확장 환경에서는 navigator.userAgent를 통해 현재 브라우저 정보 가져오기
+    const defaultUA = navigator.userAgent;
+    return defaultUA;
+  }
+
   async fetchExchangeRate() {
     try {
-      const API_URL = 'https://www.koreaexim.go.kr/site/program/financial/exchangeJSON';
-      const AUTH_KEY = 'lhvJTBDL3jYjY7HvXsMBLacy5TEjsavr';
-      const DATA_TYPE = 'AP01';
+      const AUTH_KEY = 'lhvJTBDL3jYjY7HvXsMBLacy5TEjsavr'; // 실제 인증키로 교체
+      let searchDate = CURRENT_DATE; // 기본적으로 오늘 날짜
+      let attempts = 0;
+      const maxAttempts = 7; // 최대 7일 전까지 확인 (주말/공휴일 대비)
+      let foundRate = false;
 
-      const REQUEST_URL = `${API_URL}?authkey=${AUTH_KEY}&data=AP01&searchdate=${CURRENT_DATE}`;
+      while (attempts < maxAttempts && !foundRate) {
+        const url = `https://www.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${AUTH_KEY}&searchdate=${searchDate}&data=AP01`;
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      const response = await fetch(REQUEST_URL, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+        const data = await response.json();
 
-      const responeseArray = await response.json();
-      const changeRateUSD = responeseArray.filter(rate => rate.cur_unit === 'USD')[0]?.deal_bas_r?.replace(/,/g, '');
+        if (data.length > 0) {
+          const usdRate = data.find(rate => rate.cur_unit === 'USD')?.deal_bas_r?.replace(/,/g, '');
+          if (usdRate) {
+            this.changeRateUSD = Number(usdRate);
+            console.log(`USD 환율 (한국수출입은행 기준, ${searchDate}):`, this.changeRateUSD);
 
-      chrome.storage.local.set({ como_extension: { changeRate: Number(changeRateUSD), updatedDate: CURRENT_DATE } });
+            this.comoLocalStorage.como_extension.changeRateUSD = usdRate;
+            this.comoLocalStorage.como_extension.updatedDate = searchDate;
+            chrome.storage.local.set(this.comoLocalStorage);
 
-      this.changeRateUSD = Number(changeRateUSD);
+            if (this.port) {
+              this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+            }
 
-      console.log('this.changeRateUSD', this.changeRateUSD);
+            foundRate = true; // ✅ 환율을 찾았으므로 while 종료 조건을 만족하게 함
+          }
+        }
+
+        // 데이터가 없으면 하루 전으로 이동
+        attempts++;
+        const prevDate = new Date();
+        prevDate.setDate(prevDate.getDate() - attempts);
+        searchDate = prevDate.toISOString().slice(0, 10).replace(/-/g, '');
+      }
     } catch (error) {
-      console.error(' 환율 fetching error :', error);
+      console.error('한국수출입은행 API 에러:', error);
+      return null;
     }
+
+    // try {
+    //   const url = 'https://finance.naver.com/marketindex/';
+    //   const response = await fetch(url, {
+    //     method: 'GET',
+    //     headers: {
+    //       'User-Agent': this.getDynamicUserAgent(),
+    //     },
+    //   });
+
+    //   const html = await response.text();
+
+    //   // 정규식으로 USD 환율 추출
+    //   const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
+    //   const match = html.match(usdRegex);
+    //   let changeRateUSD = null;
+
+    //   if (match && match[1]) {
+    //     changeRateUSD = match[1].replace(/,/g, ''); // 쉼표 제거
+    //   } else {
+    //     throw new Error('USD 환율을 찾을 수 없습니다.');
+    //   }
+
+    //   this.changeRateUSD = Number(changeRateUSD);
+    //   console.log('USD 환율 (네이버, 하나은행 기준):', this.changeRateUSD);
+
+    //   chrome.storage.local.set({
+    //     como_extension: { changeRate: this.changeRateUSD, updatedDate: CURRENT_DATE },
+    //   });
+
+    //   return { changeRate: this.changeRateUSD, updatedDate: CURRENT_DATE };
+    // } catch (error) {
+    //   console.error('환율 크롤링 에러:', error);
+
+    //   return null;
+    // }
   }
 
   async fetchUpbitMarkets() {
@@ -155,7 +219,7 @@ class UpbitData {
     this.socket.onclose = () => {
       console.log('⚠️ WebSocket closed - Reconnecting...');
       this.socket = null;
-      setTimeout(() => this.connectWebSocket(), 250);
+      setTimeout(() => this.connectWebSocket(), 1000);
     };
   }
 
@@ -171,21 +235,15 @@ class UpbitData {
 
 async function initializeStorage() {
   // when extensions install, chrome localstorage initialize
-  chrome.runtime.onInstalled.addListener(() =>
-    chrome.storage.local.set({ como_extension: { changeRate: null, updatedDate: null } }),
-  );
+  chrome.runtime.onInstalled.addListener(() => chrome.storage.local.set(upbitData.comoLocalStorage));
 
   const result = await chrome.storage.local.get(['como_extension']);
+  const comoStorage = result.como_extension ?? upbitData.comoLocalStorage;
 
-  console.log('backgournd storage result :', result);
-  const comoStorage = result.como_extension ?? { changeRate: null, updatedDate: null };
-
-  console.log('📌 Storage Data background :', comoStorage);
-
-  if (!comoStorage.changeRate && comoStorage.updatedDate !== CURRENT_DATE) {
+  if (comoStorage.changeRate == null || comoStorage.updatedDate !== CURRENT_DATE) {
     await upbitData.fetchExchangeRate();
   } else if (!result) {
-    await chrome.storage.local.set({ como_extension: { changeRate: null, updatedDate: null } });
+    await chrome.storage.local.set({ como_extension: upbitData.comoLocalStorage.como_extension });
   }
 }
 

@@ -357,7 +357,7 @@ const App = () => {
   const [tableData, setTableData] = useState<Ticker[]>(Object.values(tickers));
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [wideSize, setWideSize] = useState<boolean>(false);
+  const [wideSize, setWideSize] = useState<boolean>(true);
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
 
@@ -374,6 +374,7 @@ const App = () => {
         } else if (message.type === 'upbitTickers') {
           setTickers(message.data);
         } else if (message.type === 'changeRateUSD') {
+          console.log(message.type, message.data);
           setChangeRateUSD(message.data);
         }
       });
@@ -386,7 +387,6 @@ const App = () => {
   };
 
   useEffect(() => {
-    //로컬스토리지 오늘자 환율
     connectBackgroundStream(); // 컴포넌트가 로드될 때 연결 시도
   }, []);
   useEffect(() => {
