@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-
 import './App.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import {
@@ -19,10 +18,9 @@ import { ModeToggle } from '@/components/ModeToggle';
 import { SizeToggle } from '@/components/SizeToggle';
 import { MarketDropdown } from '@/components/MarketDropdown';
 import FlashCell from '@/components/FlashCell';
-
+import { getRegExp } from 'korean-regexp';
 import { Search, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
-
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 1. Ticker 객체 타입 정의
@@ -144,6 +142,216 @@ const App = () => {
         caution: true,
       },
     },
+    'KRW-BCH': {
+      market: 'KRW-BCH',
+      trade_date: '20240822',
+      trade_time: '071602',
+      trade_date_kst: '20240822',
+      trade_time_kst: '161602',
+      trade_timestamp: 1724310962713,
+      opening_price: 82900000,
+      high_price: 83000000,
+      low_price: 81280000,
+      trade_price: 82324000,
+      prev_closing_price: 82900000,
+      change: 'FALL',
+      change_price: 576000,
+      change_rate: 0.0069481303,
+      signed_change_price: -576000,
+      signed_change_rate: -0.0069481303,
+      trade_volume: 0.00042335,
+      acc_trade_price: 66058843588.46906,
+      acc_trade_price_24h: 250206655398.15125,
+      acc_trade_volume: 803.00214714,
+      acc_trade_volume_24h: 3047.01625142,
+      highest_52_week_price: 105000000,
+      highest_52_week_date: '2024-03-14',
+      lowest_52_week_price: 34100000,
+      lowest_52_week_date: '2023-09-11',
+      timestamp: 1724310962747,
+      korean_name: '비트코인캐시',
+      english_name: 'bitcoincash',
+      ask_bid: 'BID',
+      market_event: {
+        warning: false,
+        caution: true,
+      },
+    },
+    'KRW-AAVE': {
+      market: 'KRW-AAVE',
+      trade_date: '20240822',
+      trade_time: '071602',
+      trade_date_kst: '20240822',
+      trade_time_kst: '161602',
+      trade_timestamp: 1724310962713,
+      opening_price: 82900000,
+      high_price: 83000000,
+      low_price: 81280000,
+      trade_price: 82324000,
+      prev_closing_price: 82900000,
+      change: 'FALL',
+      change_price: 576000,
+      change_rate: 0.0069481303,
+      signed_change_price: -576000,
+      signed_change_rate: -0.0069481303,
+      trade_volume: 0.00042335,
+      acc_trade_price: 66058843588.46906,
+      acc_trade_price_24h: 250206655398.15125,
+      acc_trade_volume: 803.00214714,
+      acc_trade_volume_24h: 3047.01625142,
+      highest_52_week_price: 105000000,
+      highest_52_week_date: '2024-03-14',
+      lowest_52_week_price: 34100000,
+      lowest_52_week_date: '2023-09-11',
+      timestamp: 1724310962747,
+      korean_name: '에이브',
+      english_name: 'aave',
+      ask_bid: 'BID',
+      market_event: {
+        warning: false,
+        caution: true,
+      },
+    },
+    'SOL-KRW': {
+      market: 'SOL-KRW',
+      trade_date: '20240822',
+      trade_time: '071602',
+      trade_date_kst: '20240822',
+      trade_time_kst: '161602',
+      trade_timestamp: 1724310962713,
+      opening_price: 82900000,
+      high_price: 83000000,
+      low_price: 81280000,
+      trade_price: 82324000,
+      prev_closing_price: 82900000,
+      change: 'FALL',
+      change_price: 576000,
+      change_rate: 0.0069481303,
+      signed_change_price: -576000,
+      signed_change_rate: -0.0069481303,
+      trade_volume: 0.00042335,
+      acc_trade_price: 66058843588.46906,
+      acc_trade_price_24h: 250206655398.15125,
+      acc_trade_volume: 803.00214714,
+      acc_trade_volume_24h: 3047.01625142,
+      highest_52_week_price: 105000000,
+      highest_52_week_date: '2024-03-14',
+      lowest_52_week_price: 34100000,
+      lowest_52_week_date: '2023-09-11',
+      timestamp: 1724310962747,
+      korean_name: '솔라나',
+      english_name: 'solana',
+      ask_bid: 'BID',
+      market_event: {
+        warning: false,
+        caution: true,
+      },
+    },
+    'KRW-BSV': {
+      market: 'KRW-BSV',
+      trade_date: '20240822',
+      trade_time: '071602',
+      trade_date_kst: '20240822',
+      trade_time_kst: '161602',
+      trade_timestamp: 1724310962713,
+      opening_price: 82900000,
+      high_price: 83000000,
+      low_price: 81280000,
+      trade_price: 82324000,
+      prev_closing_price: 82900000,
+      change: 'FALL',
+      change_price: 576000,
+      change_rate: 0.0069481303,
+      signed_change_price: -576000,
+      signed_change_rate: -0.0069481303,
+      trade_volume: 0.00042335,
+      acc_trade_price: 66058843588.46906,
+      acc_trade_price_24h: 250206655398.15125,
+      acc_trade_volume: 803.00214714,
+      acc_trade_volume_24h: 3047.01625142,
+      highest_52_week_price: 105000000,
+      highest_52_week_date: '2024-03-14',
+      lowest_52_week_price: 34100000,
+      lowest_52_week_date: '2023-09-11',
+      timestamp: 1724310962747,
+      korean_name: '비트코인에스브이',
+      english_name: 'bitcoinSV',
+      ask_bid: 'BID',
+      market_event: {
+        warning: false,
+        caution: true,
+      },
+    },
+    'KRW-ETC': {
+      market: 'KRW-ETC',
+      trade_date: '20240822',
+      trade_time: '071602',
+      trade_date_kst: '20240822',
+      trade_time_kst: '161602',
+      trade_timestamp: 1724310962713,
+      opening_price: 82900000,
+      high_price: 83000000,
+      low_price: 81280000,
+      trade_price: 82324000,
+      prev_closing_price: 82900000,
+      change: 'FALL',
+      change_price: 576000,
+      change_rate: 0.0069481303,
+      signed_change_price: -576000,
+      signed_change_rate: -0.0069481303,
+      trade_volume: 0.00042335,
+      acc_trade_price: 66058843588.46906,
+      acc_trade_price_24h: 250206655398.15125,
+      acc_trade_volume: 803.00214714,
+      acc_trade_volume_24h: 3047.01625142,
+      highest_52_week_price: 105000000,
+      highest_52_week_date: '2024-03-14',
+      lowest_52_week_price: 34100000,
+      lowest_52_week_date: '2023-09-11',
+      timestamp: 1724310962747,
+      korean_name: '이더리움클래식',
+      english_name: 'etheriumClassic',
+      ask_bid: 'BID',
+      market_event: {
+        warning: false,
+        caution: true,
+      },
+    },
+    'KRW-TTC': {
+      market: 'KRW-TTC',
+      trade_date: '20240822',
+      trade_time: '071602',
+      trade_date_kst: '20240822',
+      trade_time_kst: '161602',
+      trade_timestamp: 1724310962713,
+      opening_price: 82900000,
+      high_price: 83000000,
+      low_price: 81280000,
+      trade_price: 82324000,
+      prev_closing_price: 82900000,
+      change: 'FALL',
+      change_price: 576000,
+      change_rate: 0.0069481303,
+      signed_change_price: -576000,
+      signed_change_rate: -0.0069481303,
+      trade_volume: 0.00042335,
+      acc_trade_price: 66058843588.46906,
+      acc_trade_price_24h: 250206655398.15125,
+      acc_trade_volume: 803.00214714,
+      acc_trade_volume_24h: 3047.01625142,
+      highest_52_week_price: 105000000,
+      highest_52_week_date: '2024-03-14',
+      lowest_52_week_price: 34100000,
+      lowest_52_week_date: '2023-09-11',
+      timestamp: 1724310962747,
+      korean_name: '테조',
+      english_name: 'tezo',
+      ask_bid: 'BID',
+      market_event: {
+        warning: false,
+        caution: true,
+      },
+    },
   });
 
   const [tableData, setTableData] = useState<Ticker[]>(Object.values(tickers));
@@ -191,7 +399,6 @@ const App = () => {
         accessorFn: (row: Ticker) => {
           return `${row.korean_name} ${row.market}`;
         },
-
         id: 'market',
         header: () => {
           return (
@@ -208,7 +415,7 @@ const App = () => {
           const convertMarket = splitMarket[1] + '/' + splitMarket[0];
           return (
             <div className="flex flex-col items-start font-semibold">
-              <div className="flex gap-[2px]">
+              <div className="flex gap-[2px] text-left break-word">
                 <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
                 <div className="flex gap-[1px] items-center">
                   {row.original.market_event.warning && <WarningIcon />}
@@ -219,6 +426,24 @@ const App = () => {
               <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
             </div>
           );
+        },
+        filterFn: (row, filterValue) => {
+          if (!filterValue) return true;
+
+          const market = row.original.market.toLowerCase();
+          const englishName = row.original.english_name?.toLowerCase() || '';
+          const koreanName = row.original.korean_name || '';
+          const searchValue = filterValue.toLowerCase().trim();
+
+          // 기존 검색: 전체 텍스트 매칭
+          const fullTextMatch =
+            market.includes(searchValue) || englishName.includes(searchValue) || koreanName.includes(searchValue);
+
+          let chosungMatch = false;
+          const chosungRegex = getRegExp(searchValue, { initialSearch: true });
+          chosungMatch = chosungRegex.test(koreanName);
+
+          return fullTextMatch || chosungMatch;
         },
         enableHiding: false,
       },
@@ -234,11 +459,12 @@ const App = () => {
         },
         cell: ({ getValue, row, cell }) => {
           const value = (getValue() as number).toLocaleString();
-
+          const changeRateValue = ((getValue() as number) / changeRateUSD).toLocaleString();
           return (
-            <FlashCell key={cell.id} ticker={row.original}>
-              <div className="float-right font-medium ">
+            <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
+              <div className="flex flex-col items-end  font-medium ">
                 <span>{value}</span>
+                <span className="text-[10px] text-gray-500"> {changeRateUSD > 0 ? `$${changeRateValue}` : ''}</span>
               </div>
             </FlashCell>
           );
@@ -356,36 +582,6 @@ const App = () => {
     ],
     [coinNameKR],
   );
-  // useEffect(() => {
-  //   const intervalId = setInterval(() => {
-  //     setTickers(prevTickers => {
-  //       const newAskBid = prevTickers['KRW-BTC'].ask_bid === 'BID' ? 'ASK' : 'BID';
-  //       const newTickers = {
-  //         ...prevTickers,
-  //         'KRW-BTC': {
-  //           ...prevTickers['KRW-BTC'],
-  //           ask_bid: newAskBid as 'ASK' | 'BID',
-  //         },
-  //       };
-
-  //       return newTickers;
-  //     });
-  //   }, 1000);
-
-  //   return () => clearInterval(intervalId);
-  // }, []);
-
-  useEffect(() => {
-    if (wideSize) {
-      document.body.style.width = '810px';
-      document.body.style.height = '580px';
-    } else {
-      document.body.style.width = '420px';
-      document.body.style.height = '400px';
-    }
-
-    table.getAllColumns().filter(column => column.toggleVisibility(wideSize));
-  }, [wideSize]);
 
   const table = useReactTable({
     data: tableData,
@@ -403,11 +599,14 @@ const App = () => {
     },
   });
 
+  useEffect(() => {
+    table.getAllColumns().filter(column => column.toggleVisibility(wideSize));
+  }, [wideSize]);
+
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <span>USD CHANGE RATE : {changeRateUSD}</span>
-      <div>
-        <nav>
+    <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
+      <div className={`flex-col ${!wideSize ? 'w-[420px] h-[430px]' : 'w-[800px] h-[600px]'} overflow-hidden`}>
+        <nav className="flex-shrink-0">
           <div className="flex justify-between items-center mx-auto w-full px-1.5 py-1">
             <section>
               <img src={comoLogo} className="size-6" />
@@ -417,66 +616,64 @@ const App = () => {
               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
             </section>
           </div>
-          <div className="flex justify-between mx-auto w-full  px-1.5 py-1">
-            <section className="flex relative items-center">
-              <div className="flex">
-                <Input
-                  className="h-[24px] w-22 pl-4 py-2  mt-[0.5px] text-[10px] text-neutral-400 font-semibold left-0 placeholder:text-neutral-400 border-1"
-                  placeholder=" BTC , 비트"
-                />
-                <Search className="pointer-events-none absolute mt-[2px] size-3 left-1 top-[5px] text-neutral-500 " />
-              </div>
+          <div className="flex justify-between mx-auto w-full px-1.5 py-1">
+            <section className="relative items-center flex">
+              <Input
+                className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 font-semibold placeholder:text-neutral-400 border"
+                placeholder=" BTC , 비트"
+                value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
+                onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
+              />
+              <Search className="absolute size-3 left-1 top-1.5 text-neutral-500 pointer-events-none" />
             </section>
-
             <section>
               <MarketDropdown />
             </section>
           </div>
         </nav>
-      </div>
-      <main className="flex-1">
-        <Table className="table w-full  table-fixed text-xs overflow-y-scroll ">
-          <TableHeader className="h-7.5 text-[10px] font-extrabold hover:cursor-pointer">
-            {table.getHeaderGroups().map(headerGroup => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 dark:bg-zinc-800">
+
+        <main
+          className={`flex-1 ${!wideSize ? 'h-[365px]' : 'h-[535px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}>
+          <Table className="table table-fixed text-xs">
+            <TableHeader className="sticky top-0 z-0 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
+              {table.getHeaderGroups().map(headerGroup => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <TableHead key={header.id} className="h-7.5 border-transparent text-stone-800 dark:text-gray-400">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map(row => (
-                <TableRow
-                  className="border-1 border-transparent"
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}>
-                  {row.getVisibleCells().map(cell => {
-                    return cell.column.id === 'trade_price' ? (
-                      flexRender(cell.column.columnDef.cell, cell.getContext())
-                    ) : (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                    );
-                  })}
+                  ))}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </main>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map(row => (
+                  <TableRow className="border-transparent" key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                    {row
+                      .getVisibleCells()
+                      .map(cell =>
+                        cell.column.id === 'trade_price' ? (
+                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                        ) : (
+                          <TableCell key={cell.id}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ),
+                      )}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </main>
+      </div>
     </ThemeProvider>
   );
 };
