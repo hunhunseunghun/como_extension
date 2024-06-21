@@ -18,6 +18,7 @@ import { ModeToggle } from '@/components/ModeToggle';
 import { SizeToggle } from '@/components/SizeToggle';
 import { MarketDropdown } from '@/components/MarketDropdown';
 import FlashCell from '@/components/FlashCell';
+import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { getRegExp } from 'korean-regexp';
 import { Search, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
@@ -212,8 +213,8 @@ const App = () => {
         caution: true,
       },
     },
-    'SOL-KRW': {
-      market: 'SOL-KRW',
+    'KRW-SOL': {
+      market: 'KRW-SOL',
       trade_date: '20240822',
       trade_time: '071602',
       trade_date_kst: '20240822',
@@ -282,8 +283,8 @@ const App = () => {
         caution: true,
       },
     },
-    'KRW-ETC': {
-      market: 'KRW-ETC',
+    'BTC-ETC': {
+      market: 'BTC-ETC',
       trade_date: '20240822',
       trade_time: '071602',
       trade_date_kst: '20240822',
@@ -317,8 +318,8 @@ const App = () => {
         caution: true,
       },
     },
-    'KRW-TTC': {
-      market: 'KRW-TTC',
+    'USDT-TTC': {
+      market: 'USDT-TTC',
       trade_date: '20240822',
       trade_time: '071602',
       trade_date_kst: '20240822',
@@ -360,38 +361,57 @@ const App = () => {
   const [wideSize, setWideSize] = useState<boolean>(true);
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
+  const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
+
+  const setTickersByMarketType = (marketType: 'KRW' | 'BTC' | 'USDT') => {
+    const filteredTickers = Object.values(tickers).filter(ticker => ticker.market.startsWith(`${marketType}-`));
+    setTableData(filteredTickers);
+  };
+  console.log('tableData', tableData);
 
   const connectBackgroundStream = async () => {
     const port = await chrome.runtime.connect({ name: 'popup' });
 
     if (port) {
       port.onMessage.addListener(message => {
-        if (message.type === 'upbitWebsocketTicker') {
-          setTickers(prevTickers => ({
-            ...prevTickers,
-            [message.data?.code]: { ...prevTickers[message.data?.code], ...message.data },
-          }));
-        } else if (message.type === 'upbitTickers') {
-          setTickers(message.data);
-        } else if (message.type === 'changeRateUSD') {
-          console.log(message.type, message.data);
-          setChangeRateUSD(message.data);
+        const { type, data } = message;
+
+        switch (type) {
+          case 'upbitWebsocketTicker':
+            setTickers(prevTickers => ({
+              ...prevTickers,
+              [data?.code]: { ...prevTickers[data?.code], ...data },
+            }));
+            break;
+
+          case 'upbitTickers':
+            setTickers(data);
+            break;
+
+          case 'changeRateUSD':
+            setChangeRateUSD(data);
+            break;
+
+          default:
+            console.warn(`Unhandled message type: ${type}`);
         }
       });
 
-      // 포트 연결 종료 시
       port.onDisconnect.addListener(() => {
         console.log('Disconnected from background');
       });
     }
   };
-
   useEffect(() => {
-    connectBackgroundStream(); // 컴포넌트가 로드될 때 연결 시도
+    connectBackgroundStream();
   }, []);
   useEffect(() => {
     setTableData(Object.values(tickers));
   }, [tickers]);
+
+  useEffect(() => {
+    setTickersByMarketType(upbitMarketType);
+  }, [upbitMarketType]);
 
   const columns = useMemo<ColumnDef<Ticker>[]>(
     () => [
@@ -459,12 +479,14 @@ const App = () => {
         },
         cell: ({ getValue, row, cell }) => {
           const value = (getValue() as number).toLocaleString();
-          const changeRateValue = ((getValue() as number) / changeRateUSD).toLocaleString();
+          const changeRateValue = changeRateUSD > 0 ? (getValue() as number) / changeRateUSD : 0;
           return (
             <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
               <div className="flex flex-col items-end  font-medium ">
                 <span>{value}</span>
-                <span className="text-[10px] text-gray-500"> {changeRateUSD > 0 ? `$${changeRateValue}` : ''}</span>
+                <span key={changeRateUSD} className="text-[10px] text-gray-500">
+                  {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
+                </span>
               </div>
             </FlashCell>
           );
@@ -580,7 +602,7 @@ const App = () => {
         enableHiding: false,
       },
     ],
-    [coinNameKR],
+    [coinNameKR, changeRateUSD],
   );
 
   const table = useReactTable({
@@ -626,8 +648,9 @@ const App = () => {
               />
               <Search className="absolute size-3 left-1 top-1.5 text-neutral-500 pointer-events-none" />
             </section>
-            <section>
+            <section className="flex gap-1">
               <MarketDropdown />
+              <MarketTypeDropDown upbitMarketType={upbitMarketType} setUpbitMarketType={setUpbitMarketType} />
             </section>
           </div>
         </nav>
@@ -639,7 +662,9 @@ const App = () => {
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
-                    <TableHead key={header.id} className="h-7.5 border-transparent text-stone-800 dark:text-gray-400">
+                    <TableHead
+                      key={header.id}
+                      className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer">
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                     </TableHead>
                   ))}

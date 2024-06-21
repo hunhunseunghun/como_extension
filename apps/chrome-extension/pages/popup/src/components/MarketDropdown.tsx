@@ -25,7 +25,7 @@ export function MarketDropdown() {
         <DropdownMenuGroup>
           <DropdownMenuItem className="gap-1 px-1 py-1 items-left text-xs">
             <img src={UpbitLogo} className="size-4  " />
-            <span>바이낸스</span>
+            <span>업비트</span>
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-1 px-1 py-1 items-left text-xs">
             <img src={Bithumb} className="size-4" />
@@ -33,7 +33,7 @@ export function MarketDropdown() {
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-1 px-1 py-1 items-left text-xs">
             <img src={coinOne} className="size-4" />
-            <span>코인원</span>
+            <span>바이낸스</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

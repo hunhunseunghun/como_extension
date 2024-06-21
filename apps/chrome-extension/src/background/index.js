@@ -39,10 +39,53 @@ class UpbitData {
     }
   }
 
-  getDynamicUserAgent() {
+  getDynamicUserAgent(isSuc) {
     // 크롬 확장 환경에서는 navigator.userAgent를 통해 현재 브라우저 정보 가져오기
     const defaultUA = navigator.userAgent;
     return defaultUA;
+  }
+
+  async crawlingNaverUSDchangeRate() {
+    try {
+      const url = 'https://finance.naver.com/marketindex/';
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': this.getDynamicUserAgent(),
+        },
+      });
+
+      const html = await response.text();
+
+      // 정규식으로 USD 환율 추출
+      const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
+      const match = html.match(usdRegex);
+      let changeRateUSD = null;
+
+      if (match && match[1]) {
+        changeRateUSD = match[1].replace(/,/g, ''); // 쉼표 제거
+      } else {
+        throw new Error('crawlingNaverUSDchangeRate match failed');
+      }
+
+      this.changeRateUSD = Number(changeRateUSD);
+
+      this.comoLocalStorage.como_extension = {
+        ...this.comoLocalStorage,
+        changeRate: changeRateUSD,
+        updatedDate: CURRENT_DATE,
+      };
+
+      await chrome.storage.local.set(comoLocalStorage);
+
+      if (this.port) {
+        this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+      }
+    } catch (error) {
+      console.error('crawlingNaverUSDchangeRate failed :', error);
+
+      return null;
+    }
   }
 
   async fetchExchangeRate() {
@@ -88,46 +131,14 @@ class UpbitData {
         prevDate.setDate(prevDate.getDate() - attempts);
         searchDate = prevDate.toISOString().slice(0, 10).replace(/-/g, '');
       }
+      if (!foundRate) {
+        crawlingNaverUSDchangeRate();
+      }
     } catch (error) {
       console.error('한국수출입은행 API 에러:', error);
+      crawlingNaverUSDchangeRate();
       return null;
     }
-
-    // try {
-    //   const url = 'https://finance.naver.com/marketindex/';
-    //   const response = await fetch(url, {
-    //     method: 'GET',
-    //     headers: {
-    //       'User-Agent': this.getDynamicUserAgent(),
-    //     },
-    //   });
-
-    //   const html = await response.text();
-
-    //   // 정규식으로 USD 환율 추출
-    //   const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
-    //   const match = html.match(usdRegex);
-    //   let changeRateUSD = null;
-
-    //   if (match && match[1]) {
-    //     changeRateUSD = match[1].replace(/,/g, ''); // 쉼표 제거
-    //   } else {
-    //     throw new Error('USD 환율을 찾을 수 없습니다.');
-    //   }
-
-    //   this.changeRateUSD = Number(changeRateUSD);
-    //   console.log('USD 환율 (네이버, 하나은행 기준):', this.changeRateUSD);
-
-    //   chrome.storage.local.set({
-    //     como_extension: { changeRate: this.changeRateUSD, updatedDate: CURRENT_DATE },
-    //   });
-
-    //   return { changeRate: this.changeRateUSD, updatedDate: CURRENT_DATE };
-    // } catch (error) {
-    //   console.error('환율 크롤링 에러:', error);
-
-    //   return null;
-    // }
   }
 
   async fetchUpbitMarkets() {
