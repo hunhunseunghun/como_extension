@@ -362,6 +362,7 @@ const App = () => {
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
   const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
+  const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb' | 'coinone' | 'binance'>('upbit');
 
   const setTickersByMarketType = (marketType: 'KRW' | 'BTC' | 'USDT') => {
     const filteredTickers = Object.values(tickers).filter(ticker => ticker.market.startsWith(`${marketType}-`));
@@ -646,10 +647,10 @@ const App = () => {
                 value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
                 onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
               />
-              <Search className="absolute size-3 left-1 top-1.5 text-neutral-500 pointer-events-none" />
+              <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
             <section className="flex gap-1">
-              <MarketDropdown />
+              <MarketDropdown exchangePlatform={exchangePlatform} setExchangePlatform={setExchangePlatform} />
               <MarketTypeDropDown upbitMarketType={upbitMarketType} setUpbitMarketType={setUpbitMarketType} />
             </section>
           </div>

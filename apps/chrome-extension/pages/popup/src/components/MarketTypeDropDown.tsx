@@ -8,26 +8,24 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 
+const marketTypes = ['KRW', 'BTC', 'USDT'];
+
 export function MarketTypeDropDown({ upbitMarketType, setUpbitMarketType }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="h-6 w-15 text-[10px] text-semibold hover:cursor-pointer gap-1  ">
+        <Button variant="outline" className="h-6 w-15 text-[10px] font-semibold gap-1 hover:cursor-pointer">
           <span>{upbitMarketType}</span>
           <ChevronDown className="size-2.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="min-w-[70px]">
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => setUpbitMarketType('KRW')} className="gap-1 px-1 py-1 items-left text-xs">
-            KRW
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setUpbitMarketType('BTC')} className="gap-1 px-1 py-1 items-left text-xs">
-            <span>BTC</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setUpbitMarketType('USDT')} className="gap-1 px-1 py-1 items-left text-xs">
-            <span>USDT</span>
-          </DropdownMenuItem>
+          {marketTypes.map(type => (
+            <DropdownMenuItem key={type} onClick={() => setUpbitMarketType(type)} className="gap-1 px-1 py-1 text-xs">
+              {type}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
