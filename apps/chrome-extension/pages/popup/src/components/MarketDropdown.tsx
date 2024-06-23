@@ -7,15 +7,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import UpbitLogo from '@/assets/icons/upbit-logo.png';
-import BithumbLogo from '@/assets/icons/bithumb-logo.png';
-import CoinOneLogo from '@/assets/icons/coinone-logo.png';
+// import BithumbLogo from '@/assets/icons/bithumb-logo.png';
+// import CoinOneLogo from '@/assets/icons/coinone-logo.png';
 
 import { ChevronDown } from 'lucide-react';
 
 const platformData = {
   upbit: { key: 'upbit', label: '업비트', logo: UpbitLogo },
-  bithumb: { key: 'bithumb', logo: BithumbLogo, label: '빗썸' },
-  coinone: { key: 'coinone', label: '코인원', logo: CoinOneLogo },
+  // bithumb: { key: 'bithumb', logo: BithumbLogo, label: '빗썸' },
+  // coinone: { key: 'coinone', label: '코인원', logo: CoinOneLogo },
   // binance: { key: 'bainance', label: '바이낸스', logo: BinanceLogo },
 };
 

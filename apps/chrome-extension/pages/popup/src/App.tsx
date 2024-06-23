@@ -13,6 +13,7 @@ import {
   VisibilityState,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { LoadingSpinner } from '@/components/ui/loadingSpinner';
 import { Input } from '@/components/ui/input';
 import { ModeToggle } from '@/components/ModeToggle';
 import { SizeToggle } from '@/components/SizeToggle';
@@ -71,6 +72,7 @@ type Ticker = {
 };
 
 const App = () => {
+  const [isLoading, setIsloading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({
     'KRW-ETH': {
@@ -386,8 +388,10 @@ const App = () => {
             break;
 
           case 'upbitTickers':
-            setTickers(data);
-            break;
+            return () => {
+              setIsloading(true);
+              setTickers(data);
+            };
 
           case 'changeRateUSD':
             setChangeRateUSD(data);
@@ -673,7 +677,15 @@ const App = () => {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows?.length ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={table.getAllColumns().filter(col => col.getIsVisible()).length || 1}
+                    className="h-48 text-center">
+                    <LoadingSpinner />
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map(row => (
                   <TableRow className="border-transparent" key={row.id} data-state={row.getIsSelected() && 'selected'}>
                     {row
@@ -691,7 +703,9 @@ const App = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell
+                    colSpan={table.getAllColumns().filter(col => col.getIsVisible()).length || 1}
+                    className="h-24 text-center">
                     No results.
                   </TableCell>
                 </TableRow>
