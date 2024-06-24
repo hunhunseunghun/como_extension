@@ -9,23 +9,23 @@ import {
 import UpbitLogo from '@/assets/icons/upbit-logo.png';
 // import BithumbLogo from '@/assets/icons/bithumb-logo.png';
 // import CoinOneLogo from '@/assets/icons/coinone-logo.png';
-
+// import BinanceLogo from '@/assets/icons/binance-logo.png';
 import { ChevronDown } from 'lucide-react';
 
 const platformData = {
   upbit: { key: 'upbit', label: '업비트', logo: UpbitLogo },
-  // bithumb: { key: 'bithumb', logo: BithumbLogo, label: '빗썸' },
+  // bithumb: { key: 'bithumb', label: '빗썸', logo: BithumbLogo },
   // coinone: { key: 'coinone', label: '코인원', logo: CoinOneLogo },
-  // binance: { key: 'bainance', label: '바이낸스', logo: BinanceLogo },
-};
+  // binance: { key: 'binance', label: '바이낸스', logo: BinanceLogo },
+} as const;
 
-const exchangeList = Object.entries(platformData).map(([key, { label, logo }]) => ({
-  key,
-  label,
-  logo,
-}));
+interface MarketDropdownProps {
+  exchangePlatform: 'upbit'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
+  setExchangePlatform: (platform: keyof typeof platformData) => void;
+}
 
-export function MarketDropdown({ exchangePlatform, setExchangePlatform }) {
+export const MarketDropdown = ({ exchangePlatform, setExchangePlatform }: MarketDropdownProps) => {
+  const exchangeList = Object.values(platformData);
   const selectedPlatform = platformData[exchangePlatform] || platformData.upbit;
 
   return (
@@ -33,7 +33,7 @@ export function MarketDropdown({ exchangePlatform, setExchangePlatform }) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="h-6 w-20 text-[10px] font-semibold gap-1 hover:cursor-pointer">
           <img src={selectedPlatform.logo} className="size-3" />
-          <span>{selectedPlatform.label}</span> {/* 한글 표시 */}
+          <span>{selectedPlatform.label}</span>
           <ChevronDown className="size-2.5" />
         </Button>
       </DropdownMenuTrigger>
@@ -52,4 +52,4 @@ export function MarketDropdown({ exchangePlatform, setExchangePlatform }) {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+};

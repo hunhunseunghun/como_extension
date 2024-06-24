@@ -8,9 +8,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 
-const marketTypes = ['KRW', 'BTC', 'USDT'];
+// ✅ 올바른 타입 정의
+const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
+type UpbitMarketType = (typeof marketTypes)[number];
 
-export function MarketTypeDropDown({ upbitMarketType, setUpbitMarketType }) {
+interface MarketTypeDropDownProps {
+  upbitMarketType: UpbitMarketType;
+  setUpbitMarketType: (type: UpbitMarketType) => void;
+}
+
+export function MarketTypeDropDown({ upbitMarketType, setUpbitMarketType }: MarketTypeDropDownProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

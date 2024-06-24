@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import './App.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import {
@@ -72,7 +72,6 @@ type Ticker = {
 };
 
 const App = () => {
-  const [isLoading, setIsloading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({
     'KRW-ETH': {
@@ -364,59 +363,64 @@ const App = () => {
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
   const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
-  const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb' | 'coinone' | 'binance'>('upbit');
+  const [exchangePlatform, setExchangePlatform] = useState<'upbit'>('upbit');
+  // | 'bithumb' | 'coinone' | 'binance'
+  const [isLoading, setIsLoading] = useState(true);
 
   const setTickersByMarketType = (marketType: 'KRW' | 'BTC' | 'USDT') => {
     const filteredTickers = Object.values(tickers).filter(ticker => ticker.market.startsWith(`${marketType}-`));
     setTableData(filteredTickers);
   };
-  console.log('tableData', tableData);
 
-  const connectBackgroundStream = async () => {
-    const port = await chrome.runtime.connect({ name: 'popup' });
-
-    if (port) {
-      port.onMessage.addListener(message => {
-        const { type, data } = message;
-
-        switch (type) {
-          case 'upbitWebsocketTicker':
-            setTickers(prevTickers => ({
-              ...prevTickers,
-              [data?.code]: { ...prevTickers[data?.code], ...data },
-            }));
-            break;
-
-          case 'upbitTickers':
-            return () => {
-              setIsloading(true);
-              setTickers(data);
-            };
-
-          case 'changeRateUSD':
-            setChangeRateUSD(data);
-            break;
-
-          default:
-            console.warn(`Unhandled message type: ${type}`);
-        }
-      });
-
-      port.onDisconnect.addListener(() => {
-        console.log('Disconnected from background');
-      });
+  const portRef = useRef<chrome.runtime.Port | null>(null);
+  const connectBackgroundStream = () => {
+    if (portRef.current) {
+      return;
     }
+    const port = chrome.runtime.connect({ name: 'popup' });
+    portRef.current = port;
+
+    port.onMessage.addListener(message => {
+      const { type, data } = message;
+
+      switch (type) {
+        case 'upbitWebsocketTicker':
+          setTickers(prevTickers => ({
+            ...prevTickers,
+            [data?.code]: { ...prevTickers[data?.code], ...data },
+          }));
+          break;
+        case 'upbitTickers':
+          console.log('📩 Received upbitTickers:', data);
+          setTickers(data);
+          setIsLoading(false);
+          break;
+        case 'changeRateUSD':
+          setChangeRateUSD(data);
+          break;
+        default:
+      }
+    });
+
+    port.onDisconnect.addListener(() => {
+      portRef.current = null;
+      setIsLoading(true); // 연결이 끊겼으므로 다시 로딩 상태로 설정
+    });
   };
+
   useEffect(() => {
     connectBackgroundStream();
+
+    return () => {
+      if (portRef.current) {
+        portRef.current.disconnect();
+        portRef.current = null;
+      }
+    };
   }, []);
   useEffect(() => {
-    setTableData(Object.values(tickers));
-  }, [tickers]);
-
-  useEffect(() => {
     setTickersByMarketType(upbitMarketType);
-  }, [upbitMarketType]);
+  }, [tickers, upbitMarketType]);
 
   const columns = useMemo<ColumnDef<Ticker>[]>(
     () => [
