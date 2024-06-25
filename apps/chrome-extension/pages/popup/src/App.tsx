@@ -442,6 +442,7 @@ const App = () => {
         cell: ({ row }) => {
           const splitMarket = row.original.market?.split('-');
           const convertMarket = splitMarket[1] + '/' + splitMarket[0];
+
           return (
             <div className="flex flex-col items-start font-semibold">
               <div className="flex gap-[2px] text-left break-word">
@@ -463,11 +464,8 @@ const App = () => {
           const englishName = row.original.english_name?.toLowerCase() || '';
           const koreanName = row.original.korean_name || '';
           const searchValue = filterValue.toLowerCase().trim();
-
-          // 기존 검색: 전체 텍스트 매칭
           const fullTextMatch =
             market.includes(searchValue) || englishName.includes(searchValue) || koreanName.includes(searchValue);
-
           let chosungMatch = false;
           const chosungRegex = getRegExp(searchValue, { initialSearch: true });
           chosungMatch = chosungRegex.test(koreanName);
@@ -489,16 +487,42 @@ const App = () => {
         cell: ({ getValue, row, cell }) => {
           const value = (getValue() as number).toLocaleString();
           const changeRateValue = changeRateUSD > 0 ? (getValue() as number) / changeRateUSD : 0;
-          return (
-            <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-              <div className="flex flex-col items-end  font-medium ">
-                <span>{value}</span>
-                <span key={changeRateUSD} className="text-[10px] text-gray-500">
-                  {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
-                </span>
-              </div>
-            </FlashCell>
-          );
+
+          switch (marketType) {
+            case 'KRW':
+              return (
+                <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
+                  <div className="flex flex-col items-end  font-medium ">
+                    <span>{value}</span>
+                    <span key={changeRateUSD} className="text-[10px] text-gray-500">
+                      {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
+                    </span>
+                  </div>
+                </FlashCell>
+              );
+            case 'BTC':
+              return (
+                <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
+                  <div className="flex flex-col items-end  font-medium ">
+                    <span>{value}</span>
+                    <span key={changeRateUSD} className="text-[10px] text-gray-500">
+                      {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
+                    </span>
+                  </div>
+                </FlashCell>
+              );
+            case 'USDT':
+              return (
+                <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
+                  <div className="flex flex-col items-end  font-medium ">
+                    <span>{value}</span>
+                    <span key={changeRateUSD} className="text-[10px] text-gray-500">
+                      {changeRateUSD > 0 && `$${changeRateValue.toLocaleString()}`}
+                    </span>
+                  </div>
+                </FlashCell>
+              );
+          }
         },
         enableHiding: false,
       },
