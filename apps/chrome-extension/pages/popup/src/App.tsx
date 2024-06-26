@@ -516,7 +516,7 @@ const App = () => {
             case 'USDT':
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-                  <div className="flex flex-col items-end  font-medium ">
+                  <div className="flex flex-col items-end font-medium ">
                     <span>{(getValue() as number).toFixed(2).toLocaleString()}</span>
                   </div>
                 </FlashCell>
