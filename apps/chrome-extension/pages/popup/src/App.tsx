@@ -485,15 +485,15 @@ const App = () => {
           );
         },
         cell: ({ getValue, row, cell }) => {
-          const valueKRW = (getValue() as number).toLocaleString();
+          const valueKRW = getValue() as number;
           const changeRateKRW = changeRateUSD > 0 ? (getValue() as number) / changeRateUSD : 0;
 
-          switch (marketType) {
+          switch (upbitMarketType) {
             case 'KRW':
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
                   <div className="flex flex-col items-end font-medium ">
-                    <span>{valueKRW}</span>
+                    <span>{valueKRW.toLocaleString()}</span>
                     <span key={changeRateUSD} className="text-[10px] text-gray-500">
                       {changeRateUSD > 0 && `$${changeRateKRW.toLocaleString()}`}
                     </span>
@@ -504,12 +504,7 @@ const App = () => {
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
                   <div className="flex flex-col items-end font-medium ">
-                    <span>{String(getValue() as number)}</span>
-                    <span
-                      key={(valueKRW / (getValue() as number)).toLocaleString()}
-                      className="text-[10px] text-gray-500">
-                      {(valueKRW / (getValue() as number)).toLocaleString()}
-                    </span>
+                    <span>{(getValue() as number).toFixed(8)}</span>
                   </div>
                 </FlashCell>
               );
@@ -517,7 +512,13 @@ const App = () => {
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
                   <div className="flex flex-col items-end font-medium ">
-                    <span>{(getValue() as number).toFixed(2).toLocaleString()}</span>
+                    <span>
+                      $
+                      {(getValue() as number).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
                   </div>
                 </FlashCell>
               );
@@ -547,7 +548,7 @@ const App = () => {
                 className={`${row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''}`}>
                 {value}%
               </span>
-              <span className="text-[10px] text-gray-500">{signed_change_price}</span>
+              {upbitMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signed_change_price}</span>}
             </div>
           );
         },
@@ -576,7 +577,11 @@ const App = () => {
                 <span>-</span>
                 {value}%
               </span>
-              <span className="text-[10px] text-gray-500">{highestPrice}</span>
+              {upbitMarketType !== 'BTC' ? (
+                <span className="text-[10px] text-gray-500">{highestPrice}</span>
+              ) : (
+                <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
+              )}
             </div>
           );
         },
@@ -597,20 +602,25 @@ const App = () => {
         },
         cell: ({ getValue, row }) => {
           const value = String(getValue());
-          const lowestPrice = row.original.lowest_52_week_price.toLocaleString();
+          const lowestPrice = row.original.lowest_52_week_price;
+
           return (
             <div className="flex flex-col items-end text-red-500 font-medium">
               <span>
                 <span>+</span>
                 {value}%
               </span>
-              <span className="text-[10px] text-gray-500">{lowestPrice}</span>
+              {upbitMarketType !== 'BTC' ? (
+                <span className="text-[10px] text-gray-500">{lowestPrice.toLocaleString()}</span>
+              ) : (
+                <span className="text-[10px] text-gray-500">{lowestPrice.toFixed(8)}</span>
+              )}
             </div>
           );
         },
       },
       {
-        accessorFn: (row: Ticker) => row.acc_trade_price_24h / 1_000_000,
+        accessorKey: 'acc_trade_price_24h',
         id: 'acc.trade_price_24h',
         header: ({ column }) => {
           return (
@@ -623,18 +633,34 @@ const App = () => {
           );
         },
         cell: ({ getValue }) => {
-          const value = Math.floor(Number(getValue())).toLocaleString();
-          return (
-            <div className="flex justify-end font-medium">
-              <span>{value}</span>
-              <span>백만</span>
-            </div>
-          );
+          const value = Number(getValue() as number);
+
+          switch (upbitMarketType) {
+            case 'KRW':
+              return (
+                <div className="flex justify-end font-medium">
+                  <span>{Math.floor(value / 1_000_000).toLocaleString()}</span>
+                  <span>백만</span>
+                </div>
+              );
+            case 'BTC':
+              return (
+                <div className="flex justify-end font-medium">
+                  <span>{value.toFixed(3)}</span>
+                </div>
+              );
+            case 'USDT':
+              return (
+                <div className="flex justify-end font-medium">
+                  <span>{Math.round(value)}</span>
+                </div>
+              );
+          }
         },
         enableHiding: false,
       },
     ],
-    [coinNameKR, changeRateUSD],
+    [coinNameKR, changeRateUSD, upbitMarketType],
   );
 
   const table = useReactTable({
