@@ -459,7 +459,6 @@ const App = () => {
         },
         filterFn: (row, filterValue) => {
           if (!filterValue) return true;
-
           const market = row.original.market.toLowerCase();
           const englishName = row.original.english_name?.toLowerCase() || '';
           const koreanName = row.original.korean_name || '';
@@ -677,6 +676,9 @@ const App = () => {
       columnFilters,
       columnVisibility,
     },
+    initialState: {
+      sorting: [{ id: 'trade_price', desc: true }],
+    },
   });
 
   useEffect(() => {
@@ -702,7 +704,9 @@ const App = () => {
                 className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 font-semibold placeholder:text-neutral-400 border"
                 placeholder=" BTC , 비트"
                 value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
-                onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
+                onChange={event => {
+                  console.log('TEST', table.getColumn('market')?.setFilterValue(event.target.value));
+                }}
               />
               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
@@ -712,7 +716,6 @@ const App = () => {
             </section>
           </div>
         </nav>
-
         <main
           className={`flex-1 ${!wideSize ? 'h-[365px]' : 'h-[535px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}>
           <Table className="table table-fixed text-xs">
