@@ -463,10 +463,6 @@ const App = () => {
           const englishName = row.original.english_name?.toLowerCase() || '';
           const koreanName = row.original.korean_name || '';
           const searchValue = filterValue.toLowerCase().trim();
-
-          console.log('Filtering with:', searchValue); // 필터 값 출력
-          console.log('Row data:', { market, englishName, koreanName }); // 데이터 확인
-
           const fullTextMatch =
             market.includes(searchValue) || englishName.includes(searchValue) || koreanName.includes(searchValue);
           let chosungMatch = false;
@@ -682,25 +678,12 @@ const App = () => {
     },
     initialState: {
       sorting: [{ id: 'trade_price', desc: true }],
-      columnFilters: [],
     },
   });
 
   useEffect(() => {
     table.getAllColumns().filter(column => column.toggleVisibility(wideSize));
   }, [wideSize]);
-
-  const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const filterValue = event.target.value;
-
-    console.log(filterValue, 'filterValue?!!!');
-    setColumnFilters([
-      {
-        id: 'market', // the column id you want to filter
-        value: filterValue, // filter value from input
-      },
-    ]);
-  };
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
@@ -721,11 +704,9 @@ const App = () => {
                 className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 font-semibold placeholder:text-neutral-400 border"
                 placeholder=" BTC , 비트"
                 value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
-                onChange={
-                  handleFilterChange
-                  //   event => {                  console.log('TEST', table.getColumn('market')?.setFilterValue(event.target.value));
-                  // }
-                }
+                onChange={event => {
+                  console.log('TEST', table.getColumn('market')?.setFilterValue(event.target.value));
+                }}
               />
               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
