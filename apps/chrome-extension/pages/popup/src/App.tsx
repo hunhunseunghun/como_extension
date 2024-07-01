@@ -144,111 +144,6 @@ const App = () => {
         caution: true,
       },
     },
-    'KRW-BCH': {
-      market: 'KRW-BCH',
-      trade_date: '20240822',
-      trade_time: '071602',
-      trade_date_kst: '20240822',
-      trade_time_kst: '161602',
-      trade_timestamp: 1724310962713,
-      opening_price: 82900000,
-      high_price: 83000000,
-      low_price: 81280000,
-      trade_price: 82324000,
-      prev_closing_price: 82900000,
-      change: 'FALL',
-      change_price: 576000,
-      change_rate: 0.0069481303,
-      signed_change_price: -576000,
-      signed_change_rate: -0.0069481303,
-      trade_volume: 0.00042335,
-      acc_trade_price: 66058843588.46906,
-      acc_trade_price_24h: 250206655398.15125,
-      acc_trade_volume: 803.00214714,
-      acc_trade_volume_24h: 3047.01625142,
-      highest_52_week_price: 105000000,
-      highest_52_week_date: '2024-03-14',
-      lowest_52_week_price: 34100000,
-      lowest_52_week_date: '2023-09-11',
-      timestamp: 1724310962747,
-      korean_name: '비트코인캐시',
-      english_name: 'bitcoincash',
-      ask_bid: 'BID',
-      market_event: {
-        warning: false,
-        caution: true,
-      },
-    },
-    'KRW-AAVE': {
-      market: 'KRW-AAVE',
-      trade_date: '20240822',
-      trade_time: '071602',
-      trade_date_kst: '20240822',
-      trade_time_kst: '161602',
-      trade_timestamp: 1724310962713,
-      opening_price: 82900000,
-      high_price: 83000000,
-      low_price: 81280000,
-      trade_price: 82324000,
-      prev_closing_price: 82900000,
-      change: 'FALL',
-      change_price: 576000,
-      change_rate: 0.0069481303,
-      signed_change_price: -576000,
-      signed_change_rate: -0.0069481303,
-      trade_volume: 0.00042335,
-      acc_trade_price: 66058843588.46906,
-      acc_trade_price_24h: 250206655398.15125,
-      acc_trade_volume: 803.00214714,
-      acc_trade_volume_24h: 3047.01625142,
-      highest_52_week_price: 105000000,
-      highest_52_week_date: '2024-03-14',
-      lowest_52_week_price: 34100000,
-      lowest_52_week_date: '2023-09-11',
-      timestamp: 1724310962747,
-      korean_name: '에이브',
-      english_name: 'aave',
-      ask_bid: 'BID',
-      market_event: {
-        warning: false,
-        caution: true,
-      },
-    },
-    'KRW-SOL': {
-      market: 'KRW-SOL',
-      trade_date: '20240822',
-      trade_time: '071602',
-      trade_date_kst: '20240822',
-      trade_time_kst: '161602',
-      trade_timestamp: 1724310962713,
-      opening_price: 82900000,
-      high_price: 83000000,
-      low_price: 81280000,
-      trade_price: 82324000,
-      prev_closing_price: 82900000,
-      change: 'FALL',
-      change_price: 576000,
-      change_rate: 0.0069481303,
-      signed_change_price: -576000,
-      signed_change_rate: -0.0069481303,
-      trade_volume: 0.00042335,
-      acc_trade_price: 66058843588.46906,
-      acc_trade_price_24h: 250206655398.15125,
-      acc_trade_volume: 803.00214714,
-      acc_trade_volume_24h: 3047.01625142,
-      highest_52_week_price: 105000000,
-      highest_52_week_date: '2024-03-14',
-      lowest_52_week_price: 34100000,
-      lowest_52_week_date: '2023-09-11',
-      timestamp: 1724310962747,
-      korean_name: '솔라나',
-      english_name: 'solana',
-      ask_bid: 'BID',
-      market_event: {
-        warning: false,
-        caution: true,
-      },
-    },
     'KRW-BSV': {
       market: 'KRW-BSV',
       trade_date: '20240822',
@@ -457,7 +352,8 @@ const App = () => {
             </div>
           );
         },
-        filterFn: (row, filterValue) => {
+        filterFn: (row, _columnId, filterValue) => {
+          console.log('filterValue : ', filterValue);
           if (!filterValue) return true;
           const market = row.original.market.toLowerCase();
           const englishName = row.original.english_name?.toLowerCase() || '';
@@ -469,6 +365,7 @@ const App = () => {
           const chosungRegex = getRegExp(searchValue, { initialSearch: true });
           chosungMatch = chosungRegex.test(koreanName);
 
+          console.log(market, englishName, koreanName, searchValue, fullTextMatch, chosungRegex, chosungMatch);
           return fullTextMatch || chosungMatch;
         },
         enableHiding: false,
@@ -651,7 +548,7 @@ const App = () => {
             case 'USDT':
               return (
                 <div className="flex justify-end font-medium">
-                  <span>{Math.round(value)}</span>
+                  <span>{Math.round(value).toLocaleString()}</span>
                 </div>
               );
           }
@@ -704,9 +601,7 @@ const App = () => {
                 className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 font-semibold placeholder:text-neutral-400 border"
                 placeholder=" BTC , 비트"
                 value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
-                onChange={event => {
-                  console.log('TEST', table.getColumn('market')?.setFilterValue(event.target.value));
-                }}
+                onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
               />
               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
