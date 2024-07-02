@@ -25,55 +25,11 @@ import { Search, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import comoLogo from '@/assets/icons/como-logo.png';
 
-// 1. Ticker 객체 타입 정의
-type Ticker = {
-  market: string;
-  trade_date: string;
-  trade_time: string;
-  trade_timestamp: number;
-  opening_price: number;
-  high_price: number;
-  low_price: number;
-  trade_price: number;
-  prev_closing_price: number;
-  change: 'RISE' | 'EVEN' | 'FALL';
-  change_price: number;
-  change_rate: number;
-  signed_change_price: number;
-  signed_change_rate: number;
-  trade_volume: number;
-  acc_trade_price: number;
-  acc_trade_price_24h: number;
-  acc_trade_volume: number;
-  acc_trade_volume_24h: number;
-  highest_52_week_price: number;
-  highest_52_week_date: string;
-  lowest_52_week_price: number;
-  lowest_52_week_date: string;
-  timestamp: number;
-  trade_date_kst: string;
-  trade_time_kst: string;
-  type?: string;
-  code?: string;
-  ask_bid?: 'ASK' | 'BID';
-  acc_ask_volume?: number;
-  acc_bid_volume?: number;
-  market_state?: 'PREVIEW' | 'ACTIVE' | 'DELISTED';
-  is_trading_suspended?: boolean;
-  delisting_date?: string | null;
-  market_warning?: 'NONE' | 'CAUTION';
-  stream_type?: 'SNAPSHOT' | 'REALTIME';
-  korean_name?: string;
-  english_name?: string;
-  market_event: {
-    warning: boolean;
-    caution: boolean;
-  };
-};
+import { UpbitTicker } from '@/types/upbitTicker';
 
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({
+  const [tickers, setTickers] = useState<{ [key: string]: UpbitTicker }>({
     'KRW-ETH': {
       market: 'KRW-ETH',
       trade_date: '20240822',
@@ -251,7 +207,7 @@ const App = () => {
     },
   });
 
-  const [tableData, setTableData] = useState<Ticker[]>(Object.values(tickers));
+  const [tableData, setTableData] = useState<UpbitTicker[]>(Object.values(tickers));
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [wideSize, setWideSize] = useState<boolean>(true);
@@ -317,10 +273,10 @@ const App = () => {
     setTickersByMarketType(upbitMarketType);
   }, [tickers, upbitMarketType]);
 
-  const columns = useMemo<ColumnDef<Ticker>[]>(
+  const columns = useMemo<ColumnDef<UpbitTicker>[]>(
     () => [
       {
-        accessorFn: (row: Ticker) => {
+        accessorFn: (row: UpbitTicker) => {
           return `${row.korean_name} ${row.market}`;
         },
         id: 'market',
@@ -423,7 +379,7 @@ const App = () => {
         enableHiding: false,
       },
       {
-        accessorFn: (row: Ticker) => (row.signed_change_rate * 100).toFixed(2),
+        accessorFn: (row: UpbitTicker) => (row.signed_change_rate * 100).toFixed(2),
         id: 'signed_change_rate',
         header: ({ column }) => {
           return (
@@ -451,7 +407,7 @@ const App = () => {
         enableHiding: false,
       },
       {
-        accessorFn: (row: Ticker) =>
+        accessorFn: (row: UpbitTicker) =>
           (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
         id: 'highest_52_week_diff',
         header: ({ column }) => {
@@ -483,7 +439,7 @@ const App = () => {
         },
       },
       {
-        accessorFn: (row: Ticker) =>
+        accessorFn: (row: UpbitTicker) =>
           (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
         id: 'lowest_52_week_diff',
         header: ({ column }) => {
@@ -606,6 +562,9 @@ const App = () => {
               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
             <section className="flex gap-1">
+              <div className="flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md">
+                <span>Total</span> <span>{tableData?.length}</span>
+              </div>
               <MarketDropdown exchangePlatform={exchangePlatform} setExchangePlatform={setExchangePlatform} />
               <MarketTypeDropDown upbitMarketType={upbitMarketType} setUpbitMarketType={setUpbitMarketType} />
             </section>

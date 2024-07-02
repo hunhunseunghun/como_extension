@@ -22,11 +22,9 @@ class UpbitData {
 
   // popup 연결 시 port 처리
   connectPopup(port) {
-    console.log('📡 popup 연결됨:', port.name);
     this.port = port;
 
     this.port.onDisconnect.addListener(() => {
-      console.log('❌ popup 연결 종료');
       this.port = null;
     });
 
@@ -57,7 +55,7 @@ class UpbitData {
 
       const html = await response.text();
 
-      // 정규식으로 USD 환율 추출
+      // 정규식 USD 환율 추출
       const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
       const match = html.match(usdRegex);
       let changeRateUSD = null;
@@ -121,7 +119,7 @@ class UpbitData {
               this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
             }
 
-            foundRate = true; // ✅ 환율을 찾았으므로 while 종료 조건을 만족하게 함
+            foundRate = true;
           }
         }
 
@@ -135,7 +133,6 @@ class UpbitData {
         crawlingNaverUSDchangeRate();
       }
     } catch (error) {
-      console.error('한국수출입은행 API 에러:', error);
       crawlingNaverUSDchangeRate();
       return null;
     }
