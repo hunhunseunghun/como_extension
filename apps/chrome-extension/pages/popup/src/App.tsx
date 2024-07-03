@@ -25,11 +25,55 @@ import { Search, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import comoLogo from '@/assets/icons/como-logo.png';
 
-import { UpbitTicker, MarketType } from '@/types/upbitTicker';
+// 1. Ticker 객체 타입 정의
+type Ticker = {
+  market: string;
+  trade_date: string;
+  trade_time: string;
+  trade_timestamp: number;
+  opening_price: number;
+  high_price: number;
+  low_price: number;
+  trade_price: number;
+  prev_closing_price: number;
+  change: 'RISE' | 'EVEN' | 'FALL';
+  change_price: number;
+  change_rate: number;
+  signed_change_price: number;
+  signed_change_rate: number;
+  trade_volume: number;
+  acc_trade_price: number;
+  acc_trade_price_24h: number;
+  acc_trade_volume: number;
+  acc_trade_volume_24h: number;
+  highest_52_week_price: number;
+  highest_52_week_date: string;
+  lowest_52_week_price: number;
+  lowest_52_week_date: string;
+  timestamp: number;
+  trade_date_kst: string;
+  trade_time_kst: string;
+  type?: string;
+  code?: string;
+  ask_bid?: 'ASK' | 'BID';
+  acc_ask_volume?: number;
+  acc_bid_volume?: number;
+  market_state?: 'PREVIEW' | 'ACTIVE' | 'DELISTED';
+  is_trading_suspended?: boolean;
+  delisting_date?: string | null;
+  market_warning?: 'NONE' | 'CAUTION';
+  stream_type?: 'SNAPSHOT' | 'REALTIME';
+  korean_name?: string;
+  english_name?: string;
+  market_event: {
+    warning: boolean;
+    caution: boolean;
+  };
+};
 
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [tickers, setTickers] = useState<{ [key: string]: UpbitTicker }>({
+  const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({
     'KRW-ETH': {
       market: 'KRW-ETH',
       trade_date: '20240822',
@@ -207,13 +251,13 @@ const App = () => {
     },
   });
 
-  const [tableData, setTableData] = useState<UpbitTicker[]>(Object.values(tickers));
+  const [tableData, setTableData] = useState<Ticker[]>(Object.values(tickers));
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [wideSize, setWideSize] = useState<boolean>(true);
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
-  const [upbitMarketType, setUpbitMarketType] = useState<MarketType>('KRW');
+  const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
   const [exchangePlatform, setExchangePlatform] = useState<'upbit'>('upbit');
   // | 'bithumb' | 'coinone' | 'binance'
   const [isLoading, setIsLoading] = useState(true);
@@ -273,10 +317,10 @@ const App = () => {
     setTickersByMarketType(upbitMarketType);
   }, [tickers, upbitMarketType]);
 
-  const columns = useMemo<ColumnDef<UpbitTicker>[]>(
+  const columns = useMemo<ColumnDef<Ticker>[]>(
     () => [
       {
-        accessorFn: (row: UpbitTicker) => {
+        accessorFn: (row: Ticker) => {
           return `${row.korean_name} ${row.market}`;
         },
         id: 'market',
@@ -379,7 +423,7 @@ const App = () => {
         enableHiding: false,
       },
       {
-        accessorFn: (row: UpbitTicker) => (row.signed_change_rate * 100).toFixed(2),
+        accessorFn: (row: Ticker) => (row.signed_change_rate * 100).toFixed(2),
         id: 'signed_change_rate',
         header: ({ column }) => {
           return (
@@ -407,7 +451,7 @@ const App = () => {
         enableHiding: false,
       },
       {
-        accessorFn: (row: UpbitTicker) =>
+        accessorFn: (row: Ticker) =>
           (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
         id: 'highest_52_week_diff',
         header: ({ column }) => {
@@ -439,7 +483,7 @@ const App = () => {
         },
       },
       {
-        accessorFn: (row: UpbitTicker) =>
+        accessorFn: (row: Ticker) =>
           (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
         id: 'lowest_52_week_diff',
         header: ({ column }) => {

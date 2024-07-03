@@ -1,3 +1,5 @@
+export type ExchangePlatform = 'upbit';
+export type MarketType = 'KRW' | 'BTC' | 'USDT';
 export type UpbitTicker = {
   market: string;
   trade_date: string;
