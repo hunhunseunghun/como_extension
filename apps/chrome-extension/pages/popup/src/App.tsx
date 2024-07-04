@@ -25,7 +25,7 @@ import { Search, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import comoLogo from '@/assets/icons/como-logo.png';
 
-import { UpbitTicker } from '@/types/upbitTicker';
+import { UpbitTicker, MarketType } from '@/types/upbitTicker';
 
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -213,7 +213,7 @@ const App = () => {
   const [wideSize, setWideSize] = useState<boolean>(true);
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
-  const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
+  const [upbitMarketType, setUpbitMarketType] = useState<MarketType>('KRW');
   const [exchangePlatform, setExchangePlatform] = useState<'upbit'>('upbit');
   // | 'bithumb' | 'coinone' | 'binance'
   const [isLoading, setIsLoading] = useState(true);
