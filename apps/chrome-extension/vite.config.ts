@@ -4,8 +4,9 @@ import react from '@vitejs/plugin-react';
 
 const rootDir = resolve(__dirname);
 const srcDir = resolve(rootDir, 'src');
-const outDir = resolve(rootDir, 'dist');
 
+const outDir = resolve(rootDir, 'dist');
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
