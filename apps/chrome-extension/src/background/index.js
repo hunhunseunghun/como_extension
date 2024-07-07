@@ -109,8 +109,6 @@ class UpbitData {
           const usdRate = data.find(rate => rate.cur_unit === 'USD')?.deal_bas_r?.replace(/,/g, '');
           if (usdRate) {
             this.changeRateUSD = Number(usdRate);
-            console.log(`USD 환율 (한국수출입은행 기준, ${searchDate}):`, this.changeRateUSD);
-
             this.comoLocalStorage.como_extension.changeRateUSD = usdRate;
             this.comoLocalStorage.como_extension.updatedDate = searchDate;
             chrome.storage.local.set(this.comoLocalStorage);
@@ -195,14 +193,10 @@ class UpbitData {
 
   async connectWebSocket() {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      console.log('✅ WebSocket 이미 연결됨.');
       return;
     }
-
     this.socket = new WebSocket('wss://api.upbit.com/websocket/v1');
-
     this.socket.onopen = () => {
-      console.log('✅ WebSocket 연결 성공');
       this.socket.send(JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.upbitMarkets }])); // 마켓 코드 전송
     };
 
@@ -222,7 +216,6 @@ class UpbitData {
     };
 
     this.socket.onclose = () => {
-      console.log('⚠️ WebSocket closed - Reconnecting...');
       this.socket = null;
       setTimeout(() => this.connectWebSocket(), 1000);
     };
@@ -285,7 +278,6 @@ class BithumbData {
       }, {});
     } catch (error) {
       this.bithumbMarkets = ['KRW-BTC'];
-      console.log('bithubmTickerIni error :', error);
     }
   }
 
@@ -302,7 +294,7 @@ class BithumbData {
         return acc;
       }, {});
     } catch (error) {
-      throw 
+      throw error;
     }
   }
 }

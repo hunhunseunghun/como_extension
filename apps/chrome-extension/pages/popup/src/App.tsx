@@ -286,7 +286,6 @@ const App = () => {
           }));
           break;
         case 'upbitTickers':
-          console.log('📩 Received upbitTickers:', data);
           setTickers(data);
           setIsLoading(false);
           break;
@@ -353,7 +352,6 @@ const App = () => {
           );
         },
         filterFn: (row, _columnId, filterValue) => {
-          console.log('filterValue : ', filterValue);
           if (!filterValue) return true;
           const market = row.original.market.toLowerCase();
           const englishName = row.original.english_name?.toLowerCase() || '';
@@ -364,8 +362,6 @@ const App = () => {
           let chosungMatch = false;
           const chosungRegex = getRegExp(searchValue, { initialSearch: true });
           chosungMatch = chosungRegex.test(koreanName);
-
-          console.log(market, englishName, koreanName, searchValue, fullTextMatch, chosungRegex, chosungMatch);
           return fullTextMatch || chosungMatch;
         },
         enableHiding: false,
