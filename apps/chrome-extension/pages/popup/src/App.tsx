@@ -263,8 +263,10 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const setTickersByMarketType = (marketType: 'KRW' | 'BTC' | 'USDT') => {
-    const filteredTickers = Object.values(tickers).filter(ticker => ticker.market.startsWith(`${marketType}-`));
-    setTableData(filteredTickers);
+    const filteredTickers = Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${marketType}-`));
+    if (filteredTickers.length > 0) {
+      setTableData(filteredTickers);
+    }
   };
 
   const portRef = useRef<chrome.runtime.Port | null>(null);

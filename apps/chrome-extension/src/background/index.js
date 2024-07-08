@@ -245,63 +245,63 @@ async function initializeStorage() {
   }
 }
 
-class BithumbData {
-  constructor() {
-    this.socket = null;
-    this.port = null;
-    this.bithumbMarkets = [];
-    this.bithumbTickersMarketInfo = null;
-    this.bithumbTickersInitData = null;
-  }
+// class BithumbData {
+//   constructor() {
+//     this.socket = null;
+//     this.port = null;
+//     this.bithumbMarkets = [];
+//     this.bithumbTickersMarketInfo = null;
+//     this.bithumbTickersInitData = null;
+//   }
 
-  async fetchBithumMarkets() {
-    try {
-      const url = 'https://api.bithumb.com/v1/market/all?isDetails=true';
-      const options = {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      };
-      const reponse = await fetch(url, options);
-      const tickers = await reponse.json();
+//   async fetchBithumMarkets() {
+//     try {
+//       const url = 'https://api.bithumb.com/v1/market/all?isDetails=true';
+//       const options = {
+//         method: 'GET',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//       };
+//       const reponse = await fetch(url, options);
+//       const tickers = await reponse.json();
 
-      this.bithumbMarkets = tickers?.map(ticker => ticker.market ?? ticker.market);
+//       this.bithumbMarkets = tickers?.map(ticker => ticker.market ?? ticker.market);
 
-      this.bithumbTickerInitData = tickers?.reduce((acc, curr) => {
-        if (curr.market && curr.market_warning) {
-          acc[curr.market] = { ...curr, market_warning: true };
-        } else if (curr.market) {
-          acc[curr.market] = { ...curr };
-        }
-        return acc;
-      }, {});
-    } catch (error) {
-      this.bithumbMarkets = ['KRW-BTC'];
-    }
-  }
+//       this.bithumbTickerInitData = tickers?.reduce((acc, curr) => {
+//         if (curr.market && curr.market_warning) {
+//           acc[curr.market] = { ...curr, market_warning: true };
+//         } else if (curr.market) {
+//           acc[curr.market] = { ...curr };
+//         }
+//         return acc;
+//       }, {});
+//     } catch (error) {
+//       this.bithumbMarkets = ['KRW-BTC'];
+//     }
+//   }
 
-  async fetchBithumbTickersInit() {
-    try {
-      const url = 'https://api.bithumb.com/v1/ticker';
-      const param = this.bithumbMarkets?.join(',');
-      const response = await fetch(`${url}?markets=${param}`);
-      const tickers = await reponse.json();
-      this.bithumbTickersInit = tickers?.reduce((acc, curr) => {
-        if (curr.market) {
-          acc[curr.market] = { ...curr, ...this.bithumbTickersMarketInfo[curr.market] };
-        }
-        return acc;
-      }, {});
-    } catch (error) {
-      throw error;
-    }
-  }
-}
+//   async fetchBithumbTickersInit() {
+//     try {
+//       const url = 'https://api.bithumb.com/v1/ticker';
+//       const param = this.bithumbMarkets?.join(',');
+//       const response = await fetch(`${url}?markets=${param}`);
+//       const tickers = await reponse.json();
+//       this.bithumbTickersInit = tickers?.reduce((acc, curr) => {
+//         if (curr.market) {
+//           acc[curr.market] = { ...curr, ...this.bithumbTickersMarketInfo[curr.market] };
+//         }
+//         return acc;
+//       }, {});
+//     } catch (error) {
+//       throw error;
+//     }
+//   }
+// }
 
 // UpbitData 인스턴스를 생성
 const upbitData = new UpbitData();
-const bithumbData = new BithumbData();
+// const bithumbData = new BithumbData();
 
 // popup 연결을 위한 리스너
 chrome.runtime.onConnect.addListener(port => {
