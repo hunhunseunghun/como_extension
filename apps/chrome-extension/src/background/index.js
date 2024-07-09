@@ -1,3 +1,10 @@
+//popup toggle
+chrome.commands.onCommand.addListener(command => {
+  if (command === '_execute_action') {
+    chrome.action.openPopup();
+  }
+});
+
 const CURRENT_DATE = String(
   new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul',
