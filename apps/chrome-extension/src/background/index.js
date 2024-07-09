@@ -146,13 +146,14 @@ class UpbitData {
           'Content-Type': 'application/json',
         },
       });
-      const data = await response.json();
-      const cautionFilteredData = data.map(item => {
-        const isCautionTrue = item.market_event?.caution
-          ? Object.values(item.market_event.caution).some(value => value === true)
+      const tickers = await response.json();
+      this.upbitMarkets = tickers.map(ticker => ticker.market ?? ticker.market);
+      const cautionFilteredData = tickers.map(ticker => {
+        const isCautionTrue = ticker.market_event?.caution
+          ? Object.values(ticker.market_event.caution).some(value => value === true)
           : false;
-        if (item.market_event) item.market_event.caution = isCautionTrue;
-        return item;
+        if (ticker.market_event) ticker.market_event.caution = isCautionTrue;
+        return ticker;
       });
       this.upbitMarketsInfo = cautionFilteredData.reduce((acc, curr) => {
         if (curr.market) {
@@ -160,7 +161,6 @@ class UpbitData {
         }
         return acc;
       }, {});
-      this.upbitMarkets = cautionFilteredData.map(item => item.market);
 
       return this.upbitMarkets;
     } catch (error) {
@@ -188,11 +188,8 @@ class UpbitData {
         }
         return acc;
       }, {});
-
-      console.log('this.tickersInitData:', this.tickersInitData);
-      console.log('this.upbitMarketsInfo:', this.upbitMarketsInfo);
     } catch (error) {
-      console.error('fetchUpbitTickersInit failed:', error.message);
+      throw error;
     }
   }
 
@@ -255,8 +252,64 @@ async function initializeStorage() {
   }
 }
 
+class BithumbData {
+  constructor() {
+    this.socket = null;
+    this.port = null;
+    this.bithumbMarkets = [];
+    this.bithumbTickersMarketInfo = null;
+    this.bithumbTickersInitData = null;
+  }
+
+  async fetchBithumMarkets() {
+    try {
+      const url = 'https://api.bithumb.com/v1/market/all?isDetails=true';
+      const options = {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+      const reponse = await fetch(url, options);
+      const tickers = await reponse.json();
+
+      this.bithumbMarkets = tickers?.map(ticker => ticker.market ?? ticker.market);
+
+      this.bithumbTickerInitData = tickers?.reduce((acc, curr) => {
+        if (curr.market && curr.market_warning) {
+          acc[curr.market] = { ...curr, market_warning: true };
+        } else if (curr.market) {
+          acc[curr.market] = { ...curr };
+        }
+        return acc;
+      }, {});
+    } catch (error) {
+      this.bithumbMarkets = ['KRW-BTC'];
+      console.log('bithubmTickerIni error :', error);
+    }
+  }
+
+  async fetchBithumbTickersInit() {
+    try {
+      const url = 'https://api.bithumb.com/v1/ticker';
+      const param = this.bithumbMarkets?.join(',');
+      const response = await fetch(`${url}?markets=${param}`);
+      const tickers = await reponse.json();
+      this.bithumbTickersInit = tickers?.reduce((acc, curr) => {
+        if (curr.market) {
+          acc[curr.market] = { ...curr, ...this.bithumbTickersMarketInfo[curr.market] };
+        }
+        return acc;
+      }, {});
+    } catch (error) {
+      throw 
+    }
+  }
+}
+
 // UpbitData 인스턴스를 생성
 const upbitData = new UpbitData();
+const bithumbData = new BithumbData();
 
 // popup 연결을 위한 리스너
 chrome.runtime.onConnect.addListener(port => {

@@ -103,6 +103,9 @@ importers:
       '@types/chrome':
         specifier: ^0.0.300
         version: 0.0.300
+      '@types/node':
+        specifier: ^22.13.1
+        version: 22.13.5
       '@types/react':
         specifier: ^19.0.8
         version: 19.0.8
@@ -127,6 +130,9 @@ importers:
       nodemon:
         specifier: ^3.1.9
         version: 3.1.9
+      prettier:
+        specifier: ^3.5.0
+        version: 3.5.2
       typescript:
         specifier: 5.7.3
         version: 5.7.3
@@ -224,6 +230,9 @@ importers:
       globals:
         specifier: ^15.14.0
         version: 15.15.0
+      prettier:
+        specifier: ^3.5.0
+        version: 3.5.2
       typescript:
         specifier: 5.7.3
         version: 5.7.3

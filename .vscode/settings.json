@@ -1,10 +1,8 @@
 {
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.fixAll.stylelint": true
+    "source.fixAll": true
   },
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.autoSave": "afterDelay",
   "eslint.validate": [
     "javascript",
@@ -22,5 +20,6 @@
       "cn\\(([^)]*)\\)",
       "(?:'|\"|`)([^'\"`]*)"
     ]
-  ]
+  ],
+  "editor.goToDefinition.enabled": true
 }
