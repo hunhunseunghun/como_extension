@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "COMO-비트코인 & 암호화폐 실시간 가격 (Bitcoin & Crypto Live Prices)",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "빠르고 간편하게 암호화폐 가격을 실시간 모니터링 하세요!",
   "permissions": ["storage", "notifications"],
   "host_permissions": ["https://api.upbit.com/*", "https://www.koreaexim.go.kr/*", "https://finance.naver.com/*"],
