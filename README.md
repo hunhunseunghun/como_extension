@@ -1,10 +1,13 @@
-# <div style="display: flex; flex-direction: column; align-items:center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" /><span style="margin-top:20px">COMO</span> <span style="margin-top:10px; font-size: 14px;">(암호화폐 시세조회 익스텐션)</span></div>
+<!-- # <div style="display: flex; flex-direction: column; align-items:center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" /><span style="margin-top:20px">COMO</span> <span style="margin-top:10px; font-size: 14px;">(암호화폐 시세조회 익스텐션)</span></div> -->
+
+<div align="center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" /><br><span>(암호화폐 시세조회 익스텐션)</span></div>
+<br>**como**
 
 ## 프로젝트 소개
 
 암호화폐 시세를 빠르고 간편하게 조회할 수 있는 브라우저 확장프로그램입니다. 주요 암호화폐 거래소들의 종목 가격을 제공합니다.
 
-<div style="flot-center"><img src="./apps/chrome-extension//public/como_introduce.gif"/></div>
+<img src="./apps/chrome-extension//public/como_introduce.gif"/>
 
 ## 기술
 
