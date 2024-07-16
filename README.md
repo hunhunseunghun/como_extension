@@ -1,11 +1,9 @@
-<!-- # <div style="display: flex; flex-direction: column; align-items:center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" /><span style="margin-top:20px">COMO</span> <span style="margin-top:10px; font-size: 14px;">(암호화폐 시세조회 익스텐션)</span></div> -->
-
-<div align="center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" /></div>
+<div align="center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" />
 <br>
 <br>
-**como**
-<br>
-(암호화폐 시세조회 익스텐션)
+<div style="font-size: 30px; font-weight: bold;">como</div>
+<div style="font-size: 15px; font-weight: bold;">(암호화폐 시세조회 익스텐션)</div>
+</div>
 
 ## 프로젝트 소개
 
