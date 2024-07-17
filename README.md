@@ -1,8 +1,8 @@
 <div align="center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" />
 <br>
 <br>
-<div style="font-size: 30px; font-weight: bold;">como</div>
-<div style="font-size: 15px; font-weight: bold;">(암호화폐 시세조회 익스텐션)</div>
+<font size="3">**COMO**</font>
+<font size="3">**(암호화폐 시세조회 익스텐션)**</font>
 </div>
 
 ## 프로젝트 소개
@@ -13,7 +13,6 @@
 
 ## 기술
 
-<p align=""> 
 <img alt="typescript" src ="https://img.shields.io/badge/typescript-white.svg?&style=for-the-badge&logo=typescript&logoColor=#3178C6"/>
 <img alt="react" src ="https://img.shields.io/badge/react-white.svg?&style=for-the-badge&logo=react&logoColor=61DAFB"/>
 <img alt="vite" src ="https://img.shields.io/badge/vite-white.svg?&style=for-the-badge&logo=vite&logoColor=#646CFF"/>
