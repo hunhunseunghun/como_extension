@@ -43,4 +43,4 @@ como
                     ├ *styles        # Tailwind CSS 스타일 파일
 ```
 
-[link](https://vercel.com/security) to know more about Vercel's security and report
+**Chrome webstore 링크** [COMO Webstore](https://chromewebstore.google.com/detail/comoturbo/camiahnljjgndaficdcpboimdbdphnok?hl=ko) 
