@@ -1,9 +1,7 @@
 <div align="center" ><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" />
 <br>
-<br>
-<div >COMO</div>
-<div >(암호화폐 시세조회 익스텐션)</div>
-<br>
+<h1 class="heading-element">COMO</h1>
+<h3>(암호화폐 시세조회 익스텐션)</h3>
 <br>
 </div>
 
@@ -43,4 +41,4 @@ como
                     ├ *styles        # Tailwind CSS 스타일 파일
 ```
 
-**Chrome webstore 링크** [COMO Webstore](https://chromewebstore.google.com/detail/comoturbo/camiahnljjgndaficdcpboimdbdphnok?hl=ko) 
+**Chrome webstore 링크** [COMO Webstore](https://chromewebstore.google.com/detail/comoturbo/camiahnljjgndaficdcpboimdbdphnok?hl=ko)
