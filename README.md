@@ -1,6 +1,6 @@
 <div align="center" ><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" />
 <br>
-<h1>COMO</h1>
+<h3>COMO</h1>
 <h3>(암호화폐 시세조회 익스텐션)</h3>
 <br>
 </div>
