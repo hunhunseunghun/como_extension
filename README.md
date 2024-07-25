@@ -1,13 +1,15 @@
-<div align="center" ><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" />
+<div align="center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" />
 <br>
 <h3>COMO</h1>
-<h3>(암호화폐 시세조회 익스텐션)</h3>
+<h4>(암호화폐 시세조회 익스텐션)</h3>
 <br>
 </div>
 
+#### **Chrome 웹스토어 :** [LINK](https://chromewebstore.google.com/detail/comoturbo/camiahnljjgndaficdcpboimdbdphnok?hl=ko)
+
 ### 프로젝트 소개
 
-암호화폐 시세를 빠르고 간편하게 조회할 수 있는 브라우저 확장프로그램입니다. 주요 암호화폐 거래소들의 종목 가격을 제공합니다.
+암호화폐 시세를 빠르고 간편하게 조회할 수 있는 브라우저 확장프로그램입니다. 주요 암호화폐 거래소(Upbit, Bithumb, Bainance)의 종목 가격을 제공합니다.
 
 <img src="./apps/chrome-extension//public/como_introduce.gif"/>
 
@@ -41,4 +43,9 @@ como
                     ├ *styles        # Tailwind CSS 스타일 파일
 ```
 
-**Chrome webstore 링크** [COMO Webstore](https://chromewebstore.google.com/detail/comoturbo/camiahnljjgndaficdcpboimdbdphnok?hl=ko)
+### 시퀀스 다이어그램
+
+Upbit Api를 예시로한 구성 요소와 데이터 흐름입니다.
+
+<div align="center"><img src="./apps/chrome-extension/public/como_sequence_diagram.png"   />
+</div>
