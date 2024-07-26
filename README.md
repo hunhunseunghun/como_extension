@@ -5,15 +5,15 @@
 <br>
 </div>
 
-#### **Chrome 웹스토어 :** [LINK](https://chromewebstore.google.com/detail/comoturbo/camiahnljjgndaficdcpboimdbdphnok?hl=ko)
+### **Chrome 웹스토어 :** [LINK](https://chromewebstore.google.com/detail/comoturbo/camiahnljjgndaficdcpboimdbdphnok?hl=ko)
 
-### 프로젝트 소개
+## 프로젝트 소개
 
 암호화폐 시세를 빠르고 간편하게 조회할 수 있는 브라우저 확장프로그램입니다. 주요 암호화폐 거래소(Upbit, Bithumb, Bainance)의 종목 가격을 제공합니다.
 
 <img src="./apps/chrome-extension//public/como_introduce.gif"/>
 
-### 기술
+## 기술
 
 <div><img alt="typescript" src ="https://img.shields.io/badge/typescript-white.svg?&style=for-the-badge&logo=typescript&logoColor=#3178C6"/>
 <img alt="react" src ="https://img.shields.io/badge/react-white.svg?&style=for-the-badge&logo=react&logoColor=61DAFB"/>
@@ -24,7 +24,7 @@
 <img alt="shadcnui" src ="https://img.shields.io/badge/shadcnui-white?&style=for-the-badge&logo=shadcnui&logoColor=black"/>
 <img alt="tailwindcss" src ="https://img.shields.io/badge/tailwindcss-white?&style=for-the-badge&logo=tailwindcss&logoColor=#06B6D4"/></div>
 
-### 디렉토리
+## 디렉토리
 
 ```
 como
@@ -43,7 +43,7 @@ como
                     ├ *styles        # Tailwind CSS 스타일 파일
 ```
 
-### 시퀀스 다이어그램
+## 시퀀스 다이어그램
 
 Upbit Api를 예시로한 구성 요소와 데이터 흐름입니다.
 
