@@ -11,6 +11,8 @@
 
 암호화폐 시세를 빠르고 간편하게 조회할 수 있는 브라우저 확장프로그램입니다. 주요 암호화폐 거래소(Upbit, Bithumb, Bainance)의 종목 가격을 제공합니다.
 
+개발 기간 : 2022년 01월 ~
+
 <img src="./apps/chrome-extension//public/como_introduce.gif"/>
 
 ## 기술
