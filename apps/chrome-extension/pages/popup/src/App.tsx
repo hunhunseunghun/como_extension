@@ -20,6 +20,7 @@ import { SizeToggle } from '@/components/SizeToggle';
 import { MarketDropdown } from '@/components/MarketDropdown';
 import FlashCell from '@/components/FlashCell';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
+import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { getRegExp } from 'korean-regexp';
 import { Search, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
@@ -589,6 +590,7 @@ const App = () => {
               <img src={comoLogo} className="size-6" />
             </section>
             <section className="flex gap-1">
+              <UpdateNoteToggle />
               <ModeToggle />
               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
             </section>
