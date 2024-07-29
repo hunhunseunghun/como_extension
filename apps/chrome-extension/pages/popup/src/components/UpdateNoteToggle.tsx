@@ -11,11 +11,11 @@ export const UpdateNoteToggle = () => {
   };
   return (
     <Toggle
-      className="relative hover:cursor-pointer hover:bg-accent size-6 min-w-6 border-1"
+      className="relative hover:cursor-pointer hover:bg-accent size-6 min-w-6 border-1 group"
       variant="outline"
       onClick={openNewPopup}>
       <NotebookText size={14} strokeWidth={2} />
-      <span className="absolute top-full mt-2 hidden w-max px-3 py-1 text-sm text-white bg-black rounded-md opacity-0 group-hover:block group-hover:opacity-100 transition-opacity">
+      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-3 py-1 text-sm text-white bg-black rounded-md opacity-0 group-hover:block group-hover:opacity-100 transition-opacity">
         Update note
       </span>
     </Toggle>

@@ -16,7 +16,9 @@ export function SizeToggle({
       variant="outline"
       onClick={switchSize}>
       {wideSize ? <Maximize size={14} strokeWidth={2} /> : <Minimize size={14} strokeWidth={2} />}
-      <span className="sr-only">toggle theme</span>
+      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-0 group-hover:block group-hover:opacity-100 transition-opacity">
+        {wideSize ? 'Minimize toggle' : 'Maximize Toggle'}
+      </span>
     </Toggle>
   );
 }

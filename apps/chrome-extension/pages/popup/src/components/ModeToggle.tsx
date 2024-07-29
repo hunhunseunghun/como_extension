@@ -22,7 +22,9 @@ export function ModeToggle() {
         strokeWidth={2}
         className="absolute size-3.5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
       />
-      <span className="sr-only">toggle theme</span>
+      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-0 group-hover:block group-hover:opacity-100 transition-opacity">
+        toggle theme
+      </span>
     </Toggle>
   );
 }
