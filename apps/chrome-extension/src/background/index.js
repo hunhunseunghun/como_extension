@@ -16,36 +16,33 @@ const CURRENT_DATE = String(
   .replace(/\./g, '')
   .replace(/ /g, '');
 
-class UpbitData {
+class comoInitialize {
   constructor() {
-    this.socket = null;
     this.port = null;
-    this.upbitMarkets = [];
-    this.upbitMarketsInfo = null;
-    this.tickersInitData = null;
-    this.comoLocalStorage = { como_extension: { ui_theme: null, changeRateUSD: null, updatedDate: null } };
-    this.changeRateUSD = null;
+    this.localstorage = { como_extension: { ui_theme: null, exchangeRateUSD: null, updatedDate: null } };
+    this.exchangeRateUSD = null;
   }
 
-  // popup 연결 시 port 처리
-  connectPopup(port) {
-    this.port = port;
+  async initializeStorage() {
+    // when extensions install, chrome localstorage initialize
+    chrome.runtime.onInstalled.addListener(() => chrome.storage.local.set(this.localstorage));
 
-    this.port.onDisconnect.addListener(() => {
-      this.port = null;
-    });
+    const result = await chrome.storage.local.get(['como_extension']);
+    const comoStorage = result.como_extension ?? this.localstorage;
 
-    if (this.tickersInitData && this.port) {
-      this.port.postMessage({ type: 'upbitTickers', data: this.tickersInitData });
-    }
+    console.log('RESULT STORAGE : ', json.strigify(result));
 
-    if (this.port && this.changeRateUSD) {
-      this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+    if (!comoStorage.exchangeRateUSD || comoStorage.updatedDate !== CURRENT_DATE) {
+      try {
+        await this.fetchExchangeRate();
+      } catch (error) {
+        await chrome.storage.local.set({ como_extension: this.localstorage.como_extension });
+        console.error('fetchExchangeRate failed:', error.message);
+      }
     }
   }
 
   getDynamicUserAgent(isSuc) {
-    // 크롬 확장 환경에서는 navigator.userAgent를 통해 현재 브라우저 정보 가져오기
     const defaultUA = navigator.userAgent;
     return defaultUA;
   }
@@ -65,26 +62,26 @@ class UpbitData {
       // 정규식 USD 환율 추출
       const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
       const match = html.match(usdRegex);
-      let changeRateUSD = null;
+      let exchangeRateUSD = null;
 
       if (match && match[1]) {
-        changeRateUSD = match[1].replace(/,/g, ''); // 쉼표 제거
+        exchangeRateUSD = match[1].replace(/,/g, ''); // 쉼표 제거
       } else {
         throw new Error('crawlingNaverUSDchangeRate match failed');
       }
 
-      this.changeRateUSD = Number(changeRateUSD);
+      this.exchangeRateUSD = Number(exchangeRateUSD);
 
-      this.comoLocalStorage.como_extension = {
-        ...this.comoLocalStorage,
-        changeRate: changeRateUSD,
+      this.localstorage.como_extension = {
+        ...this.localstorage,
+        changeRate: exchangeRateUSD,
         updatedDate: CURRENT_DATE,
       };
 
-      await chrome.storage.local.set(this.comoLocalStorage);
+      await chrome.storage.local.set(this.localstorage);
 
       if (this.port) {
-        this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+        this.port.postMessage({ type: 'exchangeRateUSD', data: this.exchangeRateUSD });
       }
     } catch (error) {
       console.error('crawlingNaverUSDchangeRate failed :', error);
@@ -115,13 +112,13 @@ class UpbitData {
         if (data.length > 0) {
           const usdRate = data.find(rate => rate.cur_unit === 'USD')?.deal_bas_r?.replace(/,/g, '');
           if (usdRate) {
-            this.changeRateUSD = Number(usdRate);
-            this.comoLocalStorage.como_extension.changeRateUSD = usdRate;
-            this.comoLocalStorage.como_extension.updatedDate = searchDate;
-            chrome.storage.local.set(this.comoLocalStorage);
+            this.exchangeRateUSD = Number(usdRate);
+            this.localstorage.como_extension.exchangeRateUSD = usdRate;
+            this.localstorage.como_extension.updatedDate = searchDate;
+            chrome.storage.local.set(this.localstorage);
 
             if (this.port) {
-              this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+              this.port.postMessage({ type: 'exchangeRateUSD', data: this.exchangeRateUSD });
             }
 
             foundRate = true;
@@ -138,10 +135,87 @@ class UpbitData {
         await this.crawlingNaverUSDchangeRate();
       }
     } catch (error) {
-      this.crawlingNaverUSDchangeRate();
+      await this.crawlingNaverUSDchangeRate();
       return null;
     }
   }
+}
+
+class UpbitData {
+  constructor() {
+    this.socket = null;
+    this.port = null;
+    this.upbitMarkets = [];
+    this.upbitMarketsInfo = null;
+    this.tickersInitData = null;
+    // this.comoLocalStorage = { como_extension: { ui_theme: null, changeRateUSD: null, updatedDate: null } };
+    // this.changeRateUSD = null;
+  }
+
+  // popup 연결 시 port 처리
+  connectPopup(port) {
+    this.port = port;
+
+    this.port.onDisconnect.addListener(() => {
+      this.port = null;
+    });
+
+    if (this.tickersInitData && this.port) {
+      this.port.postMessage({ type: 'upbitTickers', data: this.tickersInitData });
+    }
+
+    if (this.port && this.changeRateUSD) {
+      this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+    }
+  }
+
+  // getDynamicUserAgent(isSuc) {
+  //   const defaultUA = navigator.userAgent;
+  //   return defaultUA;
+  // }
+
+  // async crawlingNaverUSDchangeRate() {
+  //   try {
+  //     const url = 'https://finance.naver.com/marketindex/';
+  //     const response = await fetch(url, {
+  //       method: 'GET',
+  //       headers: {
+  //         'User-Agent': this.getDynamicUserAgent(),
+  //       },
+  //     });
+
+  //     const html = await response.text();
+
+  //     // 정규식 USD 환율 추출
+  //     const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
+  //     const match = html.match(usdRegex);
+  //     let changeRateUSD = null;
+
+  //     if (match && match[1]) {
+  //       changeRateUSD = match[1].replace(/,/g, ''); // 쉼표 제거
+  //     } else {
+  //       throw new Error('crawlingNaverUSDchangeRate match failed');
+  //     }
+
+  //     this.changeRateUSD = Number(changeRateUSD);
+
+  //     this.comoLocalStorage.como_extension = {
+  //       ...this.comoLocalStorage,
+  //       changeRate: changeRateUSD,
+  //       updatedDate: CURRENT_DATE,
+  //     };
+
+  //     await chrome.storage.local.set(this.comoLocalStorage);
+
+  //     if (this.port) {
+  //       this.port.postMessage({ type: 'changeRateUSD', data: this.changeRateUSD });
+  //     }
+  //   } catch (error) {
+  //     console.error('crawlingNaverUSDchangeRate failed :', error);
+
+  //     return null;
+  //   }
+  // }
 
   async fetchUpbitMarkets() {
     try {
@@ -235,20 +309,6 @@ class UpbitData {
       await this.fetchUpbitTickersInit();
       this.connectWebSocket();
     }
-  }
-}
-
-async function initializeStorage() {
-  // when extensions install, chrome localstorage initialize
-  chrome.runtime.onInstalled.addListener(() => chrome.storage.local.set(upbitData.comoLocalStorage));
-
-  const result = await chrome.storage.local.get(['como_extension']);
-  const comoStorage = result.como_extension ?? upbitData.comoLocalStorage;
-
-  if (comoStorage.changeRate == null || comoStorage.updatedDate !== CURRENT_DATE) {
-    await upbitData.fetchExchangeRate();
-  } else if (!result) {
-    await chrome.storage.local.set({ como_extension: upbitData.comoLocalStorage.como_extension });
   }
 }
 
