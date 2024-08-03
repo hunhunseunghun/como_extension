@@ -1,9 +1,10 @@
 //popup toggle
-chrome.commands.onCommand.addListener(command => {
-  if (command === '_execute_action') {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'openPopup') {
     chrome.action.openPopup();
   }
 });
+// popup 연결을 위한 리스너
 
 const CURRENT_DATE = String(
   new Intl.DateTimeFormat('ko-KR', {
@@ -30,7 +31,7 @@ class comoInitialize {
     const result = await chrome.storage.local.get(['como_extension']);
     const comoStorage = result.como_extension ?? this.localstorage;
 
-    console.log('RESULT STORAGE : ', json.strigify(result));
+    console.log('RESULT STORAGE : ', JSON.strigify(result));
 
     if (!comoStorage.exchangeRateUSD || comoStorage.updatedDate !== CURRENT_DATE) {
       try {
@@ -44,6 +45,7 @@ class comoInitialize {
 
   getDynamicUserAgent(isSuc) {
     const defaultUA = navigator.userAgent;
+    console.log('defaultUA : ', defaultUA);
     return defaultUA;
   }
 
@@ -406,16 +408,15 @@ class BithumbData {
   }
 }
 
-// UpbitData 인스턴스를 생성
+// 인스턴스를
+const comoInit = new comoInitialize();
 const upbitData = new UpbitData();
 const bithumbData = new BithumbData();
 
-// popup 연결을 위한 리스너
 chrome.runtime.onConnect.addListener(port => {
   upbitData.connectPopup(port);
 });
 
-initializeStorage();
-
+comoInit.initializeStorage();
 // Upbit 데이터 수집 시작
 upbitData.connectUpbitData();

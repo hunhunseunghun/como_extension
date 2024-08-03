@@ -257,7 +257,7 @@ const App = () => {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [wideSize, setWideSize] = useState<boolean>(true);
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
-  const [changeRateUSD, setChangeRateUSD] = useState<number>(0);
+  const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
   const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
   const [exchangePlatform, setExchangePlatform] = useState<'upbit'>('upbit');
   // | 'bithumb' | 'coinone' | 'binance'
@@ -292,8 +292,8 @@ const App = () => {
           setTickers(data);
           setIsLoading(false);
           break;
-        case 'changeRateUSD':
-          setChangeRateUSD(data);
+        case 'exchangeRateUSD':
+          setExchangeRateUSD(data);
           break;
         default:
       }
@@ -381,7 +381,7 @@ const App = () => {
         },
         cell: ({ getValue, row, cell }) => {
           const valueKRW = getValue() as number;
-          const changeRateKRW = changeRateUSD > 0 ? (getValue() as number) / changeRateUSD : 0;
+          const changeRateKRW = exchangeRateUSD > 0 ? (getValue() as number) / exchangeRateUSD : 0;
 
           switch (upbitMarketType) {
             case 'KRW':
@@ -389,8 +389,8 @@ const App = () => {
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
                   <div className="flex flex-col items-end font-medium ">
                     <span>{valueKRW.toLocaleString()}</span>
-                    <span key={changeRateUSD} className="text-[10px] text-gray-500">
-                      {changeRateUSD > 0 && `$${changeRateKRW.toLocaleString()}`}
+                    <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
+                      {exchangeRateUSD > 0 && `$${changeRateKRW.toLocaleString()}`}
                     </span>
                   </div>
                 </FlashCell>
@@ -555,7 +555,7 @@ const App = () => {
         enableHiding: false,
       },
     ],
-    [coinNameKR, changeRateUSD, upbitMarketType],
+    [coinNameKR, exchangeRateUSD, upbitMarketType],
   );
 
   const table = useReactTable({
