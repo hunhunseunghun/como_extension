@@ -29,9 +29,10 @@ class comoInitialize {
     chrome.runtime.onInstalled.addListener(() => chrome.storage.local.set(this.localstorage));
 
     const result = await chrome.storage.local.get(['como_extension']);
-    const comoStorage = result.como_extension ?? this.localstorage;
+    const comoStorage = result.como_extension ?? this.localstorage.como_extension;
 
-    console.log('RESULT STORAGE : ', JSON.strigify(result));
+    console.log('RESULT STORAGE : ', JSON.stringify(result));
+    console.log('comoStorage : ', JSON.stringify(comoStorage));
 
     if (!comoStorage.exchangeRateUSD || comoStorage.updatedDate !== CURRENT_DATE) {
       try {
@@ -94,51 +95,50 @@ class comoInitialize {
 
   async fetchExchangeRate() {
     try {
-      const AUTH_KEY = 'lhvJTBDL3jYjY7HvXsMBLacy5TEjsavr'; // 실제 인증키로 교체
-      let searchDate = CURRENT_DATE; // 기본적으로 오늘 날짜
+      const AUTH_KEY = 'lhvJTBDL3jYjY7HvXsMBLacy5TEjsavr';
+      let searchDate = CURRENT_DATE;
       let attempts = 0;
-      const maxAttempts = 7; // 최대 7일 전까지 확인 (주말/공휴일 대비)
-      let foundRate = false;
+      const maxAttempts = 7; // 최대 7일간 검색
 
-      while (attempts < maxAttempts && !foundRate) {
-        const url = `https://www.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${AUTH_KEY}&searchdate=${searchDate}&data=AP01`;
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+      const fetchRate = async date => {
+        const url = `https://www.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${AUTH_KEY}&searchdate=${date}&data=AP01`;
+        const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+        return await response.json();
+      };
 
-        const data = await response.json();
+      while (attempts < maxAttempts) {
+        const data = await fetchRate(searchDate);
 
-        if (data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           const usdRate = data.find(rate => rate.cur_unit === 'USD')?.deal_bas_r?.replace(/,/g, '');
           if (usdRate) {
             this.exchangeRateUSD = Number(usdRate);
-            this.localstorage.como_extension.exchangeRateUSD = usdRate;
-            this.localstorage.como_extension.updatedDate = searchDate;
-            chrome.storage.local.set(this.localstorage);
+            this.localstorage.como_extension = {
+              ...this.localstorage.como_extension,
+              exchangeRateUSD: usdRate,
+              updatedDate: searchDate,
+            };
+            await chrome.storage.local.set(this.localstorage);
 
             if (this.port) {
               this.port.postMessage({ type: 'exchangeRateUSD', data: this.exchangeRateUSD });
             }
-
-            foundRate = true;
+            return;
           }
         }
 
-        // 데이터가 없으면 하루 전으로 이동
+        // 하루 전으로 이동
         attempts++;
         const prevDate = new Date();
         prevDate.setDate(prevDate.getDate() - attempts);
         searchDate = prevDate.toISOString().slice(0, 10).replace(/-/g, '');
       }
-      if (!foundRate) {
-        await this.crawlingNaverUSDchangeRate();
-      }
-    } catch (error) {
+
+      // API에서 데이터를 찾지 못한 경우 네이버 크롤링 시도
       await this.crawlingNaverUSDchangeRate();
-      return null;
+    } catch (error) {
+      console.error('fetchExchangeRate error:', error);
+      await this.crawlingNaverUSDchangeRate();
     }
   }
 }
@@ -398,7 +398,7 @@ class BithumbData {
     };
   }
 
-  async connectUpbitData() {
+  async connectBithumbData() {
     this.bithumbMarkets = await this.fetchBithumbMarkets();
 
     if (this.bithumbMarkets.length > 2) {
