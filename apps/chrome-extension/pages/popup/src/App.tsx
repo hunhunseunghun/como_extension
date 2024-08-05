@@ -259,7 +259,7 @@ const App = () => {
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
   const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
-  const [exchangePlatform, setExchangePlatform] = useState<'upbit'>('upbit');
+  const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb'>('upbit');
   // | 'bithumb' | 'coinone' | 'binance'
   const [isLoading, setIsLoading] = useState(true);
 
@@ -269,6 +269,8 @@ const App = () => {
       setTableData(filteredTickers);
     }
   };
+
+  console.log('tickers popup : ', tickers);
 
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const connectBackgroundStream = () => {
@@ -288,6 +290,9 @@ const App = () => {
             [data?.code]: { ...prevTickers[data?.code], ...data },
           }));
           break;
+        case 'bithumbWebsocketTicker':
+          setTickers(prev => ({ ...prev, [data?.market]: { ...prev[data?.market], ...data } }));
+          break;
         case 'upbitTickers':
           setTickers(data);
           setIsLoading(false);
@@ -295,19 +300,23 @@ const App = () => {
         case 'exchangeRateUSD':
           setExchangeRateUSD(data);
           break;
+        case 'activeExchange':
+          setExchangePlatform(data);
+          break;
         default:
       }
     });
 
     port.onDisconnect.addListener(() => {
       portRef.current = null;
-      setIsLoading(true); // 연결이 끊겼으므로 다시 로딩 상태로 설정
+      setIsLoading(true);
     });
   };
 
+  // 초기 연결 및 상태 로드
   useEffect(() => {
     connectBackgroundStream();
-
+    chrome.runtime.sendMessage({ action: 'getActiveExchange' });
     return () => {
       if (portRef.current) {
         portRef.current.disconnect();
@@ -609,7 +618,11 @@ const App = () => {
               <div className="flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md">
                 <span>Total</span> <span>{tableData?.length}</span>
               </div>
-              <MarketDropdown exchangePlatform={exchangePlatform} setExchangePlatform={setExchangePlatform} />
+              <MarketDropdown
+                exchangePlatform={exchangePlatform}
+                setExchangePlatform={setExchangePlatform}
+                setIsLoading={setIsLoading}
+              />
               <MarketTypeDropDown upbitMarketType={upbitMarketType} setUpbitMarketType={setUpbitMarketType} />
             </section>
           </div>

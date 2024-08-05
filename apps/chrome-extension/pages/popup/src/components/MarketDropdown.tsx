@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -7,26 +8,32 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import UpbitLogo from '@/assets/icons/upbit-logo.png';
-// import BithumbLogo from '@/assets/icons/bithumb-logo.png';
+import BithumbLogo from '@/assets/icons/bithumb-logo.png';
 // import CoinOneLogo from '@/assets/icons/coinone-logo.png';
 // import BinanceLogo from '@/assets/icons/binance-logo.png';
 import { ChevronDown } from 'lucide-react';
 
 const platformData = {
   upbit: { key: 'upbit', label: '업비트', logo: UpbitLogo },
-  // bithumb: { key: 'bithumb', label: '빗썸', logo: BithumbLogo },
+  bithumb: { key: 'bithumb', label: '빗썸', logo: BithumbLogo },
   // coinone: { key: 'coinone', label: '코인원', logo: CoinOneLogo },
   // binance: { key: 'binance', label: '바이낸스', logo: BinanceLogo },
 } as const;
 
 interface MarketDropdownProps {
-  exchangePlatform: 'upbit'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
+  exchangePlatform: 'upbit' | 'bithumb'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
   setExchangePlatform: (platform: keyof typeof platformData) => void;
+  setIsLoading: (loading: boolean) => void;
 }
 
-export const MarketDropdown = ({ exchangePlatform, setExchangePlatform }: MarketDropdownProps) => {
+export const MarketDropdown = ({ exchangePlatform, setExchangePlatform, setIsLoading }: MarketDropdownProps) => {
   const exchangeList = Object.values(platformData);
   const selectedPlatform = platformData[exchangePlatform] || platformData.upbit;
+
+  useEffect(() => {
+    chrome.runtime.sendMessage({ action: 'changeExchange', exchange: exchangePlatform });
+    setIsLoading(true);
+  }, [exchangePlatform]);
 
   return (
     <DropdownMenu>
