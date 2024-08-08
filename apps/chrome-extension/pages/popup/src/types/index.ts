@@ -44,3 +44,16 @@ export type UpbitTicker = {
     caution: boolean;
   };
 };
+export type BithumbTicker = {
+  opening_price: number; //시가 00시 기준
+  closing_price: number; // 종가 00시 기준
+  min_price: number; //저가 00시 기준
+  max_price: number; // 고가 00시 기준
+  units_traded: number; // 거래량 00시 기준
+  acc_trade_value: number; // 거래금액 00시 기준
+  prev_closing_price: number; // 전일종가
+  units_traded_24H: number; //최근 24시간 거래량
+  acc_trade_value_24H: number; // 최근 24시간 거래금액
+  flctate_24H: number; //최근 24시간 변동률
+  date: number;
+};

@@ -8,7 +8,7 @@
     "https://api.upbit.com/*",
     "https://www.koreaexim.go.kr/*",
     "https://finance.naver.com/*",
-    "https://api.coinone.co.kr/*"
+    "https://api.bithumb.com/*"
   ],
   "background": {
     "service_worker": "background.iife.js",

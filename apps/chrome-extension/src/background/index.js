@@ -222,33 +222,37 @@ class UpbitData extends ExchangeData {
 // BithumbData 클래스
 class BithumbData extends ExchangeData {
   constructor() {
-    super('bithumb', 'https://api.bithumb.com/public', 'wss://pubwss.bithumb.com/pub/ws');
+    super('bithumb', 'https://api.bithumb.com', 'wss://pubwss.bithumb.com/pub/ws');
   }
 
   async fetchMarkets() {
     try {
-      const response = await fetch(`${this.apiUrl}/ticker/ALL_KRW`);
-      const { status, data } = await response.json();
-      if (status !== '0000') throw new Error('Bithumb API error');
-      this.markets = Object.keys(data).filter(key => key !== 'date');
-      this.marketsInfo = Object.entries(data).reduce((acc, [market, info]) => {
-        if (market !== 'date') acc[market] = { market_warning: false, ...info };
-        return acc;
+      const response = await fetch(`${this.apiUrl}/v1/market/all?isDetails=true`);
+      const data = await response.json();
+
+      this.markets = Object.keys(data).map(ticker => ticker.market);
+      this.marketsInfo = data.reduce((acc, ticker) => {
+        return (acc[ticker.market] = { ...ticker });
       }, {});
       return this.markets;
     } catch (error) {
       console.error('Bithumb fetchMarkets failed:', error.message);
-      return (this.markets = ['BTC_KRW']);
+      return (this.markets = ['KRW-BTC']);
     }
   }
 
   async fetchInitialTickers() {
-    const response = await fetch(`${this.apiUrl}/ticker/ALL_KRW`);
-    const { data } = await response.json();
-    this.tickers = Object.entries(data).reduce((acc, [market, info]) => {
-      if (market !== 'date') acc[market] = { market, ...info, ...this.marketsInfo[market] };
-      return acc;
+    const queryParam = this.markets.join(',');
+    const response = await fetch(`${this.apiUrl}v1/ticker?markets=${queryParam}`);
+    const data = await response.json();
+    this.tickers = data.reduce((acc, ticker) => {
+      const mergedTicker = this.marketsInfo[ticker.market]
+        ? Object.assign(...ticker, marketInfo[ticker.market])
+        : { ...ticker };
+      return (acc[ticker.marekt] = { ...mergedTicker });
     }, {});
+
+    console.log('background script tickers[0] : ', this.tickers['KRW-BTC']);
   }
 }
 
@@ -263,7 +267,7 @@ async function saveActiveExchange(exchange) {
 
 async function loadActiveExchange() {
   const { [STORAGE_KEY]: state } = await chrome.storage.local.get(STORAGE_KEY);
-  return state?.activeExchange || 'upbit'; // 기본값은 'upbit'
+  return state?.activeExchange || 'upbit';
 }
 
 async function handleExchangeChange(exchange) {
