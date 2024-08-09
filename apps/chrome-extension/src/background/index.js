@@ -155,7 +155,7 @@ class ExchangeData {
     };
 
     this.socket.onerror = error => {
-      console.error(`${this.name} WebSocket Error:`, error);
+      console.error(`${this.name} WebSocket Error:`, error.message);
       this.socket = null;
     };
 
@@ -201,7 +201,7 @@ class UpbitData extends ExchangeData {
       }, {});
       return this.markets;
     } catch (error) {
-      console.error('Upbit fetchMarkets failed:', error.message);
+      console.error('Upbit fetchMarkets failed:', error.json());
       return (this.markets = ['KRW-BTC']);
     }
   }
@@ -230,7 +230,8 @@ class BithumbData extends ExchangeData {
       const response = await fetch(`${this.apiUrl}/v1/market/all?isDetails=true`);
       const data = await response.json();
 
-      this.markets = Object.keys(data).map(ticker => ticker.market);
+      this.markets = data.map(ticker => ticker.market);
+      console.log('bithumb this.markets ', this.markets);
       this.marketsInfo = data.reduce((acc, ticker) => {
         return (acc[ticker.market] = { ...ticker });
       }, {});
@@ -242,17 +243,20 @@ class BithumbData extends ExchangeData {
   }
 
   async fetchInitialTickers() {
-    const queryParam = this.markets.join(',');
-    const response = await fetch(`${this.apiUrl}v1/ticker?markets=${queryParam}`);
-    const data = await response.json();
-    this.tickers = data.reduce((acc, ticker) => {
-      const mergedTicker = this.marketsInfo[ticker.market]
-        ? Object.assign(...ticker, marketInfo[ticker.market])
-        : { ...ticker };
-      return (acc[ticker.marekt] = { ...mergedTicker });
-    }, {});
-
-    console.log('background script tickers[0] : ', this.tickers['KRW-BTC']);
+    try {
+      const queryParam = this.markets.join(',');
+      const options = { method: 'GET', headers: { accept: 'application/json' } };
+      const response = await fetch(`${this.apiUrl}v1/ticker?markets=${queryParam}`, options);
+      const data = await response.json();
+      this.tickers = data.reduce((acc, ticker) => {
+        const mergedTicker = this.marketsInfo[ticker.market]
+          ? Object.assign(...ticker, marketInfo[ticker.market])
+          : { ...ticker };
+        return (acc[ticker.marekt] = { ...mergedTicker });
+      }, {});
+    } catch (error) {
+      console.error('Bithumb fetchInitialTickers failed : ', error.message);
+    }
   }
 }
 
