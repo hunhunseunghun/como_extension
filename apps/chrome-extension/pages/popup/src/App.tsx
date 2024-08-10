@@ -264,8 +264,8 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const setTickersByMarketType = (marketType: 'KRW' | 'BTC' | 'USDT') => {
-    const filteredTickers = Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${marketType}-`));
-    if (filteredTickers.length > 0) {
+    if (Object.values(tickers).length) {
+      const filteredTickers = Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${marketType}-`));
       setTableData(filteredTickers);
     }
   };
@@ -293,10 +293,12 @@ const App = () => {
         //   setTickers(prev => ({ ...prev, [data?.market]: { ...prev[data?.market], ...data } }));
         //   break;
         case 'upbitTickers':
+          console.log('upbittickers popup : ', data);
           setTickers(data);
           setIsLoading(false);
           break;
         case 'bithumbTickers':
+          console.log('bithumTickers popup : ', data);
           setTickers(data);
           setIsLoading(false);
           break;
@@ -568,7 +570,7 @@ const App = () => {
         enableHiding: false,
       },
     ],
-    [coinNameKR, exchangeRateUSD, upbitMarketType],
+    [tickers, coinNameKR, exchangeRateUSD, upbitMarketType],
   );
 
   const table = useReactTable({
@@ -597,7 +599,7 @@ const App = () => {
   useEffect(() => {
     setTableData(Object.values(tickers));
   }, [tickers]);
-  console.log('TICKERS : ', tickers);
+  console.log('TICKERS : ', tickers['KRW-BTC']);
   return (
     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
       <div className={`flex-col ${!wideSize ? 'w-[420px] h-[430px]' : 'w-[800px] h-[600px]'} overflow-hidden`}>

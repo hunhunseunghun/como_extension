@@ -125,9 +125,9 @@ class ExchangeData {
   connectPopup(port) {
     this.port = port;
     this.port.onDisconnect.addListener(() => (this.port = null));
-    if (this.isActive && this.tickers) {
-      this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
-    }
+    // if (this.isActive && this.tickers) {
+    //   this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+    // }
   }
 
   async connectWebSocket() {
@@ -155,7 +155,7 @@ class ExchangeData {
     };
 
     this.socket.onerror = error => {
-      console.error(`${this.name} WebSocket Error:`, error.message);
+      console.error(`${this.name} WebSocket Error:`, error);
       this.socket = null;
     };
 
@@ -207,7 +207,8 @@ class UpbitData extends ExchangeData {
   }
 
   async fetchInitialTickers() {
-    const marketsParam = this.markets.join(',');
+    const marketsParam = this.markets?.join(',');
+
     const response = await fetch(`${this.apiUrl}/ticker?markets=${marketsParam}`, {
       headers: { Accept: 'application/json' },
     });
@@ -216,8 +217,8 @@ class UpbitData extends ExchangeData {
       if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
       return acc;
     }, {});
-    if (this.port) {
-      this.port.postMessage({ type: `${this.name}Tickers`, data: this.ticker });
+    if (this.port && tickers) {
+      this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
     }
   }
 }
@@ -247,10 +248,13 @@ class BithumbData extends ExchangeData {
 
   async fetchInitialTickers() {
     try {
-      const queryParam = this.markets.length ?? this.markets.join(',');
+      const marketsParam = this.markets?.join(',');
       const options = { method: 'GET', headers: { accept: 'application/json' } };
-      const response = await fetch(`${this.apiUrl}v1/ticker?markets=${queryParam}`, options);
+
+      console.log('marketsParam : : ', marketsParam);
+      const response = await fetch(`${this.apiUrl}/v1/ticker?markets=${marketsParam}`, options);
       const data = await response.json();
+      console.log('bithumb fetch initaltickers background data!!! : ', data);
       this.tickers = data.reduce((acc, ticker) => {
         const mergedTicker = this.marketsInfo[ticker.market]
           ? Object.assign(...ticker, marketInfo[ticker.market])
@@ -258,8 +262,8 @@ class BithumbData extends ExchangeData {
         return (acc[ticker.marekt] = { ...mergedTicker });
       }, {});
 
-      if (this.port) {
-        this.port.postMessage({ type: `${this.name}Tickers`, data: this.ticker });
+      if (this.port && tickers) {
+        this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
       }
     } catch (error) {
       console.error('Bithumb fetchInitialTickers failed : ', error.message);
