@@ -216,6 +216,9 @@ class UpbitData extends ExchangeData {
       if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
       return acc;
     }, {});
+    if (this.port) {
+      this.port.postMessage({ type: `${this.name}Tickers`, data: this.ticker });
+    }
   }
 }
 
@@ -244,7 +247,7 @@ class BithumbData extends ExchangeData {
 
   async fetchInitialTickers() {
     try {
-      const queryParam = this.markets.join(',');
+      const queryParam = this.markets.length ?? this.markets.join(',');
       const options = { method: 'GET', headers: { accept: 'application/json' } };
       const response = await fetch(`${this.apiUrl}v1/ticker?markets=${queryParam}`, options);
       const data = await response.json();
@@ -254,6 +257,10 @@ class BithumbData extends ExchangeData {
           : { ...ticker };
         return (acc[ticker.marekt] = { ...mergedTicker });
       }, {});
+
+      if (this.port) {
+        this.port.postMessage({ type: `${this.name}Tickers`, data: this.ticker });
+      }
     } catch (error) {
       console.error('Bithumb fetchInitialTickers failed : ', error.message);
     }
