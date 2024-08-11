@@ -114,20 +114,52 @@ class ExchangeData {
     this.isActive = false;
   }
 
-  async fetchMarkets() {
-    throw new Error('fetchMarkets must be implemented by subclass');
-  }
+  // async fetchMarkets() {
+  //   throw new Error('fetchMarkets must be implemented by subclass');
+  // }
+
+  // async fetchInitialTickers() {
+  //   throw new Error('fetchInitialTickers must be implemented by subclass');
+  // }
 
   async fetchInitialTickers() {
-    throw new Error('fetchInitialTickers must be implemented by subclass');
+    try {
+      const marketsParam = this.markets?.join(',');
+      const response = await fetch(`${this.apiUrl}/ticker?markets=${marketsParam}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const tickersArray = await response.json();
+      this.tickers = tickersArray.reduce((acc, ticker) => {
+        if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
+        return acc;
+      }, {});
+      console.log(`${this.name} initial tickers fetched:`, this.tickers);
+      // 팝업이 이미 연결된 경우 즉시 전송
+      if (this.port && this.isActive) {
+        this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+      }
+    } catch (error) {
+      console.error(`${this.name} fetchInitialTickers failed:`, error.message);
+    }
   }
 
   connectPopup(port) {
+    if (!port || typeof port.onDisconnect !== 'function') {
+      console.error(`${this.name} connectPopup failed: Invalid port object`);
+      return;
+    }
     this.port = port;
-    this.port.onDisconnect.addListener(() => (this.port = null));
-    // if (this.isActive && this.tickers) {
-    //   this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
-    // }
+    this.port.onDisconnect.addListener(() => {
+      console.log(`${this.name} popup disconnected`);
+      this.port = null;
+    });
+    if (this.isActive && this.tickers) {
+      console.log('Sending tickers:', { type: `${this.name}Tickers`, data: this.tickers });
+      this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+    }
+
+    console.log(`${this.name} initial tickers fetched:`, this.tickers);
+    console.log(`Sending initial ${this.name} tickers to popup:`, this.tickers);
   }
 
   async connectWebSocket() {
@@ -206,27 +238,32 @@ class UpbitData extends ExchangeData {
     }
   }
 
-  async fetchInitialTickers() {
-    const marketsParam = this.markets?.join(',');
+  // async fetchInitialTickers() {
+  //   try {
+  //     const marketsParam = this.markets?.join(',');
+  //     const options = { method: 'GET', headers: { accept: 'application/json' } };
 
-    const response = await fetch(`${this.apiUrl}/ticker?markets=${marketsParam}`, {
-      headers: { Accept: 'application/json' },
-    });
-    const tickersArray = await response.json();
-    this.tickers = tickersArray.reduce((acc, ticker) => {
-      if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
-      return acc;
-    }, {});
-    if (this.port && tickers) {
-      this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
-    }
-  }
+  //     const response = await fetch(`${this.apiUrl}/ticker?markets=${marketsParam}`, options);
+  //     const tickersArray = await response.json();
+
+  //     this.tickers = tickersArray.reduce((acc, ticker) => {
+  //       if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
+  //       return acc;
+  //     }, {});
+
+  //     if (this.port && this.isActive) {
+  //       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+  //     }
+  //   } catch (error) {
+  //     console.error(`${this.name} fetchInitialTickers failed:`, error.message);
+  //   }
+  // }
 }
 
 // BithumbData 클래스
 class BithumbData extends ExchangeData {
   constructor() {
-    super('bithumb', 'https://api.bithumb.com', 'wss://pubwss.bithumb.com/pub/ws');
+    super('bithumb', 'https://api.bithumb.com/v1', 'wss://pubwss.bithumb.com/pub/ws');
   }
 
   async fetchMarkets() {
@@ -235,7 +272,7 @@ class BithumbData extends ExchangeData {
       const data = await response.json();
 
       this.markets = data.map(ticker => ticker.market);
-      console.log('bithumb this.markets ', this.markets);
+
       this.marketsInfo = data.reduce((acc, ticker) => {
         return (acc[ticker.market] = { ...ticker });
       }, {});
@@ -246,29 +283,26 @@ class BithumbData extends ExchangeData {
     }
   }
 
-  async fetchInitialTickers() {
-    try {
-      const marketsParam = this.markets?.join(',');
-      const options = { method: 'GET', headers: { accept: 'application/json' } };
+  // async fetchInitialTickers() {
+  //   try {
+  //     const marketsParam = this.markets?.join(',');
+  //     const options = { method: 'GET', headers: { accept: 'application/json' } };
 
-      console.log('marketsParam : : ', marketsParam);
-      const response = await fetch(`${this.apiUrl}/v1/ticker?markets=${marketsParam}`, options);
-      const data = await response.json();
-      console.log('bithumb fetch initaltickers background data!!! : ', data);
-      this.tickers = data.reduce((acc, ticker) => {
-        const mergedTicker = this.marketsInfo[ticker.market]
-          ? Object.assign(...ticker, marketInfo[ticker.market])
-          : { ...ticker };
-        return (acc[ticker.marekt] = { ...mergedTicker });
-      }, {});
+  //     const response = await fetch(`${this.apiUrl}/v1/ticker?markets=${marketsParam}`, options);
+  //     const tickersArray = await response.json();
 
-      if (this.port && tickers) {
-        this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
-      }
-    } catch (error) {
-      console.error('Bithumb fetchInitialTickers failed : ', error.message);
-    }
-  }
+  //     this.tickers = tickersArray.reduce((acc, ticker) => {
+  //       if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
+  //       return acc;
+  //     }, {});
+
+  //     if (this.port && this.isActive) {
+  //       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+  //     }
+  //   } catch (error) {
+  //     console.error('Bithumb fetchInitialTickers failed : ', error.message);
+  //   }
+  // }
 }
 
 // 상태 저장 및 관리
@@ -288,20 +322,17 @@ async function loadActiveExchange() {
 async function handleExchangeChange(exchange) {
   if (activeExchange === exchange) return;
 
-  // 이전 거래소 비활성화
   if (activeExchange === 'upbit') upbit.setActive(false);
   if (activeExchange === 'bithumb') bithumb.setActive(false);
 
-  // 새로운 거래소 활성화
   if (exchange === 'upbit') {
     upbit.setActive(true);
-    upbit.connectPopup(activePort);
+    if (activePort) upbit.connectPopup(activePort);
   } else if (exchange === 'bithumb') {
     bithumb.setActive(true);
-    bithumb.connectPopup(activePort);
+    if (activePort) bithumb.connectPopup(activePort);
   }
 
-  // 상태 저장
   await saveActiveExchange(exchange);
 }
 
@@ -326,12 +357,16 @@ async function initialize() {
 }
 
 chrome.runtime.onConnect.addListener(port => {
+  if (!port || typeof port.onDisconnect !== 'function') {
+    console.error('Invalid port received in onConnect');
+    return;
+  }
   activePort = port;
   exchangeRateManager.port = port;
 
   // 현재 활성화된 거래소에 연결
-  if (activeExchange === 'upbit') upbit.connectPopup(port);
-  else if (activeExchange === 'bithumb') bithumb.connectPopup(port);
+  if (activeExchange === 'upbit') upbit.connectPopup(activePort);
+  else if (activeExchange === 'bithumb') bithumb.connectPopup(activePort);
 
   // 팝업에 현재 상태 전송 (필요 시)
   port.postMessage({ type: 'activeExchange', data: activeExchange });

@@ -293,12 +293,12 @@ const App = () => {
         //   setTickers(prev => ({ ...prev, [data?.market]: { ...prev[data?.market], ...data } }));
         //   break;
         case 'upbitTickers':
-          console.log('upbittickers popup : ', data);
+          console.log('upbitTickers received in popup:', data);
           setTickers(data);
           setIsLoading(false);
           break;
         case 'bithumbTickers':
-          console.log('bithumTickers popup : ', data);
+          console.log('bithumbTickers received in popup:', data);
           setTickers(data);
           setIsLoading(false);
           break;
@@ -307,13 +307,16 @@ const App = () => {
           break;
         case 'activeExchange':
           setExchangePlatform(data);
-          setTickers({});
+          setTickers({}); // 거래소 변경 시 초기화
+          setIsLoading(true);
           break;
         default:
+          console.log('Unhandled message type:', type);
       }
     });
 
     port.onDisconnect.addListener(() => {
+      console.log('Port disconnected');
       portRef.current = null;
       setIsLoading(true);
     });
@@ -330,6 +333,7 @@ const App = () => {
       }
     };
   }, []);
+
   useEffect(() => {
     setTickersByMarketType(upbitMarketType);
   }, [tickers, upbitMarketType]);
@@ -570,7 +574,7 @@ const App = () => {
         enableHiding: false,
       },
     ],
-    [tickers, coinNameKR, exchangeRateUSD, upbitMarketType],
+    [coinNameKR, exchangeRateUSD, upbitMarketType],
   );
 
   const table = useReactTable({
@@ -599,7 +603,7 @@ const App = () => {
   useEffect(() => {
     setTableData(Object.values(tickers));
   }, [tickers]);
-  console.log('TICKERS : ', tickers['KRW-BTC']);
+  console.log('TICKERS : ', JSON.stringify(tickers));
   return (
     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
       <div className={`flex-col ${!wideSize ? 'w-[420px] h-[430px]' : 'w-[800px] h-[600px]'} overflow-hidden`}>
