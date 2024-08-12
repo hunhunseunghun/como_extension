@@ -41,7 +41,7 @@ class ExchangeRateManager {
     try {
       await this.fetchFromAPI();
     } catch (error) {
-      console.error('API fetch failed:', error.message);
+      console.log('API fetch failed:', error.message);
       await this.fetchFromNaver();
     }
   }
@@ -110,7 +110,7 @@ class ExchangeData {
     this.markets = [];
     this.marketsInfo = null;
     this.tickers = null;
-    this.reconnectDelay = 2000;
+    this.reconnectDelay = 3000;
     this.isActive = false;
   }
 
@@ -134,18 +134,19 @@ class ExchangeData {
         return acc;
       }, {});
       console.log(`${this.name} initial tickers fetched:`, this.tickers);
+      console.log('thisport thisactive fetchinit :', this.port, this.isActive);
       // 팝업이 이미 연결된 경우 즉시 전송
       if (this.port && this.isActive) {
         this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
       }
     } catch (error) {
-      console.error(`${this.name} fetchInitialTickers failed:`, error.message);
+      console.log(`${this.name} fetchInitialTickers failed:`, error.message);
     }
   }
 
   connectPopup(port) {
     if (!port || typeof port.onDisconnect !== 'function') {
-      console.error(`${this.name} connectPopup failed: Invalid port object`);
+      console.log(`${this.name} connectPopup failed: Invalid port object`);
       return;
     }
     this.port = port;
@@ -182,12 +183,12 @@ class ExchangeData {
           this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: ticker });
         }
       } catch (error) {
-        console.error(`${this.name} WebSocket message parsing failed:`, error);
+        console.log(`${this.name} WebSocket message parsing failed:`, error);
       }
     };
 
     this.socket.onerror = error => {
-      console.error(`${this.name} WebSocket Error:`, error);
+      console.log(`${this.name} WebSocket Error ! :`, error);
       this.socket = null;
     };
 
@@ -233,7 +234,7 @@ class UpbitData extends ExchangeData {
       }, {});
       return this.markets;
     } catch (error) {
-      console.error('Upbit fetchMarkets failed:', error.json());
+      console.log('Upbit fetchMarkets failed:', error.json());
       return (this.markets = ['KRW-BTC']);
     }
   }
@@ -268,7 +269,7 @@ class BithumbData extends ExchangeData {
 
   async fetchMarkets() {
     try {
-      const response = await fetch(`${this.apiUrl}/v1/market/all?isDetails=true`);
+      const response = await fetch(`${this.apiUrl}/market/all?isDetails=true`);
       const data = await response.json();
 
       this.markets = data.map(ticker => ticker.market);
@@ -278,7 +279,7 @@ class BithumbData extends ExchangeData {
       }, {});
       return this.markets;
     } catch (error) {
-      console.error('Bithumb fetchMarkets failed:', error.message);
+      console.log('Bithumb fetchMarkets failed:', error.message);
       return (this.markets = ['KRW-BTC']);
     }
   }
@@ -340,6 +341,7 @@ async function handleExchangeChange(exchange) {
 const exchangeRateManager = new ExchangeRateManager();
 const upbit = new UpbitData();
 const bithumb = new BithumbData();
+
 let activePort = null;
 
 async function initialize() {
@@ -354,19 +356,40 @@ async function initialize() {
   await exchangeRateManager.initialize();
   await upbit.start();
   await bithumb.start();
+
+  if (activePort) {
+    if (activeExchange === 'upbit' && upbit.tickers) {
+      activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
+    } else if (activeExchange === 'bithumb' && bithumb.tickers) {
+      activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
+    }
+  }
 }
 
 chrome.runtime.onConnect.addListener(port => {
-  if (!port || typeof port.onDisconnect !== 'function') {
-    console.error('Invalid port received in onConnect');
+  console.log('Received port:', port); // port 객체 전체 출력
+  if (!port || typeof port.onDisconnect !== 'function' || port.name !== 'popup') {
+    console.log('Invalid port received in onConnect');
     return;
   }
+  console.log('Popup connected:', port);
   activePort = port;
   exchangeRateManager.port = port;
 
+  console.log('active port : ', activePort);
   // 현재 활성화된 거래소에 연결
-  if (activeExchange === 'upbit') upbit.connectPopup(activePort);
-  else if (activeExchange === 'bithumb') bithumb.connectPopup(activePort);
+  if (activeExchange === 'upbit' && upbit.tickers) {
+    activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
+    console.log('Sent upbit tickers on connect:', upbit.tickers);
+  } else if (activeExchange === 'bithumb' && bithumb.tickers) {
+    activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
+    console.log('Sent bithumb tickers on connect:', bithumb.tickers);
+  }
+
+  port.onDisconnect.addListener(() => {
+    console.log('Popup disconnected');
+    activePort = null;
+  });
 
   // 팝업에 현재 상태 전송 (필요 시)
   port.postMessage({ type: 'activeExchange', data: activeExchange });

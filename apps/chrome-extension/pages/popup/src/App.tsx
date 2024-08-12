@@ -276,50 +276,53 @@ const App = () => {
       return;
     }
     const port = chrome.runtime.connect({ name: 'popup' });
-    portRef.current = port;
+    if (portRef.current) return;
+    try {
+      port.onMessage.addListener(message => {
+        const { type, data } = message;
+        console.log('Popup received message:', type, data);
+        switch (type) {
+          // case 'upbitWebsocketTicker':
+          //   setTickers(prevTickers => ({
+          //     ...prevTickers,
+          //     [data?.code]: { ...prevTickers[data?.code], ...data },
+          //   }));
+          //   break;
+          // case 'bithumbWebsocketTicker':
+          //   console.log('bithumbWebsocketTicker', tickers);
+          //   setTickers(prev => ({ ...prev, [data?.market]: { ...prev[data?.market], ...data } }));
+          //   break;
+          case 'upbitTickers':
+            console.log('upbitTickers received in popup:', data);
+            setTickers(data);
+            setIsLoading(false);
+            break;
+          case 'bithumbTickers':
+            console.log('bithumbTickers received in popup:', data);
+            setTickers(data);
+            setIsLoading(false);
+            break;
+          case 'exchangeRateUSD':
+            setExchangeRateUSD(data);
+            break;
+          case 'activeExchange':
+            setExchangePlatform(data);
+            setTickers({}); // 거래소 변경 시 초기화
+            setIsLoading(true);
+            break;
+          default:
+            console.log('Unhandled message type:', type);
+        }
+      });
 
-    port.onMessage.addListener(message => {
-      const { type, data } = message;
-
-      switch (type) {
-        // case 'upbitWebsocketTicker':
-        //   setTickers(prevTickers => ({
-        //     ...prevTickers,
-        //     [data?.code]: { ...prevTickers[data?.code], ...data },
-        //   }));
-        //   break;
-        // case 'bithumbWebsocketTicker':
-        //   console.log('bithumbWebsocketTicker', tickers);
-        //   setTickers(prev => ({ ...prev, [data?.market]: { ...prev[data?.market], ...data } }));
-        //   break;
-        case 'upbitTickers':
-          console.log('upbitTickers received in popup:', data);
-          setTickers(data);
-          setIsLoading(false);
-          break;
-        case 'bithumbTickers':
-          console.log('bithumbTickers received in popup:', data);
-          setTickers(data);
-          setIsLoading(false);
-          break;
-        case 'exchangeRateUSD':
-          setExchangeRateUSD(data);
-          break;
-        case 'activeExchange':
-          setExchangePlatform(data);
-          setTickers({}); // 거래소 변경 시 초기화
-          setIsLoading(true);
-          break;
-        default:
-          console.log('Unhandled message type:', type);
-      }
-    });
-
-    port.onDisconnect.addListener(() => {
-      console.log('Port disconnected');
-      portRef.current = null;
-      setIsLoading(true);
-    });
+      port.onDisconnect.addListener(() => {
+        console.log('Port disconnected');
+        portRef.current = null;
+        setIsLoading(true);
+      });
+    } catch (error) {
+      console.error('Failed to connect to background:', error);
+    }
   };
 
   // 초기 연결 및 상태 로드
