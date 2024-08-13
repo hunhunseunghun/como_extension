@@ -272,11 +272,9 @@ const App = () => {
 
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const connectBackgroundStream = () => {
-    if (portRef.current) {
-      return;
-    }
-    const port = chrome.runtime.connect({ name: 'popup' });
     if (portRef.current) return;
+    const port = chrome.runtime.connect({ name: 'popup' });
+    portRef.current = port;
     try {
       port.onMessage.addListener(message => {
         const { type, data } = message;
@@ -294,12 +292,18 @@ const App = () => {
           //   break;
           case 'upbitTickers':
             console.log('upbitTickers received in popup:', data);
-            setTickers(data);
+            setTickers(prevTickers => {
+              console.log('New upbitTickers', data);
+              return { ...prevTickers, ...data };
+            });
             setIsLoading(false);
             break;
           case 'bithumbTickers':
             console.log('bithumbTickers received in popup:', data);
-            setTickers(data);
+            setTickers(prevTickers => {
+              console.log('New upbitTickers', data);
+              return { ...prevTickers, ...data };
+            });
             setIsLoading(false);
             break;
           case 'exchangeRateUSD':
@@ -604,9 +608,10 @@ const App = () => {
   }, [wideSize]);
 
   useEffect(() => {
+    console.log('Tickers updated:', tickers);
     setTableData(Object.values(tickers));
   }, [tickers]);
-  console.log('TICKERS : ', JSON.stringify(tickers));
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
       <div className={`flex-col ${!wideSize ? 'w-[420px] h-[430px]' : 'w-[800px] h-[600px]'} overflow-hidden`}>

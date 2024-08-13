@@ -367,12 +367,16 @@ async function initialize() {
 }
 
 chrome.runtime.onConnect.addListener(port => {
-  console.log('Received port:', port); // port 객체 전체 출력
-  if (!port || typeof port.onDisconnect !== 'function' || port.name !== 'popup') {
+  console.log('Received port:', port);
+  if (!port || !port.onDisconnect || typeof port.onDisconnect.addListener !== 'function') {
     console.log('Invalid port received in onConnect');
     return;
   }
-  console.log('Popup connected:', port);
+  if (port.name !== 'popup') {
+    console.log('Non-popup connection ignored:', port.name);
+    return;
+  }
+  console.log('Popup connected successfully:', port.name);
   activePort = port;
   exchangeRateManager.port = port;
 
