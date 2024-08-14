@@ -296,6 +296,7 @@ const App = () => {
               console.log('New upbitTickers', data);
               return { ...prevTickers, ...data };
             });
+            console.log('upbitTIckers tickers state updated : ', tickers);
             setIsLoading(false);
             break;
           case 'bithumbTickers':
@@ -304,15 +305,17 @@ const App = () => {
               console.log('New upbitTickers', data);
               return { ...prevTickers, ...data };
             });
+
             setIsLoading(false);
             break;
           case 'exchangeRateUSD':
             setExchangeRateUSD(data);
             break;
           case 'activeExchange':
+            console.log('activeExchange excuted , ');
             setExchangePlatform(data);
-            setTickers({}); // 거래소 변경 시 초기화
-            setIsLoading(true);
+            // setTickers({}); // 거래소 변경 시 초기화
+            // setIsLoading(true);
             break;
           default:
             console.log('Unhandled message type:', type);
@@ -581,7 +584,7 @@ const App = () => {
         enableHiding: false,
       },
     ],
-    [coinNameKR, exchangeRateUSD, upbitMarketType],
+    [tickers, coinNameKR, exchangeRateUSD, upbitMarketType],
   );
 
   const table = useReactTable({
@@ -608,7 +611,7 @@ const App = () => {
   }, [wideSize]);
 
   useEffect(() => {
-    console.log('Tickers updated:', tickers);
+    console.log('Tickers updated:', JSON.stringify(tickers));
     setTableData(Object.values(tickers));
   }, [tickers]);
 

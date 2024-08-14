@@ -145,8 +145,7 @@ class ExchangeData {
   }
 
   connectPopup(port) {
-    if (!port || typeof port.onDisconnect !== 'function') {
-      console.log(`${this.name} connectPopup failed: Invalid port object`);
+    if (!port || port.name !== 'popup') {
       return;
     }
     this.port = port;
@@ -264,7 +263,7 @@ class UpbitData extends ExchangeData {
 // BithumbData 클래스
 class BithumbData extends ExchangeData {
   constructor() {
-    super('bithumb', 'https://api.bithumb.com/v1', 'wss://pubwss.bithumb.com/pub/ws');
+    super('bithumb', 'https://api.bithumb.com/v1', 'wss://ws-api.bithumb.com/websocket/v1');
   }
 
   async fetchMarkets() {
@@ -368,12 +367,8 @@ async function initialize() {
 
 chrome.runtime.onConnect.addListener(port => {
   console.log('Received port:', port);
-  if (!port || !port.onDisconnect || typeof port.onDisconnect.addListener !== 'function') {
+  if (!port || port.name !== 'popup') {
     console.log('Invalid port received in onConnect');
-    return;
-  }
-  if (port.name !== 'popup') {
-    console.log('Non-popup connection ignored:', port.name);
     return;
   }
   console.log('Popup connected successfully:', port.name);
@@ -383,15 +378,14 @@ chrome.runtime.onConnect.addListener(port => {
   console.log('active port : ', activePort);
   // 현재 활성화된 거래소에 연결
   if (activeExchange === 'upbit' && upbit.tickers) {
-    activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
-    console.log('Sent upbit tickers on connect:', upbit.tickers);
+    // activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
+    upbit.connectPopup(activePort);
   } else if (activeExchange === 'bithumb' && bithumb.tickers) {
-    activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
-    console.log('Sent bithumb tickers on connect:', bithumb.tickers);
+    // activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
+    bithumb.connectPopup(activePort);
   }
 
   port.onDisconnect.addListener(() => {
-    console.log('Popup disconnected');
     activePort = null;
   });
 
