@@ -278,7 +278,6 @@ const App = () => {
     try {
       port.onMessage.addListener(message => {
         const { type, data } = message;
-        console.log('Popup received message:', type, data);
         switch (type) {
           // case 'upbitWebsocketTicker':
           //   setTickers(prevTickers => ({
@@ -291,39 +290,26 @@ const App = () => {
           //   setTickers(prev => ({ ...prev, [data?.market]: { ...prev[data?.market], ...data } }));
           //   break;
           case 'upbitTickers':
-            console.log('upbitTickers received in popup:', data);
-            setTickers(prevTickers => {
-              console.log('New upbitTickers', data);
-              return { ...prevTickers, ...data };
-            });
-            console.log('upbitTIckers tickers state updated : ', tickers);
+            setTickers(data);
             setIsLoading(false);
             break;
           case 'bithumbTickers':
-            console.log('bithumbTickers received in popup:', data);
-            setTickers(prevTickers => {
-              console.log('New upbitTickers', data);
-              return { ...prevTickers, ...data };
-            });
-
+            setTickers(data);
             setIsLoading(false);
             break;
           case 'exchangeRateUSD':
             setExchangeRateUSD(data);
             break;
           case 'activeExchange':
-            console.log('activeExchange excuted , ');
             setExchangePlatform(data);
             // setTickers({}); // 거래소 변경 시 초기화
             // setIsLoading(true);
             break;
           default:
-            console.log('Unhandled message type:', type);
         }
       });
 
       port.onDisconnect.addListener(() => {
-        console.log('Port disconnected');
         portRef.current = null;
         setIsLoading(true);
       });
@@ -611,7 +597,6 @@ const App = () => {
   }, [wideSize]);
 
   useEffect(() => {
-    console.log('Tickers updated:', JSON.stringify(tickers));
     setTableData(Object.values(tickers));
   }, [tickers]);
 
@@ -647,6 +632,7 @@ const App = () => {
                 exchangePlatform={exchangePlatform}
                 setExchangePlatform={setExchangePlatform}
                 setIsLoading={setIsLoading}
+                setTickers={setTickers}
               />
               <MarketTypeDropDown upbitMarketType={upbitMarketType} setUpbitMarketType={setUpbitMarketType} />
             </section>

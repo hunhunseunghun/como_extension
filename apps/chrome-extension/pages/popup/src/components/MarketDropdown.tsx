@@ -24,6 +24,7 @@ interface MarketDropdownProps {
   exchangePlatform: 'upbit' | 'bithumb'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
   setExchangePlatform: (platform: keyof typeof platformData) => void;
   setIsLoading: (loading: boolean) => void;
+  setTickers: { [key: string]: Ticker };
 }
 
 export const MarketDropdown = ({ exchangePlatform, setExchangePlatform, setIsLoading }: MarketDropdownProps) => {
@@ -33,6 +34,7 @@ export const MarketDropdown = ({ exchangePlatform, setExchangePlatform, setIsLoa
   useEffect(() => {
     chrome.runtime.sendMessage({ action: 'changeExchange', exchange: exchangePlatform });
     setIsLoading(true);
+    setTickers({});
   }, [exchangePlatform]);
 
   return (
