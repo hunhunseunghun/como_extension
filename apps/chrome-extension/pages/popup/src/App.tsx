@@ -258,7 +258,7 @@ const App = () => {
   const [wideSize, setWideSize] = useState<boolean>(true);
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
-  const [upbitMarketType, setUpbitMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
+  const [exchangeMarketType, setExchangeMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
   const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb'>('upbit');
   // | 'bithumb' | 'coinone' | 'binance'
   const [isLoading, setIsLoading] = useState(true);
@@ -331,8 +331,8 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    setTickersByMarketType(upbitMarketType);
-  }, [tickers, upbitMarketType]);
+    setTickersByMarketType(exchangeMarketType);
+  }, [tickers, exchangeMarketType]);
 
   const columns = useMemo<ColumnDef<Ticker>[]>(
     () => [
@@ -398,7 +398,7 @@ const App = () => {
           const valueKRW = getValue() as number;
           const changeRateKRW = exchangeRateUSD > 0 ? (getValue() as number) / exchangeRateUSD : 0;
 
-          switch (upbitMarketType) {
+          switch (exchangeMarketType) {
             case 'KRW':
               return (
                 <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
@@ -458,7 +458,7 @@ const App = () => {
                 className={`${row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''}`}>
                 {value}%
               </span>
-              {upbitMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signed_change_price}</span>}
+              {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signed_change_price}</span>}
             </div>
           );
         },
@@ -487,7 +487,7 @@ const App = () => {
                 <span>-</span>
                 {value}%
               </span>
-              {upbitMarketType !== 'BTC' ? (
+              {exchangeMarketType !== 'BTC' ? (
                 <span className="text-[10px] text-gray-500">{highestPrice}</span>
               ) : (
                 <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
@@ -520,7 +520,7 @@ const App = () => {
                 <span>+</span>
                 {value}%
               </span>
-              {upbitMarketType !== 'BTC' ? (
+              {exchangeMarketType !== 'BTC' ? (
                 <span className="text-[10px] text-gray-500">{lowestPrice.toLocaleString()}</span>
               ) : (
                 <span className="text-[10px] text-gray-500">{lowestPrice.toFixed(8)}</span>
@@ -545,7 +545,7 @@ const App = () => {
         cell: ({ getValue }) => {
           const value = Number(getValue() as number);
 
-          switch (upbitMarketType) {
+          switch (exchangeMarketType) {
             case 'KRW':
               return (
                 <div className="flex justify-end font-medium">
@@ -570,7 +570,7 @@ const App = () => {
         enableHiding: false,
       },
     ],
-    [tickers, coinNameKR, exchangeRateUSD, upbitMarketType],
+    [tickers, coinNameKR, exchangeRateUSD, exchangeMarketType],
   );
 
   const table = useReactTable({
@@ -634,7 +634,10 @@ const App = () => {
                 setIsLoading={setIsLoading}
                 setTickers={setTickers}
               />
-              <MarketTypeDropDown upbitMarketType={upbitMarketType} setUpbitMarketType={setUpbitMarketType} />
+              <MarketTypeDropDown
+                exchangeMarketType={exchangeMarketType}
+                setExchangeMarketType={setExchangeMarketType}
+              />
             </section>
           </div>
         </nav>
