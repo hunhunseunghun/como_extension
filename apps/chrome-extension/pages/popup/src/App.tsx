@@ -596,10 +596,6 @@ const App = () => {
     table.getAllColumns().filter(column => column.toggleVisibility(wideSize));
   }, [wideSize]);
 
-  useEffect(() => {
-    setTableData(Object.values(tickers));
-  }, [tickers]);
-
   return (
     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
       <div className={`flex-col ${!wideSize ? 'w-[420px] h-[430px]' : 'w-[800px] h-[600px]'} overflow-hidden`}>
