@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { UpbitTicker, BithumbTicker } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,10 +25,15 @@ interface MarketDropdownProps {
   exchangePlatform: 'upbit' | 'bithumb'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
   setExchangePlatform: (platform: keyof typeof platformData) => void;
   setIsLoading: (loading: boolean) => void;
-  setTickers: { [key: string]: Ticker };
+  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: UpbitTicker } | { [key: string]: BithumbTicker }>>;
 }
 
-export const MarketDropdown = ({ exchangePlatform, setExchangePlatform, setIsLoading }: MarketDropdownProps) => {
+export const MarketDropdown = ({
+  exchangePlatform,
+  setExchangePlatform,
+  setIsLoading,
+  setTickers,
+}: MarketDropdownProps) => {
   const exchangeList = Object.values(platformData);
   const selectedPlatform = platformData[exchangePlatform] || platformData.upbit;
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import '@/styles/App.css';
+import { UpbitTicker, BithumbTicker } from '@/types';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import {
   useReactTable,
@@ -74,7 +75,7 @@ type Ticker = {
 
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({
+  const [tickers, setTickers] = useState<{ [key: string]: UpbitTicker } | { [key: string]: BithumbTicker }>({
     // 'KRW-ETH': {
     //   market: 'KRW-ETH',
     //   trade_date: '20240822',
@@ -322,6 +323,7 @@ const App = () => {
   useEffect(() => {
     connectBackgroundStream();
     chrome.runtime.sendMessage({ action: 'getActiveExchange' });
+    setTickersByMarketType(exchangeMarketType);
     return () => {
       if (portRef.current) {
         portRef.current.disconnect();
@@ -360,8 +362,8 @@ const App = () => {
               <div className="flex gap-[2px] text-left break-word">
                 <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
                 <div className="flex gap-[1px] items-center">
-                  {row.original.market_event.warning && <WarningIcon />}
-                  {row.original.market_event.caution && <CautionIcon />}
+                  {row.original.market_event?.warning && <WarningIcon />}
+                  {row.original.market_event?.caution && <CautionIcon />}
                 </div>
               </div>
 

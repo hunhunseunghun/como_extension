@@ -13,7 +13,7 @@ const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
 type ExchangeMarketType = (typeof marketTypes)[number];
 
 interface MarketTypeDropDownProps {
-  exchangeMarketType: exchangeMarketType;
+  exchangeMarketType: ExchangeMarketType;
   setExchangeMarketType: (type: ExchangeMarketType) => void;
 }
 
