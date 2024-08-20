@@ -31,6 +31,7 @@ class ExchangeRateManager {
 
     const { [this.#storageKey]: storage } = await chrome.storage.local.get(this.#storageKey);
     const currentStorage = storage || this.#defaultStorage;
+    console.log('currentStorage : ', currentStorage);
 
     if (!currentStorage.exchangeRateUSD || currentStorage.updatedDate !== CURRENT_DATE) {
       await this.updateExchangeRate();
@@ -58,7 +59,12 @@ class ExchangeRateManager {
 
       if (Array.isArray(data) && data.length) {
         const usdRate = data.find(rate => rate.cur_unit === 'USD')?.deal_bas_r?.replace(/,/g, '');
+        console.log('fetchfromapi : ', usdRate);
+        console.log('exchagneClass port:::: ', this.port);
+
         if (usdRate) {
+          console.log('exchagneClass port ::  usdRate:: ', this.port);
+
           this.exchangeRateUSD = Number(usdRate);
           await this.saveExchangeRate(usdRate, searchDate);
           return;
@@ -80,7 +86,7 @@ class ExchangeRateManager {
       const html = await response.text();
       const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
       const match = html.match(usdRegex);
-
+      console.log('fetchFromNaver : ', html);
       if (!match || !match[1]) throw new Error('Failed to parse USD rate from Naver');
 
       const exchangeRateUSD = Number(match[1].replace(/,/g, ''));
@@ -95,6 +101,9 @@ class ExchangeRateManager {
   async saveExchangeRate(rate, date) {
     const storage = { ...this.#defaultStorage, exchangeRateUSD: rate, updatedDate: date };
     await chrome.storage.local.set({ [this.#storageKey]: storage });
+    console.log('saveExchangeRate : :  : ', storage);
+    console.log('exchagneClass saveExchangeRate port :: ', this.port);
+    console.log('exchagneClass saveExchangeRate rate :: ', rate, 'type ; ', typeof rate);
     if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: rate });
   }
 }
@@ -374,6 +383,7 @@ chrome.runtime.onConnect.addListener(port => {
   console.log('Popup connected successfully:', port.name);
   activePort = port;
   exchangeRateManager.port = port;
+  exchangeRateManager.saveExchangeRate(exchangeRateManager.exchangeRateUSD, exchangeRateManager.updatedDate);
 
   console.log('active port : ', activePort);
   // 현재 활성화된 거래소에 연결
