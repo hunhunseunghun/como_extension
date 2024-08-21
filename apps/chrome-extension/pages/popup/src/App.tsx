@@ -445,9 +445,9 @@ const App = () => {
               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
             <section className="flex gap-1">
-              <div className="relative flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md">
+              <div className="relative flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md hover:cursor-pointer group">
                 <span>${exchangeRateUSD}</span>
-                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity">
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                   {'한국수출입은행 고시 환율'}
                 </span>
               </div>
