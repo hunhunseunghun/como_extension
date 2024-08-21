@@ -229,7 +229,7 @@ const App = () => {
                   <div className="flex flex-col items-end font-medium ">
                     <span>{valueKRW.toLocaleString()}</span>
                     <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
-                      {exchangeRateUSD > 0 && `$${changeRateKRW.toLocaleString()}`}
+                      {exchangeRateUSD > 0 && `$${changeRateKRW.toFixed(2)}`}
                     </span>
                   </div>
                 </FlashCell>
@@ -445,8 +445,11 @@ const App = () => {
               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
             <section className="flex gap-1">
-              <div className="flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md">
+              <div className="relative flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md">
                 <span>${exchangeRateUSD}</span>
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity">
+                  {'한국수출입은행 고시 환율'}
+                </span>
               </div>
               <div className="flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md">
                 <span>Total</span> <span>{tableData?.length}</span>
