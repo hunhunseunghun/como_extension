@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import '@/styles/App.css';
 import { UpbitTicker, BithumbTicker } from '@/types';
-import { ThemeProvider } from '@/components/ThemeProvider';
+// import { getRegExp } from 'korean-regexp';
+//테이블
 import {
   useReactTable,
   getCoreRowModel,
-  ColumnDef,
+  // ColumnDef,
   SortingState,
   getSortedRowModel,
   flexRender,
@@ -14,69 +15,30 @@ import {
   VisibilityState,
 } from '@tanstack/react-table';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+// 마켓 columns
+import { getUpbitColumns } from '@/columns/upbitColumns';
+import { getBithumbColumns } from '@/columns/bithumbColumns';
+//components
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { LoadingSpinner } from '@/components/ui/loadingSpinner';
 import { Input } from '@/components/ui/input';
 import { ModeToggle } from '@/components/ModeToggle';
 import { SizeToggle } from '@/components/SizeToggle';
 import { MarketDropdown } from '@/components/MarketDropdown';
-import FlashCell from '@/components/FlashCell';
+// import FlashCell from '@/components/FlashCell';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
-import { getRegExp } from 'korean-regexp';
-import { Search, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
-import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
+//아이콘
+import { Search } from 'lucide-react';
+// import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 1. Ticker 객체 타입 정의
-type Ticker = {
-  market: string;
-  trade_date: string;
-  trade_time: string;
-  trade_timestamp: number;
-  opening_price: number;
-  high_price: number;
-  low_price: number;
-  trade_price: number;
-  prev_closing_price: number;
-  change: 'RISE' | 'EVEN' | 'FALL';
-  change_price: number;
-  change_rate: number;
-  signed_change_price: number;
-  signed_change_rate: number;
-  trade_volume: number;
-  acc_trade_price: number;
-  acc_trade_price_24h: number;
-  acc_trade_volume: number;
-  acc_trade_volume_24h: number;
-  highest_52_week_price: number;
-  highest_52_week_date: string;
-  lowest_52_week_price: number;
-  lowest_52_week_date: string;
-  timestamp: number;
-  trade_date_kst: string;
-  trade_time_kst: string;
-  type?: string;
-  code?: string;
-  ask_bid?: 'ASK' | 'BID';
-  acc_ask_volume?: number;
-  acc_bid_volume?: number;
-  market_state?: 'PREVIEW' | 'ACTIVE' | 'DELISTED';
-  is_trading_suspended?: boolean;
-  delisting_date?: string | null;
-  market_warning?: 'NONE' | 'CAUTION';
-  stream_type?: 'SNAPSHOT' | 'REALTIME';
-  korean_name?: string;
-  english_name?: string;
-  market_event: {
-    warning: boolean;
-    caution: boolean;
-  };
-};
-
+type Ticker = UpbitTicker | BithumbTicker;
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [tickers, setTickers] = useState<{ [key: string]: UpbitTicker } | { [key: string]: BithumbTicker }>({});
-  const [tableData, setTableData] = useState<Ticker[]>(Object.values(tickers));
+  const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({});
+  // const [tableData, setTableData] = useState<Ticker[]>(Object.values(tickers));
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [wideSize, setWideSize] = useState<boolean>(true);
@@ -84,15 +46,20 @@ const App = () => {
   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
   const [exchangeMarketType, setExchangeMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
   const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb'>('upbit');
-  // | 'bithumb' | 'coinone' | 'binance'
+  // 'coinone' | 'binance'
   const [isLoading, setIsLoading] = useState(true);
 
-  const setTickersByMarketType = (marketType: 'KRW' | 'BTC' | 'USDT') => {
-    if (Object.values(tickers).length) {
-      const filteredTickers = Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${marketType}-`));
-      setTableData(filteredTickers);
-    }
-  };
+  // const setTickersByMarketType = (marketType: 'KRW' | 'BTC' | 'USDT') => {
+  //   if (Object.values(tickers).length) {
+  //     const filteredTickers = Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${marketType}-`));
+  //     setTableData(filteredTickers);
+  //   }
+  // };
+
+  const tableData = useMemo(() => {
+    if (!Object.values(tickers).length) return [];
+    return Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${exchangeMarketType}-`));
+  }, [tickers, exchangeMarketType]);
 
   const portRef = useRef<chrome.runtime.Port | null>(null);
   const connectBackgroundStream = () => {
@@ -102,32 +69,48 @@ const App = () => {
     try {
       port.onMessage.addListener(message => {
         const { type, data } = message;
+
         switch (type) {
           case 'upbitWebsocketTicker':
             setTickers(prevTickers => ({
               ...prevTickers,
               [data?.code]: { ...prevTickers[data?.code], ...data },
             }));
+            if (isLoading) {
+              setIsLoading(false);
+            }
             break;
+
           case 'bithumbWebsocketTicker':
-            console.log('bithumbWebsocketTicker', data);
             setTickers(prevTickers => ({ ...prevTickers, [data?.code]: { ...prevTickers[data?.code], ...data } }));
+            if (isLoading) {
+              setIsLoading(false);
+            }
             break;
+
           case 'upbitTickers':
             setTickers(data);
-            setIsLoading(false);
+            if (isLoading) {
+              setIsLoading(false);
+            }
             break;
+
           case 'bithumbTickers':
             setTickers(data);
-            setIsLoading(false);
+            if (isLoading) {
+              setIsLoading(false);
+            }
             break;
+
           case 'exchangeRateUSD':
             console.log('exchangeRateUSD', data);
             setExchangeRateUSD(data);
             break;
+
           case 'activeExchange':
             setExchangePlatform(data);
             break;
+
           default:
         }
       });
@@ -135,6 +118,7 @@ const App = () => {
       port.onDisconnect.addListener(() => {
         portRef.current = null;
         setIsLoading(true);
+        setTimeout(() => connectBackgroundStream(), 1000);
       });
     } catch (error) {
       console.error('Failed to connect to background:', error);
@@ -145,257 +129,269 @@ const App = () => {
   useEffect(() => {
     connectBackgroundStream();
     chrome.runtime.sendMessage({ action: 'getActiveExchange' });
-    setTickersByMarketType(exchangeMarketType);
-    return () => {
-      if (portRef.current) {
-        portRef.current.disconnect();
-        portRef.current = null;
-      }
-    };
+    // setTickersByMarketType(exchangeMarketType);
+    // return () => {
+    //   if (portRef.current) {
+    //     portRef.current = null;
+    //   }
+    // };
   }, []);
 
-  useEffect(() => {
-    setTickersByMarketType(exchangeMarketType);
-  }, [tickers, exchangeMarketType]);
+  // useEffect(() => {
+  //   setTickersByMarketType(exchangeMarketType);
+  // }, [tickers, exchangeMarketType]);
 
-  const columns = useMemo<ColumnDef<Ticker>[]>(
-    () => [
-      {
-        accessorFn: (row: Ticker) => {
-          return `${row.korean_name} ${row.market}`;
-        },
-        id: 'market',
-        header: () => {
-          return (
-            <div className="flex " onClick={() => setCoinNameKR(prev => !prev)}>
-              <a href="#" className="mr-[2px] font-bold">
-                {coinNameKR ? '한글명' : '영문명'}
-              </a>
-              <ArrowRightLeft size={10} strokeWidth={3} className="mt-[2px]" />
-            </div>
-          );
-        },
-        cell: ({ row }) => {
-          const splitMarket = row.original.market?.split('-');
-          const convertMarket = splitMarket[1] + '/' + splitMarket[0];
+  const columns = useMemo<ColumnDef<Ticker>[]>(() => {
+    if (exchangePlatform === 'upbit') {
+      return getUpbitColumns(coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType);
+    } else if (exchangePlatform === 'bithumb') {
+      return getBithumbColumns(coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType);
+    }
+    return [];
+  }, [coinNameKR, exchangeRateUSD, exchangeMarketType, exchangePlatform]);
 
-          return (
-            <div className="flex flex-col items-start font-semibold">
-              <div className="flex gap-[2px] text-left break-word">
-                <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
-                <div className="flex gap-[1px] items-center">
-                  {row.original.market_event?.warning && <WarningIcon />}
-                  {row.original.market_event?.caution && <CautionIcon />}
-                </div>
-              </div>
+  // const columns = useMemo<ColumnDef<Ticker>[]>(
+  //   () => [
+  //     {
+  //       accessorFn: (row: Ticker) => {
+  //         return `${row.korean_name} ${row.market}`;
+  //       },
+  //       id: 'market',
+  //       header: () => {
+  //         return (
+  //           <div className="flex " onClick={() => setCoinNameKR(prev => !prev)}>
+  //             <a href="#" className="mr-[2px] font-bold">
+  //               {coinNameKR ? '한글명' : '영문명'}
+  //             </a>
+  //             <ArrowRightLeft size={10} strokeWidth={3} className="mt-[2px]" />
+  //           </div>
+  //         );
+  //       },
+  //       cell: ({ row }) => {
+  //         const splitMarket = row.original.market?.split('-');
+  //         const convertMarket = splitMarket[1] + '/' + splitMarket[0];
 
-              <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
-            </div>
-          );
-        },
-        filterFn: (row, _columnId, filterValue) => {
-          if (!filterValue) return true;
-          const market = row.original.market.toLowerCase();
-          const englishName = row.original.english_name?.toLowerCase() || '';
-          const koreanName = row.original.korean_name || '';
-          const searchValue = filterValue.toLowerCase().trim();
-          const fullTextMatch =
-            market.includes(searchValue) || englishName.includes(searchValue) || koreanName.includes(searchValue);
-          let chosungMatch = false;
-          const chosungRegex = getRegExp(searchValue, { initialSearch: true });
-          chosungMatch = chosungRegex.test(koreanName);
-          return fullTextMatch || chosungMatch;
-        },
-        enableHiding: false,
-      },
-      {
-        accessorKey: 'trade_price',
-        header: ({ column }) => {
-          return (
-            <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              <span className="tetx-xs font-bold underline-offset-2 ">현재가</span>
-              <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-            </div>
-          );
-        },
-        cell: ({ getValue, row, cell }) => {
-          const valueKRW = getValue() as number;
-          const changeRateKRW = exchangeRateUSD > 0 ? (getValue() as number) / exchangeRateUSD : 0;
+  //         return (
+  //           <div className="flex flex-col items-start font-semibold">
+  //             <div className="flex gap-[2px] text-left break-word">
+  //               <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
+  //               <div className="flex gap-[1px] items-center">
+  //                 {row.original.market_event?.warning && <WarningIcon />}
+  //                 {row.original.market_event?.caution && <CautionIcon />}
+  //               </div>
+  //             </div>
 
-          switch (exchangeMarketType) {
-            case 'KRW':
-              return (
-                <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-                  <div className="flex flex-col items-end font-medium ">
-                    <span>{valueKRW.toLocaleString()}</span>
-                    <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
-                      {exchangeRateUSD > 0 && `$${changeRateKRW.toFixed(2)}`}
-                    </span>
-                  </div>
-                </FlashCell>
-              );
-            case 'BTC':
-              return (
-                <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-                  <div className="flex flex-col items-end font-medium ">
-                    <span>{(getValue() as number).toFixed(8)}</span>
-                  </div>
-                </FlashCell>
-              );
-            case 'USDT':
-              return (
-                <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-                  <div className="flex flex-col items-end font-medium ">
-                    <span>
-                      $
-                      {(getValue() as number).toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                </FlashCell>
-              );
-          }
-        },
-        enableHiding: false,
-      },
-      {
-        accessorFn: (row: Ticker) => (row.signed_change_rate * 100).toFixed(2),
-        id: 'signed_change_rate',
-        header: ({ column }) => {
-          return (
-            <div
-              className="flex justify-end font-bold"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              <p>전일대비</p>
-              <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-            </div>
-          );
-        },
-        cell: ({ row, getValue }) => {
-          const value = String(getValue() as number);
-          const signed_change_price = row.original.signed_change_price.toLocaleString();
-          return (
-            <div className="flex flex-col items-end font-medium">
-              <span
-                className={`${row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''}`}>
-                {value}%
-              </span>
-              {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signed_change_price}</span>}
-            </div>
-          );
-        },
-        enableHiding: false,
-      },
-      {
-        accessorFn: (row: Ticker) =>
-          (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
-        id: 'highest_52_week_diff',
-        header: ({ column }) => {
-          return (
-            <div
-              className="flex justify-end font-bold"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              <span>고가대비(52주)</span>
-              <ChevronsUpDown className="mt-[1px]" size={12} strokeWidth={3} />
-            </div>
-          );
-        },
-        cell: ({ getValue, row }) => {
-          const value = String(getValue()) as string;
-          const highestPrice = row.original.highest_52_week_price?.toLocaleString();
-          return (
-            <div className="flex flex-col items-end text-blue-500 font-medium">
-              <span>
-                <span>-</span>
-                {value}%
-              </span>
-              {exchangeMarketType !== 'BTC' ? (
-                <span className="text-[10px] text-gray-500">{highestPrice}</span>
-              ) : (
-                <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        accessorFn: (row: Ticker) =>
-          (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
-        id: 'lowest_52_week_diff',
-        header: ({ column }) => {
-          return (
-            <div
-              className="flex justify-end font-bold"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              <p>저가대비(52주)</p>
-              <ChevronsUpDown className="mt-[1px]" size={12} strokeWidth={3} />
-            </div>
-          );
-        },
-        cell: ({ getValue, row }) => {
-          const value = String(getValue());
-          const lowestPrice = row.original.lowest_52_week_price;
+  //             <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
+  //           </div>
+  //         );
+  //       },
+  //       filterFn: (row, _columnId, filterValue) => {
+  //         if (!filterValue) return true;
+  //         const market = row.original.market.toLowerCase();
+  //         const englishName = row.original.english_name?.toLowerCase() || '';
+  //         const koreanName = row.original.korean_name || '';
+  //         const searchValue = filterValue.toLowerCase().trim();
+  //         const fullTextMatch =
+  //           market.includes(searchValue) || englishName.includes(searchValue) || koreanName.includes(searchValue);
+  //         let chosungMatch = false;
+  //         const chosungRegex = getRegExp(searchValue, { initialSearch: true });
+  //         chosungMatch = chosungRegex.test(koreanName);
+  //         return fullTextMatch || chosungMatch;
+  //       },
+  //       enableHiding: false,
+  //     },
+  //     {
+  //       accessorKey: 'trade_price',
+  //       header: ({ column }) => {
+  //         return (
+  //           <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+  //             <span className="tetx-xs font-bold underline-offset-2 ">현재가</span>
+  //             <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+  //           </div>
+  //         );
+  //       },
+  //       cell: ({ getValue, row, cell }) => {
+  //         const valueKRW = getValue() as number;
+  //         const changeRateKRW = exchangeRateUSD > 0 ? (getValue() as number) / exchangeRateUSD : 0;
 
-          return (
-            <div className="flex flex-col items-end text-red-500 font-medium">
-              <span>
-                <span>+</span>
-                {value}%
-              </span>
-              {exchangeMarketType !== 'BTC' ? (
-                <span className="text-[10px] text-gray-500">{lowestPrice.toLocaleString()}</span>
-              ) : (
-                <span className="text-[10px] text-gray-500">{lowestPrice.toFixed(8)}</span>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        accessorKey: 'acc_trade_price_24h',
-        id: 'acc.trade_price_24h',
-        header: ({ column }) => {
-          return (
-            <div
-              className="flex justify-end font-bold"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-              <span>거래대금</span>
-              <ChevronsUpDown className="mt-[1px]" size={12} strokeWidth={3} />
-            </div>
-          );
-        },
-        cell: ({ getValue }) => {
-          const value = Number(getValue() as number);
+  //         switch (exchangeMarketType) {
+  //           case 'KRW':
+  //             return (
+  //               <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
+  //                 <div className="flex flex-col items-end font-medium ">
+  //                   <span>{valueKRW?.toLocaleString()}</span>
+  //                   <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
+  //                     {exchangeRateUSD > 0 &&
+  //                       `$${changeRateKRW?.toLocaleString('en-US', {
+  //                         minimumFractionDigits: 2,
+  //                         maximumFractionDigits: 2,
+  //                       })}`}
+  //                   </span>
+  //                 </div>
+  //               </FlashCell>
+  //             );
+  //           case 'BTC':
+  //             return (
+  //               <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
+  //                 <div className="flex flex-col items-end font-medium ">
+  //                   <span>{(getValue() as number).toFixed(8)}</span>
+  //                 </div>
+  //               </FlashCell>
+  //             );
+  //           case 'USDT':
+  //             return (
+  //               <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
+  //                 <div className="flex flex-col items-end font-medium ">
+  //                   <span>
+  //                     $
+  //                     {(getValue() as number)?.toLocaleString('en-US', {
+  //                       minimumFractionDigits: 2,
+  //                       maximumFractionDigits: 2,
+  //                     })}
+  //                   </span>
+  //                 </div>
+  //               </FlashCell>
+  //             );
+  //         }
+  //       },
+  //       enableHiding: false,
+  //     },
+  //     {
+  //       accessorFn: (row: Ticker) => (row.signed_change_rate * 100).toFixed(2),
+  //       id: 'signed_change_rate',
+  //       header: ({ column }) => {
+  //         return (
+  //           <div
+  //             className="flex justify-end font-bold"
+  //             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+  //             <p>전일대비</p>
+  //             <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+  //           </div>
+  //         );
+  //       },
+  //       cell: ({ row, getValue }) => {
+  //         const value = String(getValue() as number);
+  //         const signed_change_price = row.original.signed_change_price?.toLocaleString();
+  //         return (
+  //           <div className="flex flex-col items-end font-medium">
+  //             <span
+  //               className={`${row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''}`}>
+  //               {value}%
+  //             </span>
+  //             {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signed_change_price}</span>}
+  //           </div>
+  //         );
+  //       },
+  //       enableHiding: false,
+  //     },
+  //     {
+  //       accessorFn: (row: Ticker) =>
+  //         (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
+  //       id: 'highest_52_week_diff',
+  //       header: ({ column }) => {
+  //         return (
+  //           <div
+  //             className="flex justify-end font-bold"
+  //             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+  //             <span>고가대비(52주)</span>
+  //             <ChevronsUpDown className="mt-[1px]" size={12} strokeWidth={3} />
+  //           </div>
+  //         );
+  //       },
+  //       cell: ({ getValue, row }) => {
+  //         const value = String(getValue()) as string;
+  //         const highestPrice = row.original.highest_52_week_price?.toLocaleString();
+  //         return (
+  //           <div className="flex flex-col items-end text-blue-500 font-medium">
+  //             <span>
+  //               <span>-</span>
+  //               {value}%
+  //             </span>
+  //             {exchangeMarketType !== 'BTC' ? (
+  //               <span className="text-[10px] text-gray-500">{highestPrice}</span>
+  //             ) : (
+  //               <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
+  //             )}
+  //           </div>
+  //         );
+  //       },
+  //     },
+  //     {
+  //       accessorFn: (row: Ticker) =>
+  //         (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
+  //       id: 'lowest_52_week_diff',
+  //       header: ({ column }) => {
+  //         return (
+  //           <div
+  //             className="flex justify-end font-bold"
+  //             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+  //             <p>저가대비(52주)</p>
+  //             <ChevronsUpDown className="mt-[1px]" size={12} strokeWidth={3} />
+  //           </div>
+  //         );
+  //       },
+  //       cell: ({ getValue, row }) => {
+  //         const value = String(getValue());
+  //         const lowestPrice = row.original.lowest_52_week_price;
 
-          switch (exchangeMarketType) {
-            case 'KRW':
-              return (
-                <div className="flex justify-end font-medium">
-                  <span>{Math.floor(value / 1_000_000).toLocaleString()}</span>
-                  <span>백만</span>
-                </div>
-              );
-            case 'BTC':
-              return (
-                <div className="flex justify-end font-medium">
-                  <span>{value.toFixed(3)}</span>
-                </div>
-              );
-            case 'USDT':
-              return (
-                <div className="flex justify-end font-medium">
-                  <span>{Math.round(value).toLocaleString()}</span>
-                </div>
-              );
-          }
-        },
-        enableHiding: false,
-      },
-    ],
-    [coinNameKR, exchangeRateUSD, exchangeMarketType],
-  );
+  //         return (
+  //           <div className="flex flex-col items-end text-red-500 font-medium">
+  //             <span>
+  //               <span>+</span>
+  //               {value}%
+  //             </span>
+  //             {exchangeMarketType !== 'BTC' ? (
+  //               <span className="text-[10px] text-gray-500">{lowestPrice?.toLocaleString()}</span>
+  //             ) : (
+  //               <span className="text-[10px] text-gray-500">{lowestPrice?.toFixed(8)}</span>
+  //             )}
+  //           </div>
+  //         );
+  //       },
+  //     },
+  //     {
+  //       accessorKey: 'acc_trade_price_24h',
+  //       id: 'acc.trade_price_24h',
+  //       header: ({ column }) => {
+  //         return (
+  //           <div
+  //             className="flex justify-end font-bold"
+  //             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+  //             <span>거래대금</span>
+  //             <ChevronsUpDown className="mt-[1px]" size={12} strokeWidth={3} />
+  //           </div>
+  //         );
+  //       },
+  //       cell: ({ getValue }) => {
+  //         const value = Number(getValue() as number);
+
+  //         switch (exchangeMarketType) {
+  //           case 'KRW':
+  //             return (
+  //               <div className="flex justify-end font-medium">
+  //                 <span>{Math.floor(value / 1_000_000)?.toLocaleString()}</span>
+  //                 <span>백만</span>
+  //               </div>
+  //             );
+  //           case 'BTC':
+  //             return (
+  //               <div className="flex justify-end font-medium">
+  //                 <span>{value.toFixed(3)}</span>
+  //               </div>
+  //             );
+  //           case 'USDT':
+  //             return (
+  //               <div className="flex justify-end font-medium">
+  //                 <span>{Math.round(value)?.toLocaleString()}</span>
+  //               </div>
+  //             );
+  //         }
+  //       },
+  //       enableHiding: false,
+  //     },
+  //   ],
+  //   [coinNameKR, exchangeRateUSD, exchangeMarketType],
+  // );
 
   const table = useReactTable({
     data: tableData,
@@ -430,8 +426,8 @@ const App = () => {
             </section>
 
             <section className="flex gap-1">
-              <div className="relative flex justify-center items-center h-6 w-18 mr-2 text-[10px] font-semibold gap-1 border-1 rounded-md hover:cursor-pointer group">
-                <span>${exchangeRateUSD}</span>
+              <div className="relative flex justify-center items-center h-6 w-16 mr-2 text-[10px]  gap-1 border-1 rounded-md hover:cursor-pointer group">
+                <span>{exchangeRateUSD}원</span>
                 <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                   {'한국수출입은행 고시 환율'}
                 </span>
@@ -444,7 +440,7 @@ const App = () => {
           <div className="flex justify-between mx-auto w-full px-1.5 py-1">
             <section className="relative items-center flex">
               <Input
-                className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 font-semibold placeholder:text-neutral-400 border"
+                className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400  placeholder:text-neutral-400 border"
                 placeholder=" BTC , 비트"
                 value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
                 onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
@@ -452,7 +448,7 @@ const App = () => {
               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
             </section>
             <section className="flex gap-1">
-              <div className="flex justify-center items-center h-6 w-18 text-[10px] font-semibold gap-1 border-1 rounded-md">
+              <div className="flex justify-center items-center h-6 w-18 text-[10px]  gap-1 border-1 rounded-md">
                 <span>Total</span> <span>{tableData?.length}</span>
               </div>
               <MarketDropdown
@@ -462,6 +458,7 @@ const App = () => {
                 setTickers={setTickers}
               />
               <MarketTypeDropDown
+                exchangePlatform={exchangePlatform}
                 exchangeMarketType={exchangeMarketType}
                 setExchangeMarketType={setExchangeMarketType}
               />
@@ -493,7 +490,7 @@ const App = () => {
                     <LoadingSpinner />
                   </TableCell>
                 </TableRow>
-              ) : table.getRowModel().rows?.length ? (
+              ) : (
                 table.getRowModel().rows.map(row => (
                   <TableRow className="border-transparent" key={row.id} data-state={row.getIsSelected() && 'selected'}>
                     {row
@@ -509,14 +506,6 @@ const App = () => {
                       )}
                   </TableRow>
                 ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={table.getAllColumns().filter(col => col.getIsVisible()).length || 1}
-                    className="h-24 text-center">
-                    No results.
-                  </TableCell>
-                </TableRow>
               )}
             </TableBody>
           </Table>

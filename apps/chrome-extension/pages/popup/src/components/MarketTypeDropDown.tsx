@@ -8,16 +8,26 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 
-// ✅ 올바른 타입 정의
+// ✅ 상수와 타입 정의
 const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
 type ExchangeMarketType = (typeof marketTypes)[number];
+type ExchangePlatform = 'upbit' | 'bithumb';
 
 interface MarketTypeDropDownProps {
   exchangeMarketType: ExchangeMarketType;
+  exchangePlatform: ExchangePlatform;
   setExchangeMarketType: (type: ExchangeMarketType) => void;
 }
 
-export function MarketTypeDropDown({ exchangeMarketType, setExchangeMarketType }: MarketTypeDropDownProps) {
+export function MarketTypeDropDown({
+  exchangePlatform,
+  exchangeMarketType,
+  setExchangeMarketType,
+}: MarketTypeDropDownProps) {
+  // 🟢 readonly 타입으로 정의
+  const filteredMarketTypes: readonly ExchangeMarketType[] =
+    exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : marketTypes;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -26,9 +36,9 @@ export function MarketTypeDropDown({ exchangeMarketType, setExchangeMarketType }
           <ChevronDown className="size-2.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="min-w-[70px]">
+      <DropdownMenuContent className="w-20">
         <DropdownMenuGroup>
-          {marketTypes.map(type => (
+          {filteredMarketTypes.map(type => (
             <DropdownMenuItem
               key={type}
               onClick={() => setExchangeMarketType(type)}

@@ -45,15 +45,42 @@ export type UpbitTicker = {
   };
 };
 export type BithumbTicker = {
-  opening_price: number; //시가 00시 기준
-  closing_price: number; // 종가 00시 기준
-  min_price: number; //저가 00시 기준
-  max_price: number; // 고가 00시 기준
-  units_traded: number; // 거래량 00시 기준
-  acc_trade_value: number; // 거래금액 00시 기준
-  prev_closing_price: number; // 전일종가
-  units_traded_24H: number; //최근 24시간 거래량
-  acc_trade_value_24H: number; // 최근 24시간 거래금액
-  flctate_24H: number; //최근 24시간 변동률
-  date: number;
+  market: string; // 종목 구분 코드
+  trade_date: string; // 최근 거래 일자 (UTC, yyyyMMdd)
+  trade_time: string; // 최근 거래 시각 (UTC, HHmmss)
+  trade_date_kst: string; // 최근 거래 일자 (KST, yyyyMMdd)
+  trade_time_kst: string; // 최근 거래 시각 (KST, HHmmss)
+  trade_timestamp: number; // 최근 거래 일시 (UTC, Unix Timestamp)
+  opening_price: number; // 시가
+  high_price: number; // 고가
+  low_price: number; // 저가
+  trade_price: number; // 종가 (현재가)
+  prev_closing_price: number; // 전일 종가 (KST 0시 기준)
+  change: 'EVEN' | 'RISE' | 'FALL'; // 변화 상태 (보합, 상승, 하락)
+  change_price: number; // 변화액의 절대값
+  change_rate: number; // 변화율의 절대값
+  signed_change_price: number; // 부호가 있는 변화액
+  signed_change_rate: number; // 부호가 있는 변화율
+  trade_volume: number; // 가장 최근 거래량
+  acc_trade_price: number; // 누적 거래대금 (KST 0시 기준)
+  acc_trade_price_24h: number; // 24시간 누적 거래대금
+  acc_trade_volume: number; // 누적 거래량 (KST 0시 기준)
+  acc_trade_volume_24h: number; // 24시간 누적 거래량
+  highest_52_week_price: number; // 52주 신고가
+  highest_52_week_date: string; // 52주 신고가 달성일 (yyyy-MM-dd)
+  lowest_52_week_price: number; // 52주 신저가
+  lowest_52_week_date: string; // 52주 신저가 달성일 (yyyy-MM-dd)
+  timestamp: number; // 타임스탬프
+  type?: string; // ticker: 현재가
+  code?: string; // 마켓 코드 (ex. KRW-BTC)
+  ask_bid?: 'ASK' | 'BID'; // 매수/매도 구분
+  acc_ask_volume?: number; // 누적 매도량
+  acc_bid_volume?: number; // 누적 매수량
+  market_state?: string; // 거래 상태
+  is_trading_suspended?: boolean; // 거래 정지 여부
+  delisting_date?: string; // 거래지원 종료일 (Date)
+  market_warning?: 'NONE' | 'CAUTION'; // 유의 종목 여부
+  stream_type?: 'SNAPSHOT' | 'REALTIME'; // 스트림 타입
+  korean_name?: string;
+  english_name?: string;
 };

@@ -104,11 +104,11 @@ class ExchangeRateManager {
     console.log('saveExchangeRate : :  : ', storage);
     console.log('exchagneClass saveExchangeRate port :: ', this.port);
     console.log('exchagneClass saveExchangeRate rate :: ', rate, 'type ; ', typeof rate);
-    if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: rate });
+    if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: rate ? rate : storage.exchangeRateUSD });
   }
 }
 
-// ExchangeData 추상 클래스 (거래소 데이터 관리)
+// ExchangeData 클래스 (거래소 데이터 관리)
 class ExchangeData {
   constructor(name, apiUrl, wsUrl) {
     this.name = name;
@@ -330,6 +330,7 @@ async function initialize() {
     if (activeExchange === 'upbit' && upbit.tickers) {
       activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
     } else if (activeExchange === 'bithumb' && bithumb.tickers) {
+      console.log('bithumb.tickers', bithumb.tickers);
       activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
     }
   }

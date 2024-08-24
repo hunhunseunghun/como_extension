@@ -25,7 +25,7 @@ interface MarketDropdownProps {
   exchangePlatform: 'upbit' | 'bithumb'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
   setExchangePlatform: (platform: keyof typeof platformData) => void;
   setIsLoading: (loading: boolean) => void;
-  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: UpbitTicker } | { [key: string]: BithumbTicker }>>;
+  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: UpbitTicker | BithumbTicker }>>;
 }
 
 export const MarketDropdown = ({
