@@ -84,3 +84,4 @@ export type BithumbTicker = {
   korean_name?: string;
   english_name?: string;
 };
+export type Ticker = UpbitTicker | BithumbTicker;

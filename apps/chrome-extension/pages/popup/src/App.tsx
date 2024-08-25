@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import '@/styles/App.css';
-import { UpbitTicker, BithumbTicker } from '@/types';
+import { Ticker } from '@/types';
 // import { getRegExp } from 'korean-regexp';
 //테이블
 import {
   useReactTable,
   getCoreRowModel,
-  // ColumnDef,
+  ColumnDef,
   SortingState,
   getSortedRowModel,
   flexRender,
@@ -34,7 +34,7 @@ import { Search } from 'lucide-react';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 1. Ticker 객체 타입 정의
-type Ticker = UpbitTicker | BithumbTicker;
+// type Ticker = UpbitTicker | BithumbTicker;
 const App = () => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({});
@@ -141,7 +141,7 @@ const App = () => {
   //   setTickersByMarketType(exchangeMarketType);
   // }, [tickers, exchangeMarketType]);
 
-  const columns = useMemo<ColumnDef<Ticker>[]>(() => {
+  const columns: ColumnDef<Ticker>[] = useMemo(() => {
     if (exchangePlatform === 'upbit') {
       return getUpbitColumns(coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType);
     } else if (exchangePlatform === 'bithumb') {

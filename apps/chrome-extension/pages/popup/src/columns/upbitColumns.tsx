@@ -1,5 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { UpbitTicker } from '@/types';
+import { Ticker } from '@/types';
 import { ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
@@ -10,9 +10,9 @@ export const getUpbitColumns = (
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
-): ColumnDef<UpbitTicker>[] => [
+): ColumnDef<Ticker>[] => [
   {
-    accessorFn: (row) => `${row.korean_name} ${row.market}`,
+    accessorFn: row => `${row.korean_name} ${row.market}`,
     id: 'market',
     header: () => (
       <div className="flex" onClick={() => setCoinNameKR(!coinNameKR)}>
@@ -25,13 +25,14 @@ export const getUpbitColumns = (
     cell: ({ row }) => {
       const splitMarket = row.original.market?.split('-');
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
+      const upbitRow = row.original as { market_event?: { warning: boolean; caution: boolean } }; // Upbit 전용 필드 접근
       return (
         <div className="flex flex-col items-start font-semibold">
           <div className="flex gap-[2px] text-left break-word">
             <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
             <div className="flex gap-[1px] items-center">
-              {row.original.market_event?.warning && <WarningIcon />}
-              {row.original.market_event?.caution && <CautionIcon />}
+              {upbitRow.market_event?.warning && <WarningIcon />}
+              {upbitRow.market_event?.caution && <CautionIcon />}
             </div>
           </div>
           <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
@@ -90,9 +91,7 @@ export const getUpbitColumns = (
           return (
             <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
               <div className="flex flex-col items-end font-medium">
-                <span>
-                  ${valueKRW.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+                <span>${valueKRW.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </FlashCell>
           );
@@ -101,7 +100,7 @@ export const getUpbitColumns = (
     enableHiding: false,
   },
   {
-    accessorFn: (row) => (row.signed_change_rate * 100).toFixed(2),
+    accessorFn: row => (row.signed_change_rate * 100).toFixed(2),
     id: 'signed_change_rate',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -117,9 +116,8 @@ export const getUpbitColumns = (
           <span
             className={`${
               row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''
-            }`}
-          >
-            {value}%
+            }`}>
+            {`${row.original.change === 'RISE' ? '+' : '-'}${value}%`}
           </span>
           {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signedChangePrice}</span>}
         </div>
@@ -128,7 +126,7 @@ export const getUpbitColumns = (
     enableHiding: false,
   },
   {
-    accessorFn: (row) => (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
+    accessorFn: row => (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
     id: 'highest_52_week_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -152,7 +150,7 @@ export const getUpbitColumns = (
     },
   },
   {
-    accessorFn: (row) => (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
+    accessorFn: row => (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
     id: 'lowest_52_week_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>

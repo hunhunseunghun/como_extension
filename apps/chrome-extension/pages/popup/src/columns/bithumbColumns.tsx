@@ -1,7 +1,7 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { BithumbTicker } from '@/types';
+import { Ticker } from '@/types';
 import { ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
-import { CautionIcon } from '@/components/ui/warningIcon';
+import { WarningIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
 import FlashCell from '@/components/FlashCell';
 
@@ -10,7 +10,7 @@ export const getBithumbColumns = (
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
-): ColumnDef<BithumbTicker>[] => [
+): ColumnDef<Ticker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
     id: 'market',
@@ -25,13 +25,12 @@ export const getBithumbColumns = (
     cell: ({ row }) => {
       const splitMarket = row.original.market?.split('-');
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
+      const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' }; // Bithumb 전용 필드 접근
       return (
         <div className="flex flex-col items-start font-semibold">
           <div className="flex gap-[2px] text-left break-word">
             <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
-            <div className="flex gap-[1px] items-center">
-              {row.original.market_warning === 'CAUTION' && <CautionIcon />}
-            </div>
+            <div className="flex gap-[1px] items-center">{bithumbRow.market_warning !== 'NONE' && <WarningIcon />}</div>
           </div>
           <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
         </div>
@@ -115,7 +114,7 @@ export const getBithumbColumns = (
             className={`${
               row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''
             }`}>
-            {value}%
+            {`${row.original.change === 'RISE' ? '+' : '-'}${value}%`}
           </span>
           {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signedChangePrice}</span>}
         </div>
