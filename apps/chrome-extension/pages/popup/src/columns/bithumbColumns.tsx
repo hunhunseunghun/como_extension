@@ -1,6 +1,6 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { Ticker } from '@/types';
-import { ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
+import { Star, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
 import FlashCell from '@/components/FlashCell';
@@ -29,6 +29,17 @@ export const getBithumbColumns = (
       return (
         <div className="flex flex-col items-start font-semibold">
           <div className="flex gap-[2px] text-left break-word">
+            <div className="flex flex-col justify-center">
+              {' '}
+              <Star
+                className={
+                  row.getIsPinned()
+                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
+                    : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                }
+                onClick={row.getIsPinned() ? () => row.pin(false) : () => row.pin('top')}
+              />
+            </div>
             <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
             <div className="flex gap-[1px] items-center">{bithumbRow.market_warning !== 'NONE' && <WarningIcon />}</div>
           </div>
