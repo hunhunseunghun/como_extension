@@ -183,7 +183,7 @@ const App = () => {
     initialState: {
       sorting: [{ id: 'trade_price', desc: true }],
     },
-    keepPinnedRows: true,
+    keepPinnedRows: false,
   });
 
   useEffect(() => {
