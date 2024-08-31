@@ -28,6 +28,7 @@ import { MarketDropdown } from '@/components/MarketDropdown';
 // import FlashCell from '@/components/FlashCell';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
+import { FavoriteToggle } from '@/components/FavoriteToggle';
 //icons
 import { Search } from 'lucide-react';
 import comoLogo from '@/assets/icons/como-logo.png';
@@ -50,6 +51,8 @@ const App = () => {
   const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb'>('upbit'); // 'coinone' | 'binance'
   const [isLoading, setIsLoading] = useState(true);
   // const [favoriteCoins, setFavoriteCoins] = useState<{ [key: string]: number }>({}); // market: timestamp
+
+  const [favoriteFunc, setFavoriteFunc] = useState(true);
 
   const tableData = useMemo(() => {
     if (!Object.values(tickers).length) return [];
@@ -183,7 +186,7 @@ const App = () => {
     initialState: {
       sorting: [{ id: 'trade_price', desc: true }],
     },
-    keepPinnedRows: false,
+    keepPinnedRows: true,
   });
 
   useEffect(() => {
@@ -207,6 +210,7 @@ const App = () => {
                 </span>
               </div>
               <UpdateNoteToggle />
+              <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
               <ModeToggle />
               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
             </section>
