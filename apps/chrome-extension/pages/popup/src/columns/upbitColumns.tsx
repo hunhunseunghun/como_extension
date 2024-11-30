@@ -127,7 +127,7 @@ export const getUpbitColumns = (
     header: () => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-5 w-12 text-[10px] font-semibold gap-1 hover:cursor-pointer">
+          <Button variant="outline" className="h-5 w-11 text-[10px] font-semibold gap-0.5 hover:cursor-pointer">
             <span>{timeframes.find(tf => tf.value === timeframe)?.label}</span>
             <ChevronDown className="size-2" />
           </Button>
