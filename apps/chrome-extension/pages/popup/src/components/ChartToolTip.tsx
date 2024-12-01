@@ -41,6 +41,76 @@ const ChartContext = React.createContext<{
   setActiveChart: () => {},
 });
 
+const getTimeframeConfig = (timeframe: string) => {
+  switch (timeframe) {
+    case '1m':
+    case '3m':
+    case '5m':
+    case '10m':
+    case '15m':
+    case '30m':
+      return {
+        dateFormat: 'HH:mm',
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          return date.toLocaleTimeString('ko-KR', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' });
+        },
+        timeVisible: true,
+        secondsVisible: false,
+      };
+    case '60m':
+    case '240m':
+      return {
+        dateFormat: "yyyy/MM/dd HH'H'",
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hour = String(date.getHours()).padStart(2, '0');
+          return `${year}/${month}/${day} ${hour}H`;
+        },
+        timeVisible: true,
+        secondsVisible: false,
+      };
+    case '1d':
+      return {
+        dateFormat: 'yyyy/MM/dd',
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}/${month}/${day}`;
+        },
+        timeVisible: false,
+        secondsVisible: false,
+      };
+    case '1M':
+      return {
+        dateFormat: 'yyyy/MM',
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          return `${year}/${month}`;
+        },
+        timeVisible: false,
+        secondsVisible: false,
+      };
+    default:
+      return {
+        dateFormat: 'yyyy/MM/dd',
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          return date.toLocaleDateString('ko-KR', { timeZone: 'UTC' });
+        },
+        timeVisible: false,
+        secondsVisible: false,
+      };
+  }
+};
+
 const ChartToolTip: React.FC<ChartTooltipProps> = ({
   children,
   className,
@@ -60,16 +130,6 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
   const TOOLTIP_WIDTH = wideSize ? 500 : 290;
   const TOOLTIP_HEIGHT = wideSize ? 300 : 170;
 
-  useEffect(() => {
-    if (isOpen) {
-      const intervalId = setInterval(() => {
-        fetchData();
-      }, 60000); // 1분마다 실행
-
-      return () => clearInterval(intervalId); // 툴팁이 닫히면 타이머 해제
-    }
-  }, [isOpen, fetchData]);
-  // 외부 클릭 이벤트 핸들러
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isOpen && containerRef.current) {
@@ -160,6 +220,17 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     }
 
     seriesRef.current!.setData(chartData);
+    const config = getTimeframeConfig(timeframe);
+    chartRef.current!.applyOptions({
+      localization: {
+        dateFormat: config.dateFormat,
+        timeFormatter: config.timeFormatter,
+      },
+      timeScale: {
+        timeVisible: config.timeVisible,
+        secondsVisible: config.secondsVisible,
+      },
+    });
     chartRef.current.timeScale().fitContent();
   }, [chartData]);
 

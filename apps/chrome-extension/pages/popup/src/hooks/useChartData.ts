@@ -42,24 +42,18 @@ interface UpbitCandle {
 }
 
 interface BithumbCandle {
-  timestamp: string;
-  opening_price: string;
-  high_price: string;
-  low_price: string;
-  trade_price: string;
+  market: string;
+  candle_date_time_utc: string;
+  candle_date_time_kst: string;
+  opening_price: number;
+  high_price: number;
+  low_price: number;
+  trade_price: number;
+  timestamp: number;
+  candle_acc_trade_price: number;
+  candle_acc_trade_volume: number;
+  unit?: number;
 }
-
-// const formatDateToString = (timestamp: number, timeframe: string = '1d'): string => {
-//   const date = new Date(timestamp * 1000);
-
-//   // 분봉/시간봉의 경우 시간까지 포함
-//   if (timeframe.includes('m') || timeframe.includes('h')) {
-//     return date.toISOString().slice(0, 19).replace('T', ' ');
-//   }
-
-//   // 일봉/주봉/월봉의 경우 날짜만
-//   return date.toISOString().split('T')[0];
-// };
 
 const isValidNumeric = (value: number) => Number.isFinite(value);
 
@@ -145,16 +139,17 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
 
   const getBithumbInterval = (tf: string) => {
     const intervals: Record<string, string> = {
-      '1m': '1m',
-      '3m': '3m',
-      '5m': '5m',
-      '10m': '10m',
-      '30m': '30m',
-      '60m': '1h',
-      '240m': '4h',
-      '1d': '24h',
-      '1w': '1w',
-      '1M': '1M',
+      '1m': 'minutes/1',
+      '3m': 'minutes/3',
+      '5m': 'minutes/5',
+      '10m': 'minutes/10',
+      '15m': 'minutes/15',
+      '30m': 'minutes/30',
+      '60m': 'minutes/60',
+      '240m': 'minutes/240',
+      '1d': 'days',
+      '1w': 'weeks',
+      '1M': 'months',
     };
     return intervals[tf] || '24h';
   };
@@ -208,7 +203,7 @@ const formatChartData = (
     }
   > = {
     binance: item => ({
-      timeNum: Math.floor(Number((item as BinanceKline)[0]) / 1000),
+      timeNum: Math.floor(Number((item as BinanceKline)[0] + 9 * 60 * 60 * 1000) / 1000),
       open: parseFloat((item as BinanceKline)[1]),
       high: parseFloat((item as BinanceKline)[2]),
       low: parseFloat((item as BinanceKline)[3]),
@@ -223,10 +218,10 @@ const formatChartData = (
     }),
     bithumb: item => ({
       timeNum: Math.floor(Number((item as BithumbCandle).timestamp + 9 * 60 * 60 * 1000) / 1000),
-      open: parseFloat((item as BithumbCandle).opening_price),
-      high: parseFloat((item as BithumbCandle).high_price),
-      low: parseFloat((item as BithumbCandle).low_price),
-      close: parseFloat((item as BithumbCandle).trade_price),
+      open: (item as BithumbCandle).opening_price,
+      high: (item as BithumbCandle).high_price,
+      low: (item as BithumbCandle).low_price,
+      close: (item as BithumbCandle).trade_price,
     }),
   } as const;
 
