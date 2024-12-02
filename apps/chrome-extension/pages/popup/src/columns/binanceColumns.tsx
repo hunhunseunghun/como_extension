@@ -152,8 +152,7 @@ export const getBinanceColumns = (
             symbol={row.original.symbol}
             exchange="binance"
             wideSize={wideSize}
-            timeframe={timeframe}
-            setTimeframe={setTimeframe}>
+            timeframe={timeframe}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>

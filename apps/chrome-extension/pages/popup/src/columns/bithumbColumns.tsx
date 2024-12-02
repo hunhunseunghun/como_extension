@@ -153,8 +153,7 @@ export const getBithumbColumns = (
             symbol={row.original.market}
             exchange="bithumb"
             wideSize={wideSize}
-            timeframe={timeframe}
-            setTimeframe={setTimeframe}>
+            timeframe={timeframe}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>

@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { Time } from 'lightweight-charts';
 
 export interface ChartDataPoint {
-  time: string;
+  time: Time;
   open: number;
   high: number;
   low: number;
@@ -27,11 +28,17 @@ interface BinanceKline {
 }
 
 interface UpbitCandle {
+  market: string;
   candle_date_time_utc: string;
+  candle_date_time_kst: string;
   opening_price: number;
   high_price: number;
   low_price: number;
   trade_price: number;
+  timestamp: number;
+  candle_acc_trade_price: number;
+  candle_acc_trade_volume: number;
+  unit?: number;
 }
 
 interface BithumbCandle {
@@ -42,17 +49,17 @@ interface BithumbCandle {
   trade_price: string;
 }
 
-const formatDateToString = (timestamp: number, timeframe: string = '1d'): string => {
-  const date = new Date(timestamp * 1000);
+// const formatDateToString = (timestamp: number, timeframe: string = '1d'): string => {
+//   const date = new Date(timestamp * 1000);
 
-  // 분봉/시간봉의 경우 시간까지 포함
-  if (timeframe.includes('m') || timeframe.includes('h')) {
-    return date.toISOString().slice(0, 19).replace('T', ' ');
-  }
+//   // 분봉/시간봉의 경우 시간까지 포함
+//   if (timeframe.includes('m') || timeframe.includes('h')) {
+//     return date.toISOString().slice(0, 19).replace('T', ' ');
+//   }
 
-  // 일봉/주봉/월봉의 경우 날짜만
-  return date.toISOString().split('T')[0];
-};
+//   // 일봉/주봉/월봉의 경우 날짜만
+//   return date.toISOString().split('T')[0];
+// };
 
 const isValidNumeric = (value: number) => Number.isFinite(value);
 
@@ -76,9 +83,9 @@ export const useChartData = (symbol?: string, exchange: Exchange = 'binance', ti
 
     setLoading(true);
     try {
-      const currentTime = Math.floor(Date.now() / 1000);
+      const currentTime = Math.floor(Date.now());
       const { data } = await fetchChartData(symbol, exchange, timeframe);
-      const formattedData = formatChartData(data, exchange, currentTime, timeframe);
+      const formattedData = formatChartData(data, exchange, currentTime);
 
       console.log(symbol, timeframe, data);
 
@@ -185,7 +192,6 @@ const formatChartData = (
   data: BinanceKline[] | UpbitCandle[] | BithumbCandle[],
   exchange: Exchange,
   currentTime: number,
-  timeframe: string = '1d',
 ): ChartDataPoint[] => {
   if (!Array.isArray(data) || !data.length) {
     throw new Error(`Invalid response from ${exchange}`);
@@ -202,21 +208,21 @@ const formatChartData = (
     }
   > = {
     binance: item => ({
-      timeNum: Math.floor((item as BinanceKline)[0] / 1000),
+      timeNum: Math.floor(Number((item as BinanceKline)[0]) / 1000),
       open: parseFloat((item as BinanceKline)[1]),
       high: parseFloat((item as BinanceKline)[2]),
       low: parseFloat((item as BinanceKline)[3]),
       close: parseFloat((item as BinanceKline)[4]),
     }),
     upbit: item => ({
-      timeNum: Math.floor(new Date((item as UpbitCandle).candle_date_time_utc).getTime() / 1000),
+      timeNum: Math.floor(Number((item as UpbitCandle).timestamp + 9 * 60 * 60 * 1000) / 1000),
       open: (item as UpbitCandle).opening_price,
       high: (item as UpbitCandle).high_price,
       low: (item as UpbitCandle).low_price,
       close: (item as UpbitCandle).trade_price,
     }),
     bithumb: item => ({
-      timeNum: Math.floor(Number((item as BithumbCandle).timestamp) / 1000),
+      timeNum: Math.floor(Number((item as BithumbCandle).timestamp + 9 * 60 * 60 * 1000) / 1000),
       open: parseFloat((item as BithumbCandle).opening_price),
       high: parseFloat((item as BithumbCandle).high_price),
       low: parseFloat((item as BithumbCandle).low_price),
@@ -237,9 +243,9 @@ const formatChartData = (
         isValidNumeric(low) &&
         isValidNumeric(close)
       ) {
-        acc.push({ time: formatDateToString(timeNum, timeframe), open, high, low, close });
+        acc.push({ time: timeNum as Time, open, high, low, close });
       }
       return acc;
     }, [])
-    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+    .sort((a, b) => Number(a.time) - Number(b.time));
 };

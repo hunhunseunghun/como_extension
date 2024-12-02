@@ -154,9 +154,8 @@ export const getUpbitColumns = (
             className="flex justify-center items-center hover:text-red-500"
             symbol={row.original.market}
             exchange="upbit"
-            wideSize={wideSize}
             timeframe={timeframe}
-            setTimeframe={setTimeframe}>
+            wideSize={wideSize}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>
@@ -332,17 +331,4 @@ export const getUpbitColumns = (
     },
     enableHiding: false,
   },
-
-  // {
-  //   accessorKey: 'candlestic_chart_30d',
-  //   id: 'candlestic_chart_30d',
-  //   header: () => (
-  //     <div className="flex justify-end font-bold">
-  //       <span>차트(30일/일봉)</span>
-  //     </div>
-  //   ),
-  //   cell: ({ row }) => {
-  //     return <ChartCell symbol={row.original.market} exchange="upbit" />;
-  //   },
-  // },
 ];

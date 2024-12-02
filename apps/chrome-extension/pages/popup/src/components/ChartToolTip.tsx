@@ -12,7 +12,6 @@ interface ChartTooltipProps {
   exchange?: 'binance' | 'upbit' | 'bithumb';
   wideSize: boolean;
   timeframe: string;
-  setTimeframe: (value: string) => void;
 }
 
 const formatPrice = (price: number): string => {
@@ -61,6 +60,15 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
   const TOOLTIP_WIDTH = wideSize ? 500 : 290;
   const TOOLTIP_HEIGHT = wideSize ? 300 : 170;
 
+  useEffect(() => {
+    if (isOpen) {
+      const intervalId = setInterval(() => {
+        fetchData();
+      }, 60000); // 1분마다 실행
+
+      return () => clearInterval(intervalId); // 툴팁이 닫히면 타이머 해제
+    }
+  }, [isOpen, fetchData]);
   // 외부 클릭 이벤트 핸들러
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -155,6 +163,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     chartRef.current.timeScale().fitContent();
   }, [chartData]);
 
+  console.log('chartData : ', chartData);
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
