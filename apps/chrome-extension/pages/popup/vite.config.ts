@@ -26,5 +26,7 @@ export default defineConfig({
       external: ['chrome'],
     },
     reportCompressedSize: true,
+    sourcemap: false, // 소스맵 제거
+    minify: 'esbuild', // 압축 적용
   },
 });
