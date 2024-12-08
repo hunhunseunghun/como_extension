@@ -30,7 +30,7 @@ export const getBithumbColumns = (
       const splitMarket = row.original.market?.split('-');
       const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' };
       const market = row.original.market;
-      const savedCoins = favoriteCoins?.binance?.join(',') || '';
+      const savedCoins = favoriteCoins?.bithumb?.join(',') || '';
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시

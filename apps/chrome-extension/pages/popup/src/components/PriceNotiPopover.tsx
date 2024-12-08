@@ -278,15 +278,14 @@ export const PriceNotiPopover = () => {
     <div>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="icon" className="relatvie w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
-            <div className="relative">
-              {' '}
+          <div className="relative group">
+            <Button variant="outline" size="icon" className="relatvie w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
               <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
-              <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[150]">
-                지정가 알림 설정
-              </span>
-            </div>
-          </Button>
+            </Button>
+            <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+              지정가 알림 설정
+            </span>
+          </div>
         </PopoverTrigger>
         <PopoverContent className="w-70 p-2 bg-background dark:bg-background border border-neutral-200 dark:border-neutral-800 shadow-[0_10px_38px_-10px_rgba(22,_23,_24,_0.35),_0_10px_20px_-15px_rgba(22,_23,_24,_0.2)] dark:shadow-[0_10px_38px_-10px_rgba(0,_0,_0,_0.35),_0_10px_20px_-15px_rgba(0,_0,_0,_0.2)]">
           <div>

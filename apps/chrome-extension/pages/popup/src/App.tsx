@@ -85,6 +85,7 @@ const usePort = (
           break;
         case 'activeExchange':
           setExchangePlatform(data);
+          setIsLoading(false);
           break;
         case 'exchangeRateUSD':
           if (isInitialLoad) {
