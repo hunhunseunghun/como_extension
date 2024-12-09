@@ -142,7 +142,6 @@ const ChartCell: React.FC<ChartCellProps> = ({ symbol, exchange }) => {
           setHasData(true);
         }
       } catch (err) {
-        console.error(`${symbol} 차트 데이터 가져오기 실패:`, err);
         setError(err instanceof Error ? err.message : 'Unknown error');
         setHasData(false);
       } finally {

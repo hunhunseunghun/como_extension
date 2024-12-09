@@ -269,15 +269,11 @@ export const PriceNotiPopover = () => {
         } else {
           // 실패 시 롤백
           setAllPriceAlerts(previousAlerts);
-          console.error('가격 알림 삭제 실패:', response?.error);
         }
       },
     );
   };
 
-  useEffect(() => {
-    console.log('allPriceAlerts 업데이트됨:', allPriceAlerts);
-  }, [allPriceAlerts]);
   return (
     <div>
       <Popover>
@@ -292,7 +288,7 @@ export const PriceNotiPopover = () => {
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-70 p-2 bg-background dark:bg-background shadow-[0_10px_38px_-10px_rgba(22,_23,_24,_0.35),_0_10px_20px_-15px_rgba(22,_23,_24,_0.2)] dark:shadow-[0_10px_38px_-10px_rgba(0,_0,_0,_0.35),_0_10px_20px_-15px_rgba(0,_0,_0,_0.2)]">
+        <PopoverContent className="w-70 p-2 bg-background dark:bg-background border border-neutral-200 dark:border-neutral-800 shadow-[0_10px_38px_-10px_rgba(22,_23,_24,_0.35),_0_10px_20px_-15px_rgba(22,_23,_24,_0.2)] dark:shadow-[0_10px_38px_-10px_rgba(0,_0,_0,_0.35),_0_10px_20px_-15px_rgba(0,_0,_0,_0.2)]">
           <div>
             <Command shouldFilter={false} className="w-full bg-background dark:bg-background">
               <div className="relative">

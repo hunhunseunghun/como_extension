@@ -96,7 +96,6 @@ const usePort = (
           updatedVersionHandler(data);
           break;
         case 'maxChangeRate':
-          console.log('popup recieved maxchangeRate', data);
           setMaxChangeRateCoin(data);
       }
     });

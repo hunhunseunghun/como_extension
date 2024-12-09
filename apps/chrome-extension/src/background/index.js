@@ -67,9 +67,7 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
     allExchangesTickers[exchange][ticker] = allExchangesTickers[exchange][ticker] || {};
     allExchangesTickers[exchange][ticker].lastPrice = currentPrice;
     if (Object.keys(triggered[exchange][ticker]).length > 0) {
-      chrome.storage.local.set({ triggeredPrices: triggered }, () => {
-        console.log(`triggeredPrices 업데이트: ${JSON.stringify(triggered)}`);
-      });
+      chrome.storage.local.set({ triggeredPrices: triggered }, () => {});
     }
   });
 }
@@ -78,8 +76,8 @@ function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) 
   chrome.notifications.create({
     type: 'basic',
     iconUrl: 'como-logo.png',
-    title: `${exchange.toUpperCase()} ${allExchangesTickers.exchange?.ticker?.koreanName ? `(${allExchangesTickers.exchange?.ticker?.koreanName})` : ''} ${ticker} 지정가 알림`,
-    message: `${ticker}가 ${alertPrice} ${currentPrice > alertPrice ? '상향' : '하향'} 도달`,
+    title: `${alertPrice > 10 ? alertPrice.toLocaleString('en-US') : alertPrice} ${ticker} ${exchange.toUpperCase()}`,
+    message: `${ticker} ${currentPrice > alertPrice ? '상향' : '하향'} 도달`,
   });
 }
 
@@ -109,9 +107,6 @@ function savePriceAlert(exchange, ticker, priceDeadbandPairs, response) {
     }
 
     chrome.storage.local.set({ priceAlerts: alerts, triggeredPrices: triggered, deadbandSettings }, () => {
-      console.log(
-        `${exchange} ${ticker} 설정 - 지정가: ${existingPrices.map(p => p.price)}, 데드밴드: ${JSON.stringify(deadbandSettings[exchange][ticker])}`,
-      );
       response({ success: true, prices: existingPrices });
     });
   });
@@ -320,7 +315,7 @@ class ExchangeData {
         this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
       }
     } catch (error) {
-      console.error(`${this.name} 초기 티커 가져오기 실패:`, error);
+      console.warn(error);
     }
   }
 
@@ -342,7 +337,6 @@ class ExchangeData {
     this.socket = new WebSocket(this.wsUrl);
 
     this.socket.onopen = () => {
-      console.log(`${this.name} WebSocket 연결됨`);
       this.isReconnecting = false;
       this.currentReconnectDelay = this.initialReconnectDelay;
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -351,8 +345,6 @@ class ExchangeData {
             ? null
             : JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }]);
         if (subscription) this.socket.send(subscription);
-      } else {
-        console.warn(`${this.name} WebSocket open failed`);
       }
     };
 
@@ -389,18 +381,16 @@ class ExchangeData {
           this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: ticker });
         }
       } catch (error) {
-        console.error(`${this.name} WebSocket 메시지 처리 오류:`, error);
+        console.warn(error);
       }
     };
 
-    this.socket.onerror = error => {
-      console.error(`${this.name} WebSocket 에러:`, error.message || error);
+    this.socket.onerror = () => {
       this.socket = null;
       this.reconnectWebSocket();
     };
 
     this.socket.onclose = () => {
-      console.log(`${this.name} WebSocket 연결 종료`);
       this.socket = null;
       this.reconnectWebSocket();
     };
@@ -408,24 +398,19 @@ class ExchangeData {
 
   reconnectWebSocket() {
     if (this.isReconnecting) {
-      console.log(`${this.name} 이미 재연결 중입니다.`);
       return;
     }
 
     this.isReconnecting = true;
     const delay = this.currentReconnectDelay;
 
-    console.log(`${this.name} WebSocket 재연결 대기 중, 지연: ${delay}ms`);
-
     setTimeout(() => {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        console.log(`${this.name} WebSocket 이미 연결됨. 재연결 중지.`);
         this.isReconnecting = false;
         this.currentReconnectDelay = this.initialReconnectDelay;
         return;
       }
 
-      console.log(`${this.name} WebSocket 재연결 시도, 지연: ${this.currentReconnectDelay}ms`);
       this.connectWebSocket();
       this.currentReconnectDelay = Math.min(this.currentReconnectDelay * this.backoffFactor, this.maxReconnectDelay);
       this.isReconnecting = false;
@@ -466,7 +451,7 @@ class UpbitData extends ExchangeData {
       }, {});
       return this.markets;
     } catch (error) {
-      console.error('Upbit 마켓 가져오기 실패:', error);
+      console.warn(error);
       return (this.markets = ['KRW-BTC']);
     }
   }
@@ -488,7 +473,7 @@ class BithumbData extends ExchangeData {
       }, {});
       return this.markets;
     } catch (error) {
-      console.error('Bithumb 마켓 가져오기 실패:', error);
+      console.warn(error);
       return (this.markets = ['KRW-BTC']);
     }
   }
@@ -510,7 +495,7 @@ class BinanceData extends ExchangeData {
       }, {});
       return this.markets;
     } catch (error) {
-      console.error('Binance 마켓 가져오기 실패:', error);
+      console.warn(error);
       return (this.markets = ['BTCUSDT']);
     }
   }
@@ -537,7 +522,7 @@ class BinanceData extends ExchangeData {
         this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
       }
     } catch (error) {
-      console.error('Binance 초기 티커 가져오기 실패:', error);
+      console.warn(error);
     }
   }
 }
@@ -643,9 +628,8 @@ chrome.runtime.onConnect.addListener(port => {
     if (activePort) {
       try {
         activePort.postMessage({ type: 'maxChangeRate', data: maxChangeRate });
-        console.log('index.js send maxchangeerate :', { type: 'maxChangeRate', data: maxChangeRate });
       } catch (error) {
-        console.log('maxChangeRate failed :', error);
+        console.warn(error);
       }
     }
   }, 2000);
