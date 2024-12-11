@@ -292,7 +292,7 @@ export const PriceNotiPopover = () => {
             </div>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-70 p-2 bg-background dark:bg-background">
+        <PopoverContent className="w-70 p-2 bg-background dark:bg-background shadow-[0_10px_38px_-10px_rgba(22,_23,_24,_0.35),_0_10px_20px_-15px_rgba(22,_23,_24,_0.2)] dark:shadow-[0_10px_38px_-10px_rgba(0,_0,_0,_0.35),_0_10px_20px_-15px_rgba(0,_0,_0,_0.2)]">
           <div>
             <Command shouldFilter={false} className="w-full bg-background dark:bg-background">
               <div className="relative">
