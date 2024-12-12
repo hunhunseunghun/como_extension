@@ -282,8 +282,14 @@ export const PriceNotiPopover = () => {
     <div>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="icon" className="w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
-            <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
+          <Button variant="outline" size="icon" className="relatvie w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
+            <div className="relative">
+              {' '}
+              <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
+              <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[150]">
+                지정가 알림 설정
+              </span>
+            </div>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-70 p-2 bg-background dark:bg-background">
@@ -376,8 +382,8 @@ export const PriceNotiPopover = () => {
                         <TooltipContent className="w-[180px]">
                           <div>0%: 지정가 도달마다 알림</div>
                           <div>예시: 지정가 100,데드밴드 10%</div>
-                          <div>1.100원 도달 시 첫 알림</div>
-                          <div>2.90-110원 범위를 벗어난 후 다시 100원 도달 시 두번째 알림</div>
+                          <div>1.100 도달 시 첫 알림</div>
+                          <div>2.90-110 범위를 벗어난 후 다시 100 도달 시 두번째 알림</div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -483,9 +489,6 @@ export const PriceNotiPopover = () => {
           </section>
         </PopoverContent>
       </Popover>
-      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[99]">
-        지정가 알림 설정
-      </span>
     </div>
   );
 };

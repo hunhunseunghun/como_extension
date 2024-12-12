@@ -643,6 +643,7 @@ chrome.runtime.onConnect.addListener(port => {
     if (activePort) {
       try {
         activePort.postMessage({ type: 'maxChangeRate', data: maxChangeRate });
+        console.log('index.js send maxchangeerate :', { type: 'maxChangeRate', data: maxChangeRate });
       } catch (error) {
         console.log('maxChangeRate failed :', error);
       }
