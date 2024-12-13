@@ -373,8 +373,10 @@ export const PriceNotiPopover = () => {
                         <TooltipTrigger asChild>
                           <HelpCircle className="size-3 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" />
                         </TooltipTrigger>
-                        <TooltipContent className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity ">
-                          <p>가격이 지정가 대비 이 비율만큼 변동하면 알림이 발생합니다.</p>
+                        <TooltipContent className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[100px] px-2 py-1 text-xs text-black font-semibold bg-white rounded-md group-hover:block transition-opacity z-[51]">
+                          <p>0% 설정 시 지정가 그대로 알림이 발생합니다</p>
+                          <p>지정가 비율만큼 변동하면 알림이 발생합니다</p>
+                          <p>ex:지정가 100,데드밴드10% 90~110 사이에서 알림 발생</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
