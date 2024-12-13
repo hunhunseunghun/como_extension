@@ -83,7 +83,7 @@ export const PriceNotiPopover = () => {
   const [searchValue, setSearchValue] = useState('');
   const [exchangePlatform, setExchangePlatform] = useState<ExchangeData>(exchangesData.upbit);
   const [targetPrice, setTargetPrice] = useState<number>(0);
-  const [deadBand, setDeadBand] = useState<number>(1);
+  const [deadBand, setDeadBand] = useState<number>(5);
   const [allPriceAlerts, setAllPriceAlerts] = useState<{
     [exchange: string]: { [ticker: string]: PriceDeadbandPair[] };
   }>({});
@@ -367,17 +367,17 @@ export const PriceNotiPopover = () => {
 
                 <div className="relative flex text-[12px] bg-muted border-none p-1">
                   <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Label className="text-[10px]">데드밴드 (%)</Label>
+                    <Label className="text-[10px]">데드밴드</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <HelpCircle className="size-3 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" />
                         </TooltipTrigger>
-                        <TooltipContent className="absolute left-0 -translate-x-1/3 top-full mt-2 w-[180px] px-2 py-1 text-xs text-black bg-white rounded-md group-hover:block transition-opacity z-[9999]">
-                          <div>0% 설정 시 지정가 도달할 때마다 알림</div>
-                          <div>예시: 지정가 100, 데드밴드 10% 설정 시</div>
-                          <div>1. 100원 도달 시 첫 알림</div>
-                          <div>2. 90-110원 범위를 벗어난 후 다시 100원 도달 시 두번째 알림</div>
+                        <TooltipContent className="w-[180px]">
+                          <div>0%: 지정가 도달마다 알림</div>
+                          <div>예시: 지정가 100,데드밴드 10%</div>
+                          <div>1.100원 도달 시 첫 알림</div>
+                          <div>2.90-110원 범위를 벗어난 후 다시 100원 도달 시 두번째 알림</div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -385,29 +385,30 @@ export const PriceNotiPopover = () => {
                   <div className="flex items-center w-full">
                     <Input
                       type="number"
-                      value={deadBand.toFixed(1)}
+                      value={deadBand}
                       onChange={e => {
-                        const value = e.target.value;
-                        setDeadBand(Number(value) || 0);
+                        const value = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                        setDeadBand(value);
                       }}
-                      className="w-full h-6 text-right font-semibold focus:outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full h-6 text-right pr-5 font-semibold focus:outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       min={0}
                       max={100}
                       step={1}
                     />
+                    <span className="absolute right-7 text-[11px] text-neutral-500">%</span>
                     <div className="flex flex-col h-6">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-3 w-6 p-0 hover:bg-transparent"
-                        onClick={() => setDeadBand(prev => Number((prev + 0.1).toFixed(1)))}>
+                        onClick={() => setDeadBand(prev => Math.min(100, prev + 1))}>
                         <ChevronDown className="h-2.5 w-2.5 rotate-180" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-3 w-6 p-0 hover:bg-transparent"
-                        onClick={() => setDeadBand(prev => Number(Math.max(0, prev - 0.1).toFixed(1)))}>
+                        onClick={() => setDeadBand(prev => Math.max(0, prev - 1))}>
                         <ChevronDown className="h-2.5 w-2.5" />
                       </Button>
                     </div>
