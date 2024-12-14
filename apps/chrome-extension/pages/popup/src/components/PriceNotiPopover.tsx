@@ -373,10 +373,11 @@ export const PriceNotiPopover = () => {
                         <TooltipTrigger asChild>
                           <HelpCircle className="size-3 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" />
                         </TooltipTrigger>
-                        <TooltipContent className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[100px] px-2 py-1 text-xs text-black font-semibold bg-white rounded-md group-hover:block transition-opacity z-[51]">
-                          <p>0% 설정 시 지정가 그대로 알림이 발생합니다</p>
-                          <p>지정가 비율만큼 변동하면 알림이 발생합니다</p>
-                          <p>ex:지정가 100,데드밴드10% 90~110 사이에서 알림 발생</p>
+                        <TooltipContent className="absolute left-0 -translate-x-1/3 top-full mt-2 w-[180px] px-2 py-1 text-xs text-black bg-white rounded-md group-hover:block transition-opacity z-[9999]">
+                          <div>0% 설정 시 지정가 도달할 때마다 알림</div>
+                          <div>예시: 지정가 100, 데드밴드 10% 설정 시</div>
+                          <div>1. 100원 도달 시 첫 알림</div>
+                          <div>2. 90-110원 범위를 벗어난 후 다시 100원 도달 시 두번째 알림</div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -391,7 +392,8 @@ export const PriceNotiPopover = () => {
                       }}
                       className="w-full h-6 text-right font-semibold focus:outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       min={0}
-                      step={0.1}
+                      max={100}
+                      step={1}
                     />
                     <div className="flex flex-col h-6">
                       <Button
@@ -480,7 +482,7 @@ export const PriceNotiPopover = () => {
           </section>
         </PopoverContent>
       </Popover>
-      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-49">
+      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[99]">
         지정가 알림 설정
       </span>
     </div>

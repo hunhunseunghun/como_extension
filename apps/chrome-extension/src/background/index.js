@@ -78,8 +78,8 @@ function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) 
   chrome.notifications.create({
     type: 'basic',
     iconUrl: 'como-logo.png',
-    title: `${exchange.toUpperCase()} ${ticker} 가격 알림`,
-    message: `${ticker}가 ${alertPrice}를 도달하여 ${currentPrice > alertPrice ? '상향' : '하향'}했습니다.`,
+    title: `${exchange.toUpperCase()} ${allExchangesTickers.exchange?.ticker?.koreanName && `(${allExchangesTickers.exchange?.ticker?.koreanName})`} ${ticker} 지정가 알림`,
+    message: `${ticker}가 ${alertPrice} ${currentPrice > alertPrice ? '상향' : '하향'} 도달`,
   });
 }
 
