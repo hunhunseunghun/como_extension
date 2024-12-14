@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ChevronDown, Bell, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChevronDown, Bell, X, HelpCircle } from 'lucide-react';
 import { getRegExp } from 'korean-regexp';
 
 type ExchangeTicker = {
@@ -365,12 +366,27 @@ export const PriceNotiPopover = () => {
                 </div>
 
                 <div className="relative flex text-[12px] bg-muted border-none p-1">
-                  <Label className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px]">데드밴드 (%)</Label>
+                  <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <Label className="text-[10px]">데드밴드 (%)</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="size-3 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" />
+                        </TooltipTrigger>
+                        <TooltipContent className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity ">
+                          <p>가격이 지정가 대비 이 비율만큼 변동하면 알림이 발생합니다.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className="flex items-center w-full">
                     <Input
                       type="number"
-                      value={deadBand}
-                      onChange={e => setDeadBand(Number(e.target.value) || 0)}
+                      value={deadBand.toFixed(1)}
+                      onChange={e => {
+                        const value = e.target.value;
+                        setDeadBand(Number(value) || 0);
+                      }}
                       className="w-full h-6 text-right font-semibold focus:outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       min={0}
                       step={0.1}
@@ -380,14 +396,14 @@ export const PriceNotiPopover = () => {
                         variant="ghost"
                         size="icon"
                         className="h-3 w-6 p-0 hover:bg-transparent"
-                        onClick={() => setDeadBand(prev => Math.max(0, prev + 0.1))}>
+                        onClick={() => setDeadBand(prev => Number((prev + 0.1).toFixed(1)))}>
                         <ChevronDown className="h-2.5 w-2.5 rotate-180" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-3 w-6 p-0 hover:bg-transparent"
-                        onClick={() => setDeadBand(prev => Math.max(0, prev - 0.1))}>
+                        onClick={() => setDeadBand(prev => Number(Math.max(0, prev - 0.1).toFixed(1)))}>
                         <ChevronDown className="h-2.5 w-2.5" />
                       </Button>
                     </div>
@@ -402,63 +418,64 @@ export const PriceNotiPopover = () => {
                   className="mt-2 h-7 text-[11px] hover:cursor-pointer">
                   알림 추가
                 </Button>
-
-                <div className="font-semibold mt-2">전체 지정가 알림</div>
-                <div className="h-[200px] overflow-y-auto light-scrollbar dark-scrollbar">
-                  {Object.keys(allPriceAlerts).length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full text-[11px] mt-1">
-                      {Object.entries(allPriceAlerts).map(([exchange, tickers]) =>
-                        tickers && typeof tickers === 'object'
-                          ? Object.entries(tickers).map(([ticker, pairs]) =>
-                              Array.isArray(pairs) && pairs.length > 0 ? (
-                                <AccordionItem
-                                  key={`${exchange}-${ticker}`}
-                                  value={`${exchange}-${ticker}`}
-                                  className="border-none">
-                                  <AccordionTrigger className="text-[11px] py-1.5 hover:no-underline">
-                                    <div className="flex items-center gap-1">
-                                      <img
-                                        src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
-                                        alt={`${exchange} logo`}
-                                        className="size-3"
-                                      />
-                                      <span>{ticker}</span>
-                                    </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent className="text-[11px]">
-                                    <ul className="ml-4">
-                                      {pairs.map((pair, index) =>
-                                        pair && typeof pair === 'object' && pair.price !== undefined ? (
-                                          <li key={index} className="flex items-center justify-between py-0.5">
-                                            <span>
-                                              {pair.price.toLocaleString('en-US')} (데드밴드:{' '}
-                                              {(pair.deadband * 100).toFixed(2)}%)
-                                            </span>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-4 w-4 p-0 hover:bg-transparent"
-                                              onClick={() => handleDeletePriceAlert(exchange, ticker, pair.price)}>
-                                              <X className="h-3 w-3" />
-                                            </Button>
-                                          </li>
-                                        ) : null,
-                                      )}
-                                    </ul>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ) : null,
-                            )
-                          : null,
-                      )}
-                    </Accordion>
-                  ) : (
-                    <div className="text-[11px] mt-1">전체 지정가가 없습니다.</div>
-                  )}
-                </div>
               </section>
             </Command>
           </div>
+          <section>
+            <div className="font-semibold mt-1">전체 지정가 알림</div>
+            <div className="h-[200px] overflow-y-auto light-scrollbar dark-scrollbar">
+              {Object.keys(allPriceAlerts).length > 0 ? (
+                <Accordion type="single" collapsible className="w-full text-[11px] mt-1">
+                  {Object.entries(allPriceAlerts).map(([exchange, tickers]) =>
+                    tickers && typeof tickers === 'object'
+                      ? Object.entries(tickers).map(([ticker, pairs]) =>
+                          Array.isArray(pairs) && pairs.length > 0 ? (
+                            <AccordionItem
+                              key={`${exchange}-${ticker}`}
+                              value={`${exchange}-${ticker}`}
+                              className="border-none">
+                              <AccordionTrigger className="text-[11px] py-1.5 hover:no-underline">
+                                <div className="flex items-center gap-1">
+                                  <img
+                                    src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
+                                    alt={`${exchange} logo`}
+                                    className="size-3"
+                                  />
+                                  <span>{ticker}</span>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="text-[11px]">
+                                <ul className="ml-4">
+                                  {pairs.map((pair, index) =>
+                                    pair && typeof pair === 'object' && pair.price !== undefined ? (
+                                      <li key={index} className="flex items-center justify-between py-0.5">
+                                        <span>
+                                          {pair.price.toLocaleString('en-US')} (데드밴드:{' '}
+                                          {(pair.deadband * 100).toFixed(2)}%)
+                                        </span>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-4 w-4 p-0 hover:bg-transparent"
+                                          onClick={() => handleDeletePriceAlert(exchange, ticker, pair.price)}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </li>
+                                    ) : null,
+                                  )}
+                                </ul>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ) : null,
+                        )
+                      : null,
+                  )}
+                </Accordion>
+              ) : (
+                <div className="text-[11px] mt-1">전체 지정가가 없습니다.</div>
+              )}
+            </div>
+          </section>
         </PopoverContent>
       </Popover>
       <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-49">

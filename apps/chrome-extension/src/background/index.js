@@ -28,14 +28,14 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
 
     if (!alerts[exchange] || !alerts[exchange][ticker]) return;
 
-    const lastPrice = allExchangesTickers[exchange][ticker].lastPrice || null;
+    const lastPrice = allExchangesTickers[exchange][ticker]?.lastPrice ?? null;
     const alertPrices = alerts[exchange][ticker];
     triggered[exchange] = triggered[exchange] || {};
     triggered[exchange][ticker] = triggered[exchange][ticker] || {};
 
-    alertPrices.forEach(alertPrice => {
-      if (lastPrice !== null && alertPrice) {
-        const deadband = deadbandSettings[exchange]?.[ticker]?.[alertPrice] ?? 0;
+    alertPrices.forEach(({ price: alertPrice, deadband: alertDeadband }) => {
+      if (lastPrice !== null && alertPrice !== undefined) {
+        const deadband = deadbandSettings[exchange]?.[ticker]?.[alertPrice] ?? alertDeadband ?? 0;
 
         if (deadband === 0) {
           const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
@@ -64,9 +64,12 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
       }
     });
 
+    allExchangesTickers[exchange][ticker] = allExchangesTickers[exchange][ticker] || {};
     allExchangesTickers[exchange][ticker].lastPrice = currentPrice;
     if (Object.keys(triggered[exchange][ticker]).length > 0) {
-      chrome.storage.local.set({ triggeredPrices: triggered });
+      chrome.storage.local.set({ triggeredPrices: triggered }, () => {
+        console.log(`triggeredPrices 업데이트: ${JSON.stringify(triggered)}`);
+      });
     }
   });
 }
@@ -80,7 +83,7 @@ function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) 
   });
 }
 
-function savePriceAlert(exchange, ticker, priceDeadbandPairs, callback) {
+function savePriceAlert(exchange, ticker, priceDeadbandPairs, response) {
   chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
     let alerts = result.priceAlerts || {};
     let triggered = result.triggeredPrices || {};
@@ -109,19 +112,21 @@ function savePriceAlert(exchange, ticker, priceDeadbandPairs, callback) {
       console.log(
         `${exchange} ${ticker} 설정 - 지정가: ${existingPrices.map(p => p.price)}, 데드밴드: ${JSON.stringify(deadbandSettings[exchange][ticker])}`,
       );
-      callback({ success: true, prices: existingPrices }); // 성공 응답 반환
+      response({ success: true, prices: existingPrices });
     });
   });
 }
 
-function deletePriceAlert(exchange, ticker, priceToDelete) {
+function deletePriceAlert(exchange, ticker, priceToDelete, response) {
   chrome.storage.local.get(['priceAlerts', 'deadbandSettings'], result => {
     let alerts = result.priceAlerts || {};
     let deadbandSettings = result.deadbandSettings || {};
 
-    const updatedPrices = alerts[exchange][ticker].filter(price => price !== priceToDelete);
-    alerts[exchange][ticker] = updatedPrices;
+    // priceAlerts에서 삭제
+    const updatedPairs = alerts[exchange][ticker].filter(pair => pair.price !== priceToDelete);
+    alerts[exchange][ticker] = updatedPairs;
 
+    // deadbandSettings에서 삭제
     if (deadbandSettings[exchange]?.[ticker]?.[priceToDelete]) {
       delete deadbandSettings[exchange][ticker][priceToDelete];
       if (Object.keys(deadbandSettings[exchange][ticker]).length === 0) {
@@ -133,7 +138,10 @@ function deletePriceAlert(exchange, ticker, priceToDelete) {
     }
 
     chrome.storage.local.set({ priceAlerts: alerts, deadbandSettings }, () => {
-      console.log(`${exchange} ${ticker}에서 지정가 ${priceToDelete} 삭제 - 남은 지정가: ${updatedPrices}`);
+      console.log(
+        `${exchange} ${ticker}에서 지정가 ${priceToDelete} 삭제 - 남은 지정가: ${JSON.stringify(updatedPairs)}`,
+      );
+      response({ success: true, prices: updatedPairs }); // PriceDeadbandPair[] 반환
     });
   });
 }
