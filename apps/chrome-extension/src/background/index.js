@@ -1,6 +1,5 @@
-// 전체 거래소 종목 정보
+// 초기 설정 및 전역 변수
 const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
-// 최고 changeRate 종목
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
 let CURRENT_DATE = new Date()
@@ -8,7 +7,6 @@ let CURRENT_DATE = new Date()
   .replace(/\./g, '')
   .replace(/ /g, '');
 
-// 30분마다 Date update, 환율 갱신목적
 chrome.alarms.create('updateDate', { periodInMinutes: 30 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'updateDate') {
@@ -21,7 +19,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
-// 지정가 체크
+// 지정가 알림 관련 함수
 function checkPriceAlerts(exchange, ticker, currentPrice) {
   chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
     const alerts = result.priceAlerts || {};
@@ -35,20 +33,17 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
     triggered[exchange] = triggered[exchange] || {};
     triggered[exchange][ticker] = triggered[exchange][ticker] || {};
 
-    // 종목별 데드밴드 가져오기, 없으면 기본값
-    const deadband = deadbandSettings[exchange]?.[ticker] ?? 0;
-
     alertPrices.forEach(alertPrice => {
       if (lastPrice !== null && alertPrice) {
+        const deadband = deadbandSettings[exchange]?.[ticker]?.[alertPrice] ?? 0;
+
         if (deadband === 0) {
-          // 데드밴드 0%면 히스테리시스 없이 즉시 알림
           const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
           const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
           if (crossedUp || crossedDown) {
             sendNotification(exchange, ticker, currentPrice, alertPrice, deadband);
           }
         } else {
-          // 데드밴드 있으면 히스테리시스 적용
           const deadbandValue = alertPrice * deadband;
           const upperBound = alertPrice + deadbandValue;
           const lowerBound = alertPrice - deadbandValue;
@@ -70,12 +65,12 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
     });
 
     allExchangesTickers[exchange][ticker].lastPrice = currentPrice;
-    if (deadband !== 0) {
+    if (Object.keys(triggered[exchange][ticker]).length > 0) {
       chrome.storage.local.set({ triggeredPrices: triggered });
     }
   });
 }
-// 알림 전송 함수 (데드밴드 정보 추가로 로그 확인 가능)
+
 function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) {
   chrome.notifications.create({
     type: 'basic',
@@ -84,33 +79,97 @@ function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) 
     message: `${ticker}가 ${alertPrice}를 도달하여 ${currentPrice > alertPrice ? '상향' : '하향'}했습니다.`,
   });
 }
-// 지정가 및 데드밴드 저장 함수
-function savePriceAlert(exchange, ticker, prices, deadband = null, sendResponse) {
+
+function savePriceAlert(exchange, ticker, priceDeadbandPairs, callback) {
   chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
     let alerts = result.priceAlerts || {};
     let triggered = result.triggeredPrices || {};
     let deadbandSettings = result.deadbandSettings || {};
 
     if (!alerts[exchange]) alerts[exchange] = {};
-    alerts[exchange][ticker] = prices.slice(0, 5);
+    if (!deadbandSettings[exchange]) deadbandSettings[exchange] = {};
+    if (!deadbandSettings[exchange][ticker]) deadbandSettings[exchange][ticker] = {};
 
-    if (deadband !== null) {
-      if (!deadbandSettings[exchange]) deadbandSettings[exchange] = {};
-      deadbandSettings[exchange][ticker] = deadband; // 종목별 데드밴드 저장
-    }
+    const existingPrices = alerts[exchange][ticker] || [];
+    priceDeadbandPairs.forEach(({ price, deadband }) => {
+      if (!existingPrices.some(p => p.price === price)) {
+        existingPrices.push({ price, deadband });
+        if (deadband !== null) {
+          deadbandSettings[exchange][ticker][price] = deadband;
+        }
+      }
+    });
+    alerts[exchange][ticker] = existingPrices;
 
     if (triggered[exchange] && triggered[exchange][ticker]) {
-      triggered[exchange][ticker] = {}; // 재설정 시 초기화
+      triggered[exchange][ticker] = {};
     }
 
     chrome.storage.local.set({ priceAlerts: alerts, triggeredPrices: triggered, deadbandSettings }, () => {
-      console.log(`${exchange} ${ticker} 설정 - 지정가: ${prices}, 데드밴드: ${deadband}`);
-      if (sendResponse) sendResponse({ success: true });
+      console.log(
+        `${exchange} ${ticker} 설정 - 지정가: ${existingPrices.map(p => p.price)}, 데드밴드: ${JSON.stringify(deadbandSettings[exchange][ticker])}`,
+      );
+      callback({ success: true, prices: existingPrices }); // 성공 응답 반환
     });
   });
 }
 
-// 설치시 : 업데이트 버전, 제거시: 왈라설문조사
+function deletePriceAlert(exchange, ticker, priceToDelete) {
+  chrome.storage.local.get(['priceAlerts', 'deadbandSettings'], result => {
+    let alerts = result.priceAlerts || {};
+    let deadbandSettings = result.deadbandSettings || {};
+
+    const updatedPrices = alerts[exchange][ticker].filter(price => price !== priceToDelete);
+    alerts[exchange][ticker] = updatedPrices;
+
+    if (deadbandSettings[exchange]?.[ticker]?.[priceToDelete]) {
+      delete deadbandSettings[exchange][ticker][priceToDelete];
+      if (Object.keys(deadbandSettings[exchange][ticker]).length === 0) {
+        delete deadbandSettings[exchange][ticker];
+      }
+      if (Object.keys(deadbandSettings[exchange]).length === 0) {
+        delete deadbandSettings[exchange];
+      }
+    }
+
+    chrome.storage.local.set({ priceAlerts: alerts, deadbandSettings }, () => {
+      console.log(`${exchange} ${ticker}에서 지정가 ${priceToDelete} 삭제 - 남은 지정가: ${updatedPrices}`);
+    });
+  });
+}
+
+// 메시지 리스너
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'openPopup') chrome.action.openPopup();
+  if (message.action === 'changeExchange') handleExchangeChange(message.exchange);
+  if (message.action === 'getActiveExchange' && activePort) {
+    activePort.postMessage({ type: 'activeExchange', data: activeExchange });
+  }
+  if (message.action === 'setPriceAlert') {
+    const { exchange, ticker, prices } = message;
+    savePriceAlert(exchange, ticker, prices, response => {
+      sendResponse(response);
+    });
+    return true;
+  }
+  if (message.action === 'deletePriceAlert') {
+    const { exchange, ticker, price } = message;
+    deletePriceAlert(exchange, ticker, price, response => {
+      sendResponse(response);
+    });
+    return true;
+  }
+  if (message.action === 'getAllExchangesTickers') {
+    if (activePort) {
+      const data = Object.values(allExchangesTickers)
+        .map(tickers => Object.values(tickers))
+        .reduce((acc, curr) => [...acc, ...curr], []);
+      activePort.postMessage({ type: 'allExchangesTickers', data });
+    }
+  }
+});
+
+// 설치 및 업데이트 처리
 let updatedVersion = '';
 chrome.runtime.onInstalled.addListener(details => {
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
@@ -122,40 +181,9 @@ chrome.runtime.onInstalled.addListener(details => {
 });
 
 chrome.alarms.create('keepAlive', { periodInMinutes: 10 });
-chrome.alarms.onAlarm.addListener(alarm => {
-  return;
-});
+chrome.alarms.onAlarm.addListener(() => {});
 
-//events listener
-chrome.runtime.onMessage.addListener(message => {
-  if (message.action === 'openPopup') chrome.action.openPopup();
-  if (message.action === 'changeExchange') handleExchangeChange(message.exchange);
-  if (message.action === 'getActiveExchange' && activePort) {
-    activePort.postMessage({ type: 'activeExchange', data: activeExchange });
-  }
-  if (message.action === 'setPriceAlert') {
-    const { exchange, ticker, prices, deadband } = message;
-    savePriceAlert(exchange, ticker, prices, deadband); // sendResponse 전달
-  }
-  if (message.action === 'getAllExchangesTickers') {
-    if (activePort) {
-      const data = Object.values(allExchangesTickers)
-        .map(tickers => {
-          return Object.values(tickers);
-        })
-        .reduce((acc, curr) => {
-          acc = [...acc, ...curr];
-          return acc;
-        }, []);
-
-      console.log('getAlleschanges          ', data);
-
-      activePort.postMessage({ type: 'allExchangesTickers', data: data });
-    }
-  }
-});
-
-// ExchangeRateManager 클래스 (변경 없음)
+//  ExchangeRateManager 클래스
 class ExchangeRateManager {
   constructor() {
     this.port = null;
@@ -170,12 +198,7 @@ class ExchangeRateManager {
   async initialize() {
     const keys = Object.keys(this.storages);
     const results = await Promise.all(
-      keys.map(
-        key =>
-          new Promise(resolve => {
-            chrome.storage.local.get(key, result => resolve(result));
-          }),
-      ),
+      keys.map(key => new Promise(resolve => chrome.storage.local.get(key, result => resolve(result)))),
     );
     results.forEach((result, index) => {
       this.storages[keys[index]] = result[keys[index]];
@@ -189,7 +212,7 @@ class ExchangeRateManager {
   async updateExchangeRate() {
     try {
       await this.fetchFromAPI();
-    } catch (error) {
+    } catch {
       await this.fetchFromNaver();
     }
   }
@@ -234,7 +257,7 @@ class ExchangeRateManager {
       const exchangeRateUSD = Number(match[1].replace(/,/g, ''));
       this.exchangeRateUSD = exchangeRateUSD;
       await this.saveExchangeRate(exchangeRateUSD, CURRENT_DATE);
-    } catch (error) {
+    } catch {
       this.exchangeRateUSD = null;
     }
   }
@@ -245,7 +268,7 @@ class ExchangeRateManager {
   }
 }
 
-// ExchangeData 클래스 (수정됨)
+//  ExchangeData 클래스
 class ExchangeData {
   constructor(name, apiUrl, wsUrl) {
     this.name = name;
@@ -261,7 +284,7 @@ class ExchangeData {
     this.maxReconnectDelay = 10000;
     this.backoffFactor = 1.5;
     this.isPopupActive = false;
-    this.isReconnecting = false; // 재연결 상태 플래그
+    this.isReconnecting = false;
   }
 
   async fetchInitialTickers() {
@@ -312,7 +335,6 @@ class ExchangeData {
 
     this.socket.onopen = () => {
       console.log(`${this.name} WebSocket 연결됨`);
-      // 연결 성공 시 지연 시간 초기화
       this.isReconnecting = false;
       this.currentReconnectDelay = this.initialReconnectDelay;
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
@@ -332,7 +354,6 @@ class ExchangeData {
         if (data instanceof Blob) data = await data.text();
         const ticker = JSON.parse(data);
 
-        //allExchangesTickers update
         if (this.name === 'binance' && Array.isArray(ticker)) {
           ticker.forEach(binanceTicker => {
             allExchangesTickers[this.name][binanceTicker.s] = {
@@ -350,7 +371,7 @@ class ExchangeData {
             ...allExchangesTickers[this.name][ticker.code],
             exchange: this.name,
             market: ticker.code ?? '',
-            currentPrice: ticker.trade_price ? Number(ticker.trade_price) * 100 : 0,
+            currentPrice: ticker.trade_price ? Number(ticker.trade_price) : 0,
             changeRate: ticker.signed_change_rate ? Number(ticker.signed_change_rate) * 100 : 0,
           };
           checkPriceAlerts(this.name, ticker.code, Number(ticker.trade_price));
@@ -378,7 +399,6 @@ class ExchangeData {
   }
 
   reconnectWebSocket() {
-    // 이미 재연결 중이면 중복 실행 방지
     if (this.isReconnecting) {
       console.log(`${this.name} 이미 재연결 중입니다.`);
       return;
@@ -390,11 +410,10 @@ class ExchangeData {
     console.log(`${this.name} WebSocket 재연결 대기 중, 지연: ${delay}ms`);
 
     setTimeout(() => {
-      // WebSocket이 이미 연결된 경우 재연결 중지
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
         console.log(`${this.name} WebSocket 이미 연결됨. 재연결 중지.`);
         this.isReconnecting = false;
-        this.currentReconnectDelay = this.initialReconnectDelay; // 초기화
+        this.currentReconnectDelay = this.initialReconnectDelay;
         return;
       }
 
@@ -421,7 +440,7 @@ class ExchangeData {
   }
 }
 
-// UpbitData 클래스
+//  UpbitData, BithumbData, BinanceData 클래스
 class UpbitData extends ExchangeData {
   constructor() {
     super('upbit', 'https://api.upbit.com/v1', 'wss://api.upbit.com/websocket/v1');
@@ -445,7 +464,6 @@ class UpbitData extends ExchangeData {
   }
 }
 
-// BithumbData 클래스
 class BithumbData extends ExchangeData {
   constructor() {
     super('bithumb', 'https://api.bithumb.com/v1', 'wss://ws-api.bithumb.com/websocket/v1');
@@ -467,7 +485,7 @@ class BithumbData extends ExchangeData {
     }
   }
 }
-// BinanceData 클래스
+
 class BinanceData extends ExchangeData {
   constructor() {
     super('binance', 'https://api.binance.com/api/v3', 'wss://stream.binance.com:9443/ws/!ticker@arr');
@@ -516,7 +534,7 @@ class BinanceData extends ExchangeData {
   }
 }
 
-// 상태 저장 및 관리
+// 9. 활성 거래소 관리
 const STORAGE_KEY = 'activeExchangePlatform';
 let activeExchange = null;
 
@@ -551,7 +569,7 @@ async function handleExchangeChange(exchange) {
   await saveActiveExchange(exchange);
 }
 
-// 메인 실행 로직
+// 10. 메인 실행 로직
 const exchangeRateManager = new ExchangeRateManager();
 const upbit = new UpbitData();
 const bithumb = new BithumbData();
@@ -575,6 +593,7 @@ async function initialize() {
 
 chrome.runtime.onConnect.addListener(port => {
   if (!port || port.name !== 'popup') return;
+
   activePort = port;
   exchangeRateManager.port = port;
 

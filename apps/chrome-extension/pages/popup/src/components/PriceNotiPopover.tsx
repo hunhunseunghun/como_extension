@@ -32,18 +32,19 @@
 //   [key: string]: ExchangeData;
 // };
 
+// // 지정가와 데드밴드 쌍 타입 정의
+// type PriceDeadbandPair = { price: number; deadband: number };
+
 // const searchTicker = (ticker: ExchangeTicker, searchValue: string): boolean => {
 //   const trimmedSearch = searchValue.trim();
 //   const market = ticker.market.toLowerCase();
 //   const koreanName = ticker.koreanName || '';
 
 //   if (!trimmedSearch) return true;
-
 //   if (market.includes(trimmedSearch.toLowerCase())) return true;
 
 //   if (koreanName) {
 //     if (koreanName.includes(trimmedSearch)) return true;
-
 //     try {
 //       const chosungRegex = getRegExp(trimmedSearch, { initialSearch: true });
 //       if (chosungRegex.test(koreanName)) return true;
@@ -52,7 +53,6 @@
 //       return koreanName.includes(trimmedSearch);
 //     }
 //   }
-
 //   return false;
 // };
 
@@ -82,9 +82,10 @@
 //   const [searchValue, setSearchValue] = useState('');
 //   const [exchangePlatform, setExchangePlatform] = useState<ExchangeData>(exchangesData.upbit);
 //   const [targetPrice, setTargetPrice] = useState<number>(0);
-//   const [deadBand, setDeadBand] = useState<number>(1);
-//   const [savedPrices, setSavedPrices] = useState<number[]>([]); // 선택된 종목의 지정가
-//   const [allPriceAlerts, setAllPriceAlerts] = useState<{ [exchange: string]: { [ticker: string]: number[] } }>({}); // 전체 지정가
+//   const [deadBand, setDeadBand] = useState<number>(1); // 새 지정가의 데드밴드 입력 값
+//   const [allPriceAlerts, setAllPriceAlerts] = useState<{
+//     [exchange: string]: { [ticker: string]: PriceDeadbandPair[] };
+//   }>({});
 
 //   const initializeChromeConnection = useCallback(() => {
 //     setIsLoading(true);
@@ -108,22 +109,10 @@
 //           setSelectedTicker(defaultTicker);
 //           setTargetPrice(defaultTicker.currentPrice || 0);
 //         }
-//       } else if (type === 'setPriceAlertResponse') {
-//         const response = data as { success: boolean; prices: number[] };
-//         if (response.success) {
-//           setSavedPrices(response.prices); // 선택된 종목의 지정가 업데이트
-//           chrome.storage.local.get(['priceAlerts'], result => {
-//             setAllPriceAlerts(result.priceAlerts || {}); // 전체 지정가 업데이트
-//           });
-//         }
-//       } else if (type === 'deletePriceAlertResponse') {
-//         const response = data as { success: boolean; prices: number[] };
-//         if (response.success) {
-//           setSavedPrices(response.prices); // 삭제 후 지정가 업데이트
-//           chrome.storage.local.get(['priceAlerts'], result => {
-//             setAllPriceAlerts(result.priceAlerts || {}); // 전체 지정가 업데이트
-//           });
-//         }
+//       } else if (type === 'setPriceAlertResponse' || type === 'deletePriceAlertResponse') {
+//         chrome.storage.local.get(['priceAlerts'], result => {
+//           setAllPriceAlerts(result.priceAlerts || {});
+//         });
 //       }
 //     });
 
@@ -132,8 +121,6 @@
 //     });
 
 //     chrome.runtime.sendMessage({ action: 'getAllExchangesTickers' });
-
-//     // 초기 로드 시 전체 지정가 가져오기
 //     chrome.storage.local.get(['priceAlerts'], result => {
 //       setAllPriceAlerts(result.priceAlerts || {});
 //     });
@@ -148,13 +135,10 @@
 
 //   const filteredTickers = useMemo(() => {
 //     if (isLoading || allExchangesTickers.length === 0) return [];
-
 //     const platformFilteredTickers = allExchangesTickers.filter(
 //       ticker => ticker.exchange.toLowerCase() === exchangePlatform.key.toLowerCase(),
 //     );
-
 //     if (!searchValue.trim()) return platformFilteredTickers;
-
 //     return platformFilteredTickers.filter(ticker => searchTicker(ticker, searchValue));
 //   }, [allExchangesTickers, searchValue, isLoading, exchangePlatform]);
 
@@ -169,11 +153,6 @@
 //           setTargetPrice(foundTicker.currentPrice);
 //           setIsCommandOpen(false);
 //           setSearchValue('');
-//           // 선택 시 저장된 지정가 로드
-//           chrome.storage.local.get(['priceAlerts'], result => {
-//             const alerts = result.priceAlerts || {};
-//             setSavedPrices(alerts[foundTicker.exchange]?.[foundTicker.market] || []);
-//           });
 //         }
 //       };
 
@@ -213,28 +192,78 @@
 //   );
 
 //   const handleSetPriceAlert = () => {
-//     if (!selectedTicker || targetPrice <= 0) {
+//     if (!selectedTicker || targetPrice <= 0) return;
+
+//     const currentPairs = allPriceAlerts[selectedTicker.exchange]?.[selectedTicker.market] || [];
+//     if (currentPairs.some(pair => pair.price === targetPrice)) {
+//       console.log('이미 존재하는 지정가입니다.');
 //       return;
 //     }
 
-//     chrome.runtime.sendMessage({
-//       action: 'setPriceAlert',
-//       exchange: selectedTicker.exchange,
-//       ticker: selectedTicker.market,
-//       prices: [targetPrice],
-//       deadband: deadBand / 100,
-//     });
+//     const newPair = { price: targetPrice, deadband: deadBand / 100 };
+//     const updatedAlerts = { ...allPriceAlerts };
+//     if (!updatedAlerts[selectedTicker.exchange]) updatedAlerts[selectedTicker.exchange] = {};
+//     if (!updatedAlerts[selectedTicker.exchange][selectedTicker.market]) {
+//       updatedAlerts[selectedTicker.exchange][selectedTicker.market] = [];
+//     }
+//     updatedAlerts[selectedTicker.exchange][selectedTicker.market].push(newPair);
+//     setAllPriceAlerts(updatedAlerts);
+
+//     chrome.runtime.sendMessage(
+//       {
+//         action: 'setPriceAlert',
+//         exchange: selectedTicker.exchange,
+//         ticker: selectedTicker.market,
+//         prices: [newPair], // { price, deadband } 객체 배열로 전달
+//       },
+//       response => {
+//         if (response?.success) {
+//           console.log('지정가 추가 성공:', response.prices);
+//           chrome.storage.local.get(['priceAlerts'], result => {
+//             setAllPriceAlerts(result.priceAlerts || {});
+//           });
+//         } else {
+//           console.error('지정가 추가 실패:', response);
+//           const rollbackAlerts = { ...updatedAlerts };
+//           rollbackAlerts[selectedTicker.exchange][selectedTicker.market] = rollbackAlerts[selectedTicker.exchange][
+//             selectedTicker.market
+//           ].filter(p => p.price !== targetPrice);
+//           setAllPriceAlerts(rollbackAlerts);
+//         }
+//       },
+//     );
 //   };
 
-//   const handleDeletePriceAlert = (priceToDelete: number) => {
-//     if (!selectedTicker) return;
+//   const handleDeletePriceAlert = (exchange: string, ticker: string, priceToDelete: number) => {
+//     const updatedAlerts = { ...allPriceAlerts };
+//     if (updatedAlerts[exchange]?.[ticker]) {
+//       updatedAlerts[exchange][ticker] = updatedAlerts[exchange][ticker].filter(pair => pair.price !== priceToDelete);
+//       if (updatedAlerts[exchange][ticker].length === 0) delete updatedAlerts[exchange][ticker];
+//       if (Object.keys(updatedAlerts[exchange]).length === 0) delete updatedAlerts[exchange];
+//       setAllPriceAlerts(updatedAlerts);
+//     }
 
-//     chrome.runtime.sendMessage({
-//       action: 'deletePriceAlert',
-//       exchange: selectedTicker.exchange,
-//       ticker: selectedTicker.market,
-//       price: priceToDelete,
-//     });
+//     chrome.runtime.sendMessage(
+//       {
+//         action: 'deletePriceAlert',
+//         exchange,
+//         ticker,
+//         price: priceToDelete,
+//       },
+//       response => {
+//         if (response?.success) {
+//           console.log('지정가 삭제 성공:', response.prices);
+//           chrome.storage.local.get(['priceAlerts'], result => {
+//             setAllPriceAlerts(result.priceAlerts || {});
+//           });
+//         } else {
+//           console.error('지정가 삭제 실패:', response);
+//           chrome.storage.local.get(['priceAlerts'], result => {
+//             setAllPriceAlerts(result.priceAlerts || {});
+//           });
+//         }
+//       },
+//     );
 //   };
 
 //   return (
@@ -245,7 +274,7 @@
 //             <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
 //           </Button>
 //         </PopoverTrigger>
-//         <PopoverContent className="w-72 p-2 bg-background dark:bg-background">
+//         <PopoverContent className="w-80 p-2 bg-background dark:bg-background">
 //           <div>
 //             <Command shouldFilter={false} className="w-full bg-background dark:bg-background">
 //               <div className="relative">
@@ -258,9 +287,7 @@
 //                       setSearchValue(value);
 //                       setIsCommandOpen(true);
 //                     }}
-//                     onClick={() => {
-//                       setIsCommandOpen(!isCommandOpen);
-//                     }}
+//                     onClick={() => setIsCommandOpen(!isCommandOpen)}
 //                   />
 //                   <DropdownMenu>
 //                     <DropdownMenuTrigger asChild>
@@ -345,58 +372,45 @@
 //                   알림 추가
 //                 </Button>
 
-//                 <div className="font-semibold mt-2">선택된 종목 지정가</div>
-//                 {savedPrices.length > 0 ? (
-//                   <ul className="text-[10px] mt-1">
-//                     {savedPrices.map((price, index) => (
-//                       <li key={index} className="flex items-center justify-between">
-//                         <span>{price.toLocaleString('en-US')}</span>
-//                         <Button
-//                           variant="ghost"
-//                           size="icon"
-//                           className="h-4 w-4 p-0"
-//                           onClick={() => handleDeletePriceAlert(price)}>
-//                           <X className="h-3 w-3" />
-//                         </Button>
-//                       </li>
-//                     ))}
-//                   </ul>
-//                 ) : (
-//                   <div className="text-[10px] mt-1">지정가가 없습니다.</div>
-//                 )}
-
 //                 <div className="font-semibold mt-2">전체 지정가 알림</div>
 //                 {Object.keys(allPriceAlerts).length > 0 ? (
 //                   <ul className="text-[10px] mt-1 max-h-40 overflow-y-auto">
 //                     {Object.entries(allPriceAlerts).map(([exchange, tickers]) =>
-//                       Object.entries(tickers).map(([ticker, prices]) => (
-//                         <li key={`${exchange}-${ticker}`} className="mb-1">
-//                           <div className="flex items-center gap-1">
-//                             <img
-//                               src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
-//                               alt={`${exchange} logo`}
-//                               className="size-3"
-//                             />
-//                             <span>{ticker}</span>
-//                           </div>
-//                           <ul className="ml-4">
-//                             {prices.map((price, index) => (
-//                               <li key={index} className="flex items-center justify-between">
-//                                 <span>{price.toLocaleString('en-US')}</span>
-//                                 {selectedTicker?.exchange === exchange && selectedTicker?.market === ticker && (
-//                                   <Button
-//                                     variant="ghost"
-//                                     size="icon"
-//                                     className="h-4 w-4 p-0"
-//                                     onClick={() => handleDeletePriceAlert(price)}>
-//                                     <X className="h-3 w-3" />
-//                                   </Button>
-//                                 )}
+//                       tickers && typeof tickers === 'object'
+//                         ? Object.entries(tickers).map(([ticker, pairs]) =>
+//                             Array.isArray(pairs) ? (
+//                               <li key={`${exchange}-${ticker}`} className="mb-1">
+//                                 <div className="flex items-center gap-1">
+//                                   <img
+//                                     src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
+//                                     alt={`${exchange} logo`}
+//                                     className="size-3"
+//                                   />
+//                                   <span>{ticker}</span>
+//                                 </div>
+//                                 <ul className="ml-4">
+//                                   {pairs.map((pair, index) =>
+//                                     pair && pair.price ? (
+//                                       <li key={index} className="flex items-center justify-between">
+//                                         <span>
+//                                           {pair.price.toLocaleString('en-US')} (데드밴드:{' '}
+//                                           {(pair.deadband * 100).toFixed(2)}%)
+//                                         </span>
+//                                         <Button
+//                                           variant="ghost"
+//                                           size="icon"
+//                                           className="h-4 w-4 p-0"
+//                                           onClick={() => handleDeletePriceAlert(exchange, ticker, pair.price)}>
+//                                           <X className="h-3 w-3" />
+//                                         </Button>
+//                                       </li>
+//                                     ) : null,
+//                                   )}
+//                                 </ul>
 //                               </li>
-//                             ))}
-//                           </ul>
-//                         </li>
-//                       )),
+//                             ) : null,
+//                           )
+//                         : null,
 //                     )}
 //                   </ul>
 //                 ) : (
@@ -413,7 +427,6 @@
 //     </div>
 //   );
 // };
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -448,18 +461,18 @@ type ExchangesData = {
   [key: string]: ExchangeData;
 };
 
+type PriceDeadbandPair = { price: number; deadband: number };
+
 const searchTicker = (ticker: ExchangeTicker, searchValue: string): boolean => {
   const trimmedSearch = searchValue.trim();
   const market = ticker.market.toLowerCase();
   const koreanName = ticker.koreanName || '';
 
   if (!trimmedSearch) return true;
-
   if (market.includes(trimmedSearch.toLowerCase())) return true;
 
   if (koreanName) {
     if (koreanName.includes(trimmedSearch)) return true;
-
     try {
       const chosungRegex = getRegExp(trimmedSearch, { initialSearch: true });
       if (chosungRegex.test(koreanName)) return true;
@@ -468,7 +481,6 @@ const searchTicker = (ticker: ExchangeTicker, searchValue: string): boolean => {
       return koreanName.includes(trimmedSearch);
     }
   }
-
   return false;
 };
 
@@ -499,7 +511,10 @@ export const PriceNotiPopover = () => {
   const [exchangePlatform, setExchangePlatform] = useState<ExchangeData>(exchangesData.upbit);
   const [targetPrice, setTargetPrice] = useState<number>(0);
   const [deadBand, setDeadBand] = useState<number>(1);
-  const [allPriceAlerts, setAllPriceAlerts] = useState<{ [exchange: string]: { [ticker: string]: number[] } }>({}); // 전체 지정가
+  const [allPriceAlerts, setAllPriceAlerts] = useState<{
+    [exchange: string]: { [ticker: string]: PriceDeadbandPair[] };
+  }>({});
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const initializeChromeConnection = useCallback(() => {
     setIsLoading(true);
@@ -523,35 +538,25 @@ export const PriceNotiPopover = () => {
           setSelectedTicker(defaultTicker);
           setTargetPrice(defaultTicker.currentPrice || 0);
         }
-      } else if (type === 'setPriceAlertResponse') {
-        const response = data as { success: boolean; prices: number[] };
-        if (response.success) {
-          chrome.storage.local.get(['priceAlerts'], result => {
-            setAllPriceAlerts(result.priceAlerts || {}); // 전체 지정가 업데이트
-          });
-        }
-      } else if (type === 'deletePriceAlertResponse') {
-        const response = data as { success: boolean; prices: number[] };
-        if (response.success) {
-          chrome.storage.local.get(['priceAlerts'], result => {
-            setAllPriceAlerts(result.priceAlerts || {}); // 전체 지정가 업데이트
-          });
-        }
+      } else if (type === 'setPriceAlertResponse' || type === 'deletePriceAlertResponse') {
+        chrome.storage.local.get(['priceAlerts'], result => {
+          setAllPriceAlerts(result.priceAlerts || {});
+        });
       }
     });
 
     port.onDisconnect.addListener(() => {
-      setTimeout(() => initializeChromeConnection(), 500);
+      setIsLoading(false);
     });
 
     chrome.runtime.sendMessage({ action: 'getAllExchangesTickers' });
-
-    // 초기 로드 시 전체 지정가 가져오기
     chrome.storage.local.get(['priceAlerts'], result => {
       setAllPriceAlerts(result.priceAlerts || {});
     });
 
-    return () => port.disconnect();
+    return () => {
+      return port.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -561,13 +566,10 @@ export const PriceNotiPopover = () => {
 
   const filteredTickers = useMemo(() => {
     if (isLoading || allExchangesTickers.length === 0) return [];
-
     const platformFilteredTickers = allExchangesTickers.filter(
       ticker => ticker.exchange.toLowerCase() === exchangePlatform.key.toLowerCase(),
     );
-
     if (!searchValue.trim()) return platformFilteredTickers;
-
     return platformFilteredTickers.filter(ticker => searchTicker(ticker, searchValue));
   }, [allExchangesTickers, searchValue, isLoading, exchangePlatform]);
 
@@ -622,16 +624,51 @@ export const PriceNotiPopover = () => {
 
   const handleSetPriceAlert = () => {
     if (!selectedTicker || targetPrice <= 0) {
+      setErrorMessage('유효한 종목과 지정가를 입력해주세요.');
       return;
     }
 
-    chrome.runtime.sendMessage({
-      action: 'setPriceAlert',
-      exchange: selectedTicker.exchange,
-      ticker: selectedTicker.market,
-      prices: [targetPrice],
-      deadband: deadBand / 100,
-    });
+    const currentPairs = allPriceAlerts[selectedTicker.exchange]?.[selectedTicker.market] || [];
+    if (currentPairs.some(pair => pair.price === targetPrice)) {
+      setErrorMessage('이미 존재하는 지정가입니다.');
+      return;
+    }
+
+    const newPair = { price: targetPrice, deadband: deadBand / 100 };
+
+    // 낙관적 업데이트: UI를 먼저 업데이트하여 사용자 경험 개선
+    const updatedAlerts = { ...allPriceAlerts };
+    if (!updatedAlerts[selectedTicker.exchange]) updatedAlerts[selectedTicker.exchange] = {};
+    if (!updatedAlerts[selectedTicker.exchange][selectedTicker.market]) {
+      updatedAlerts[selectedTicker.exchange][selectedTicker.market] = [];
+    }
+    updatedAlerts[selectedTicker.exchange][selectedTicker.market].push(newPair);
+    setAllPriceAlerts(updatedAlerts);
+
+    chrome.runtime.sendMessage(
+      {
+        action: 'setPriceAlert',
+        exchange: selectedTicker.exchange,
+        ticker: selectedTicker.market,
+        prices: [newPair],
+      },
+      response => {
+        if (response?.success) {
+          console.log('지정가 추가 성공:', response.prices);
+          // 저장이 완료된 후 로컬 스토리지에서 최신 데이터를 가져와 UI 동기화
+          chrome.storage.local.get(['priceAlerts'], result => {
+            setAllPriceAlerts(result.priceAlerts || {});
+          });
+        } else {
+          const rollbackAlerts = { ...updatedAlerts };
+          rollbackAlerts[selectedTicker.exchange][selectedTicker.market] = rollbackAlerts[selectedTicker.exchange][
+            selectedTicker.market
+          ].filter(p => p.price !== targetPrice);
+          setAllPriceAlerts(rollbackAlerts);
+          setErrorMessage('지정가 추가에 실패했습니다.');
+        }
+      },
+    );
   };
 
   const handleDeletePriceAlert = (exchange: string, ticker: string, priceToDelete: number) => {
@@ -642,7 +679,9 @@ export const PriceNotiPopover = () => {
       price: priceToDelete,
     });
   };
-
+  useEffect(() => {
+    console.log('allPriceAlerts 업데이트됨:', allPriceAlerts);
+  }, [allPriceAlerts]);
   return (
     <div>
       <Popover>
@@ -651,7 +690,7 @@ export const PriceNotiPopover = () => {
             <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72 p-2 bg-background dark:bg-background">
+        <PopoverContent className="w-80 p-2 bg-background dark:bg-background">
           <div>
             <Command shouldFilter={false} className="w-full bg-background dark:bg-background">
               <div className="relative">
@@ -664,9 +703,7 @@ export const PriceNotiPopover = () => {
                       setSearchValue(value);
                       setIsCommandOpen(true);
                     }}
-                    onClick={() => {
-                      setIsCommandOpen(!isCommandOpen);
-                    }}
+                    onClick={() => setIsCommandOpen(!isCommandOpen)}
                   />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -744,6 +781,8 @@ export const PriceNotiPopover = () => {
                   />
                 </div>
 
+                {errorMessage && <div className="text-[10px] text-red-500 mt-1">{errorMessage}</div>}
+
                 <Button
                   variant="outline"
                   onClick={handleSetPriceAlert}
@@ -755,32 +794,41 @@ export const PriceNotiPopover = () => {
                 {Object.keys(allPriceAlerts).length > 0 ? (
                   <ul className="text-[10px] mt-1 max-h-40 overflow-y-auto">
                     {Object.entries(allPriceAlerts).map(([exchange, tickers]) =>
-                      Object.entries(tickers).map(([ticker, prices]) => (
-                        <li key={`${exchange}-${ticker}`} className="mb-1">
-                          <div className="flex items-center gap-1">
-                            <img
-                              src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
-                              alt={`${exchange} logo`}
-                              className="size-3"
-                            />
-                            <span>{ticker}</span>
-                          </div>
-                          <ul className="ml-4">
-                            {prices.map((price, index) => (
-                              <li key={index} className="flex items-center justify-between">
-                                <span>{price.toLocaleString('en-US')}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-4 w-4 p-0"
-                                  onClick={() => handleDeletePriceAlert(exchange, ticker, price)}>
-                                  <X className="h-3 w-3" />
-                                </Button>
+                      tickers && typeof tickers === 'object'
+                        ? Object.entries(tickers).map(([ticker, pairs]) =>
+                            Array.isArray(pairs) && pairs.length > 0 ? (
+                              <li key={`${exchange}-${ticker}`} className="mb-1">
+                                <div className="flex items-center gap-1">
+                                  <img
+                                    src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
+                                    alt={`${exchange} logo`}
+                                    className="size-3"
+                                  />
+                                  <span>{ticker}</span>
+                                </div>
+                                <ul className="ml-4">
+                                  {pairs.map((pair, index) =>
+                                    pair && typeof pair === 'object' && pair.price ? (
+                                      <li key={index} className="flex items-center justify-between">
+                                        <span>
+                                          {pair.price.toLocaleString('en-US')} (데드밴드:{' '}
+                                          {(pair.deadband * 100).toFixed(2)}%)
+                                        </span>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-4 w-4 p-0"
+                                          onClick={() => handleDeletePriceAlert(exchange, ticker, pair.price)}>
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </li>
+                                    ) : null,
+                                  )}
+                                </ul>
                               </li>
-                            ))}
-                          </ul>
-                        </li>
-                      )),
+                            ) : null,
+                          )
+                        : null,
                     )}
                   </ul>
                 ) : (
