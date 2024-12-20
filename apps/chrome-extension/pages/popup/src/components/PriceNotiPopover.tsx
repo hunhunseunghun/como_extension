@@ -189,9 +189,9 @@ export const PriceNotiPopover = () => {
             <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-60 h-90 p-2">
+        <PopoverContent className="w-60 h-90 p-2 bg-background dark:bg-background">
           <div>
-            <Command shouldFilter={false}>
+            <Command shouldFilter={false} className="w-full h-full bg-background dark:bg-background">
               <div className="relative">
                 <section className="flex w-full border rounded-md gap-1">
                   <CommandInput
@@ -261,16 +261,19 @@ export const PriceNotiPopover = () => {
                   )}
                 </div>
 
-                <div className="flex text-[13px] font-semibold bg-background border-none p-1">
+                <div className="relatvie flex text-[12px] font-semibold bg-background border-none p-1">
                   <input
                     type="number"
-                    value={currentPrice}
+                    min="0"
+                    type="text"
+                    value={currentPrice.toLocaleString('en-US')}
                     onChange={e => {
-                      const value = Number(e.target.value) <= 0 ? 0 : Number(e.target.value);
-                      setCurrentPrice(Number(value));
+                      const value = e.target.value.replace(/,/g, '');
+                      setCurrentPrice(Number(value) || 0);
                     }}
-                    className="w-[100%]  focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="w-full text-right focus:outline-none appearance-none"
                   />
+                  <span className="absolute">지정 가격</span>
                 </div>
               </section>
 
