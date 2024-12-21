@@ -44,7 +44,7 @@ function CommandDialog({
 
 function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
-    <div data-slot="command-input-wrapper" className="relative flex h-6 w-full items-end gap-2 border rounded-md ">
+    <div data-slot="command-input-wrapper" className="relative flex h-6 w-full items-end gap-2">
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
@@ -53,7 +53,7 @@ function CommandInput({ className, ...props }: React.ComponentProps<typeof Comma
         )}
         {...props}
       />
-      <Search className="absolute size-[11px] left-1 top-[5px] text-neutral-500 pointer-events-none" />
+      <Search className="absolute size-[11px] left-1 top-[6px] text-neutral-500 pointer-events-none" />
     </div>
   );
 }
