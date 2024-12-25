@@ -368,6 +368,7 @@ export const PriceNotiPopover = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [exchangePlatform, setExchangePlatform] = useState<ExchangeData>(exchangesData.upbit);
+  const [currentPrice, setCurrentPrice] = useState(0);
 
   const initializeChromeConnection = useCallback(() => {
     setIsLoading(true);
@@ -417,8 +418,9 @@ export const PriceNotiPopover = () => {
         const foundTicker = allExchangesTickers.find(
           t => `${t.exchange.toLowerCase()}:${t.market.toLowerCase()}` === value.toLowerCase(),
         );
-        if (foundTicker) {
+        if (foundTicker && foundTicker.currentPrice) {
           setSelectedTicker(foundTicker);
+          setCurrentPrice(foundTicker.currentPrice);
           setIsCommandOpen(false);
           setSearchValue('');
         }
@@ -484,11 +486,7 @@ export const PriceNotiPopover = () => {
                       setIsCommandOpen(true);
                     }}
                     onBlur={() => {
-                      if (!searchValue.trim()) {
-                        setTimeout(() => {
-                          setIsCommandOpen(false);
-                        }, 1000);
-                      }
+                      setIsCommandOpen(false);
                     }}
                   />
                   <DropdownMenu>
@@ -533,12 +531,26 @@ export const PriceNotiPopover = () => {
                 )}
               </div>
               <div className="flex items-center gap-1 mt-2">
-                {selectedTicker?.market ?? 'Coin'}
-                {selectedTicker && (
-                  <div className="cursor-pointer text-sm text-muted-foreground" onClick={() => setSelectedTicker(null)}>
-                    취소
+                {selectedTicker?.market && (
+                  <div className="flex items-center gap-1">
+                    <img
+                      src={exchangesData[selectedTicker.exchange as keyof typeof exchangesData]?.logo}
+                      alt={`${selectedTicker.exchange} logo`}
+                      className="size-3.5"
+                    />
+                    {`${selectedTicker.koreanName ?? ''} (${selectedTicker.market})`}
                   </div>
                 )}
+              </div>
+              <div className="flex text-[10px] gap-1">
+                <span>현재가</span>
+                <input
+                  type="number"
+                  value={currentPrice}
+                  onChange={e => {
+                    setCurrentPrice(Number(e.target.value));
+                  }}
+                />
               </div>
 
               <div className="space-y-2 mt-2">
