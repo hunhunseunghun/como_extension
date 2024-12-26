@@ -410,7 +410,7 @@ const App = () => {
                   {exchangeRateUSD}
                   <span className="text-neutral-400"> KRW</span>
                 </span>
-                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                   {'한국수출입은행 고시 환율'}
                 </span>
               </div>
