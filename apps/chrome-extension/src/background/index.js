@@ -77,12 +77,6 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
 }
 // 알림 전송 함수 (데드밴드 정보 추가로 로그 확인 가능)
 function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) {
-  console.log('notification excuted : ', {
-    type: 'basic',
-    iconUrl: 'como-logo.png',
-    title: `${exchange.toUpperCase()} ${ticker} 가격 알림`,
-    message: `${ticker}의 가격이 ${currentPrice}로 ${alertPrice}를 ${currentPrice > alertPrice ? '상향' : '하향'} 돌파했습니다! (데드밴드: ${deadband * 100}%)`,
-  });
   chrome.notifications.create({
     type: 'basic',
     iconUrl: 'como-logo.png',
@@ -142,6 +136,22 @@ chrome.runtime.onMessage.addListener(message => {
   if (message.action === 'setPriceAlert') {
     const { exchange, ticker, prices, deadband } = message;
     savePriceAlert(exchange, ticker, prices, deadband); // sendResponse 전달
+  }
+  if (message.action === 'getAllExchangesTickers') {
+    if (activePort) {
+      const data = Object.values(allExchangesTickers)
+        .map(tickers => {
+          return Object.values(tickers);
+        })
+        .reduce((acc, curr) => {
+          acc = [...acc, ...curr];
+          return acc;
+        }, []);
+
+      console.log('getAlleschanges          ', data);
+
+      activePort.postMessage({ type: 'allExchangesTickers', data: data });
+    }
   }
 });
 
@@ -269,6 +279,7 @@ class ExchangeData {
             market: ticker.market ?? '',
             currentPrice: ticker.trade_price ?? 0,
             changeRate: ticker.signed_change_rate ?? 0,
+            koreanName: this.marketsInfo[ticker.market]?.korean_name ?? null,
           };
           acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
         }
@@ -325,6 +336,7 @@ class ExchangeData {
         if (this.name === 'binance' && Array.isArray(ticker)) {
           ticker.forEach(binanceTicker => {
             allExchangesTickers[this.name][binanceTicker.s] = {
+              ...allExchangesTickers[this.name][binanceTicker.s],
               exchange: this.name,
               market: binanceTicker.s,
               currentPrice: binanceTicker.c ? Number(binanceTicker.c) : 0,
@@ -335,6 +347,7 @@ class ExchangeData {
         }
         if (this.name === 'upbit' || this.name === 'bithumb') {
           allExchangesTickers[this.name][ticker.code] = {
+            ...allExchangesTickers[this.name][ticker.code],
             exchange: this.name,
             market: ticker.code ?? '',
             currentPrice: ticker.trade_price ? Number(ticker.trade_price) * 100 : 0,

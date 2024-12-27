@@ -354,7 +354,7 @@ const App = () => {
         <nav className="flex-shrink-0 p-1">
           <div className="flex justify-between items-end mx-auto w-full">
             <section>
-              <img src={comoLogo} className="size-6 m-1 ml-0" />
+              <img src={comoLogo} className="size-4 m-1 ml-0" />
             </section>
             <section>
               {maxChangeRateCoin.market && !wideSize && (
