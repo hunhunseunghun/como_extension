@@ -10,6 +10,10 @@ export const getBithumbColumns = (
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
+  favoriteCoins: { upbit: string[]; bithumb: string[] },
+  // setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>,
+  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
+  exchangePlatform: 'upbit' | 'bithumb',
 ): ColumnDef<Ticker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -25,25 +29,67 @@ export const getBithumbColumns = (
     cell: ({ row }) => {
       const splitMarket = row.original.market?.split('-');
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
-      const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' }; // Bithumb 전용 필드 접근
+      const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' };
+      const market = row.original.market;
+      const isFavorite = favoriteCoins[exchangePlatform].includes(market);
+
+      const toggleFavorite = () => {
+        setFavoriteCoins(prev => {
+          const updated = { ...prev };
+          if (isFavorite) {
+            updated[exchangePlatform] = updated[exchangePlatform].filter(coin => coin !== market);
+          } else {
+            updated[exchangePlatform].push(market);
+          }
+          return updated;
+        });
+      };
+      // const setPinningCoins = () => {
+      //   if (savedCoins.includes(market)) {
+      //     setFavoriteCoins(prev => {
+      //       const pinedCoins = { ...prev };
+      //       pinedCoins.bithumb = pinedCoins.bithumb.filter(coin => coin !== market);
+      //       console.log('pinedCoins', pinedCoins);
+      //       return pinedCoins;
+      //     });
+      //   } else {
+      //     setFavoriteCoins(prev => {
+      //       const pinedCoins = { ...prev };
+      //       pinedCoins['bithumb'].push(market);
+      //       return pinedCoins;
+      //     });
+      //   }
+      // };
+
+      // if (savedCoins.includes(market) && !row.getIsPinned()) {
+      //   row.pin('top');
+      //   console.log(" row.pin('top');", market);
+      // } else if (!savedCoins.includes(market) && row.getIsPinned()) {
+      //   row.pin(false);
+      //   console.log(' row.pin(false)', market);
+      // }
+
+      // return row.getIsPinned() ? () => row.pin(false) : () => row.pin('top');
+
       return (
-        <div className="flex flex-col items-start font-semibold">
-          <div className="flex gap-[2px] text-left break-word">
-            <div className="flex flex-col justify-center">
-              {' '}
-              <Star
-                className={
-                  row.getIsPinned()
-                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                    : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
-                }
-                onClick={row.getIsPinned() ? () => row.pin(false) : () => row.pin('top')}
-              />
-            </div>
-            <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
-            <div className="flex gap-[1px] items-center">{bithumbRow.market_warning !== 'NONE' && <WarningIcon />}</div>
+        <div className="flex gap-[2px] font-semibold">
+          <div className="mt-[2px]">
+            <Star
+              className={
+                row.getIsPinned()
+                  ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
+                  : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+              }
+              onClick={toggleFavorite}
+            />
           </div>
-          <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
+          <div className="text-left break-word">
+            <div className="flex gap-[2px]">
+              <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
+              {bithumbRow.market_warning !== 'NONE' && <WarningIcon />}
+            </div>
+            <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
+          </div>
         </div>
       );
     },

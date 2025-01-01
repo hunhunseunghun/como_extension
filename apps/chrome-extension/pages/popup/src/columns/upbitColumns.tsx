@@ -27,26 +27,27 @@ export const getUpbitColumns = (
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
       const upbitRow = row.original as { market_event?: { warning: boolean; caution: boolean } }; // Upbit 전용 필드 접근
       return (
-        <div className="flex flex-col items-start font-semibold">
-          <div className="flex gap-[2px] text-left break-word">
-            <div className="flex flex-col justify-center">
-              {' '}
-              <Star
-                className={
-                  row.getIsPinned()
-                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                    : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
-                }
-                onClick={row.getIsPinned() ? () => row.pin(false) : () => row.pin('top')}
-              />
-            </div>
-            <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
-            <div className="flex gap-[1px] items-center">
-              {upbitRow.market_event?.warning && <WarningIcon />}
-              {upbitRow.market_event?.caution && <CautionIcon />}
-            </div>
+        <div className="flex gap-[2px] font-semibold">
+          <div className="mt-[2px]">
+            <Star
+              className={
+                row.getIsPinned()
+                  ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
+                  : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+              }
+              onClick={row.getIsPinned() ? () => row.pin(false) : () => row.pin('top')}
+            />
           </div>
-          <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
+          <div className="text-left break-word">
+            <div className="flex gap-[2px]">
+              <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
+              <div className="flex gap-[1px] items-center">
+                {upbitRow.market_event?.warning && <WarningIcon />}
+                {upbitRow.market_event?.caution && <CautionIcon />}
+              </div>
+            </div>
+            <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
+          </div>
         </div>
       );
     },
