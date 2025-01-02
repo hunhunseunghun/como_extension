@@ -196,11 +196,13 @@ const App = () => {
 
   // rowPinning 동기화
   useEffect(() => {
+    const validMarkets = tableData.map(ticker => ticker.market);
+    const pinnedRows = favoriteCoins[exchangePlatform].filter(market => validMarkets.includes(market));
     setRowPinning(prev => ({
       ...prev, // 이전 상태의 다른 속성(bottom bottom 등)을 유지
-      top: favoriteCoins[exchangePlatform], // top만 업데이트
+      top: pinnedRows, // top만 업데이트
     }));
-  }, [favoriteCoins, exchangePlatform]);
+  }, [favoriteCoins, exchangePlatform, tableData]);
 
   const columns: ColumnDef<Ticker>[] = useMemo(() => {
     if (exchangePlatform === 'upbit') {
