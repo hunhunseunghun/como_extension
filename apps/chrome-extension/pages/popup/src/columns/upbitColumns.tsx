@@ -10,6 +10,10 @@ export const getUpbitColumns = (
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
+  favoriteCoins: { upbit: string[]; bithumb: string[] },
+  // setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>,
+  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
+  exchangePlatform: 'upbit' | 'bithumb',
 ): ColumnDef<Ticker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -26,6 +30,31 @@ export const getUpbitColumns = (
       const splitMarket = row.original.market?.split('-');
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
       const upbitRow = row.original as { market_event?: { warning: boolean; caution: boolean } }; // Upbit 전용 필드 접근
+      const market = row.original.market;
+      const savedCoins = favoriteCoins?.[exchangePlatform].join(',');
+
+      const setPinningCoins = () => {
+        if (savedCoins.includes(market)) {
+          setFavoriteCoins(prev => {
+            const pinedCoins = { ...prev };
+            pinedCoins.upbit = pinedCoins.upbit.filter(coin => coin !== market);
+            console.log('pinedCoins', pinedCoins);
+            return pinedCoins;
+          });
+        } else {
+          setFavoriteCoins(prev => {
+            const pinedCoins = { ...prev };
+            pinedCoins['upbit'].push(market);
+            return pinedCoins;
+          });
+        }
+      };
+
+      if (savedCoins.includes(market) && !row.getIsPinned()) {
+        row.pin('top');
+      } else if (!savedCoins.includes(market) && row.getIsPinned()) {
+        row.pin(false);
+      }
       return (
         <div className="flex gap-[2px] font-semibold">
           <div className="mt-[2px]">
@@ -35,7 +64,7 @@ export const getUpbitColumns = (
                   ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
                   : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
               }
-              onClick={row.getIsPinned() ? () => row.pin(false) : () => row.pin('top')}
+              onClick={setPinningCoins}
             />
           </div>
           <div className="text-left break-word">

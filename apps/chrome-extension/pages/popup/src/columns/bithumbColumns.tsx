@@ -64,10 +64,8 @@ export const getBithumbColumns = (
 
       if (savedCoins.includes(market) && !row.getIsPinned()) {
         row.pin('top');
-        console.log(" row.pin('top');", market);
       } else if (!savedCoins.includes(market) && row.getIsPinned()) {
         row.pin(false);
-        console.log(' row.pin(false)', market);
       }
 
       // return row.getIsPinned() ? () => row.pin(false) : () => row.pin('top');

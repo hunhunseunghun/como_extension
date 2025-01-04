@@ -105,7 +105,6 @@ const App = () => {
             break;
 
           case 'exchangeRateUSD':
-            console.log('exchangeRateUSD', data);
             setExchangeRateUSD(data);
             break;
 
@@ -181,7 +180,7 @@ const App = () => {
     });
   }, [favoriteCoins]);
 
-  // // 즐겨찾기 저장
+  // 즐겨찾기 저장
   // useEffect(() => {
   //   chrome.storage.local.get('como_extension', result => {
   //     const currentData = result?.como_extension || {};
@@ -194,30 +193,31 @@ const App = () => {
   //   });
   // }, [favoriteCoins]);
 
-  // // rowPinning 동기화
+  // rowPinning 동기화
   // useEffect(() => {
   //   if (!tableData.length) return;
-  //   const validMarkets = tableData.map(ticker => ticker.market?.trim());
-  //   const pinnedRows = favoriteCoins[exchangePlatform]
-  //     .map(market => market.trim())
-  //     .filter(market => validMarkets.includes(market));
+  //   const validMarkets = new Set(tableData.map(ticker => ticker.market));
+  //   const pinnedRows = favoriteCoins[exchangePlatform].filter(market => validMarkets.has(market));
 
-  //   console.log(
-  //     'tableData markets:',
-  //     tableData.map(t => t.market),
-  //   );
-  //   console.log('rowPinning.top to be set:', pinnedRows);
-  //   console.log('rowPinning current:', rowPinning);
+  //   console.log('tableData markets:', Array.from(validMarkets));
+  //   console.log('pinnedRows ::', pinnedRows);
 
   //   setRowPinning(prev => {
-  //     console.log('Setting rowPinning:', { ...prev, top: pinnedRows });
   //     return { ...prev, top: pinnedRows };
   //   });
-  // }, [favoriteCoins, exchangePlatform, tableData]);
+  // }, [favoriteCoins, exchangePlatform, tableData, exchangeMarketType]);
 
   const columns: ColumnDef<Ticker>[] = useMemo(() => {
     if (exchangePlatform === 'upbit') {
-      return getUpbitColumns(coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType);
+      return getUpbitColumns(
+        coinNameKR,
+        setCoinNameKR,
+        exchangeRateUSD,
+        exchangeMarketType,
+        favoriteCoins,
+        setFavoriteCoins,
+        exchangePlatform,
+      );
     } else if (exchangePlatform === 'bithumb') {
       return getBithumbColumns(
         coinNameKR,
@@ -242,7 +242,6 @@ const App = () => {
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onRowPinningChange: setRowPinning,
-    // getRowId: row => row.market,
     state: {
       sorting,
       columnFilters,
@@ -252,7 +251,6 @@ const App = () => {
     initialState: {
       sorting: [{ id: 'trade_price', desc: true }],
     },
-    keepPinnedRows: true,
   });
 
   useEffect(() => {
@@ -338,7 +336,8 @@ const App = () => {
                 <>
                   {table.getTopRows().map(row => (
                     <TableRow
-                      className={`border-transparent sticky top-{${row.getPinnedIndex() * 26 + 48}px}`}
+                      className={`border-transparent`}
+                      // className={`border-transparent sticky top-[${row.getPinnedIndex() * 26 + 48}px]`}
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}>
                       {row
