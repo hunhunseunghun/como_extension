@@ -180,33 +180,6 @@ const App = () => {
     });
   }, [favoriteCoins]);
 
-  // 즐겨찾기 저장
-  // useEffect(() => {
-  //   chrome.storage.local.get('como_extension', result => {
-  //     const currentData = result?.como_extension || {};
-  //     chrome.storage.local.set({
-  //       como_extension: {
-  //         ...currentData, // 기존 데이터 유지
-  //         favoriteCoins, // favoriteCoins만 업데이트
-  //       },
-  //     });
-  //   });
-  // }, [favoriteCoins]);
-
-  // rowPinning 동기화
-  // useEffect(() => {
-  //   if (!tableData.length) return;
-  //   const validMarkets = new Set(tableData.map(ticker => ticker.market));
-  //   const pinnedRows = favoriteCoins[exchangePlatform].filter(market => validMarkets.has(market));
-
-  //   console.log('tableData markets:', Array.from(validMarkets));
-  //   console.log('pinnedRows ::', pinnedRows);
-
-  //   setRowPinning(prev => {
-  //     return { ...prev, top: pinnedRows };
-  //   });
-  // }, [favoriteCoins, exchangePlatform, tableData, exchangeMarketType]);
-
   const columns: ColumnDef<Ticker>[] = useMemo(() => {
     if (exchangePlatform === 'upbit') {
       return getUpbitColumns(
@@ -251,11 +224,17 @@ const App = () => {
     initialState: {
       sorting: [{ id: 'trade_price', desc: true }],
     },
+    debugRows: true,
   });
 
   useEffect(() => {
     table.getAllColumns().filter(column => column.toggleVisibility(wideSize));
   }, [wideSize]);
+
+  const pinnedRowCount = useMemo(() => {
+    const favoriteSet = new Set(favoriteCoins[exchangePlatform]);
+    return tableData.filter(ticker => favoriteSet.has(ticker.market)).length;
+  }, [tableData, favoriteCoins, exchangePlatform]);
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
@@ -334,10 +313,11 @@ const App = () => {
                 </TableRow>
               ) : (
                 <>
-                  {table.getTopRows().map(row => (
+                  {table.getTopRows().map((row, index) => (
                     <TableRow
-                      className={`border-transparent`}
-                      // className={`border-transparent sticky top-[${row.getPinnedIndex() * 26 + 48}px]`}
+                      // className={`border-transparent`}
+                      // className={`sticky top-[${row.getPinnedIndex() * 48 + 30}px] border-gray-100 bg-gray-100 dark:bg-gray-900`}
+                      className={`border-transparent ${index < pinnedRowCount ? 'sticky bg-gray-100 dark:bg-gray-800 z-10' : ''}`}
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}>
                       {row

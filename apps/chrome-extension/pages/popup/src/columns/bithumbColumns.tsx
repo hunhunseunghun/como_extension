@@ -32,19 +32,7 @@ export const getBithumbColumns = (
       const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' };
       const market = row.original.market;
       const savedCoins = favoriteCoins?.[exchangePlatform].join(',');
-      // const isFavorite = favoriteCoins[exchangePlatform].includes(market);
 
-      // const toggleFavorite = () => {
-      //   setFavoriteCoins(prev => {
-      //     const updated = { ...prev };
-      //     if (isFavorite) {
-      //       updated[exchangePlatform] = updated[exchangePlatform].filter(coin => coin !== market);
-      //     } else {
-      //       updated[exchangePlatform].push(market);
-      //     }
-      //     return updated;
-      //   });
-      // };
       const setPinningCoins = () => {
         if (savedCoins.includes(market)) {
           setFavoriteCoins(prev => {
@@ -67,8 +55,6 @@ export const getBithumbColumns = (
       } else if (!savedCoins.includes(market) && row.getIsPinned()) {
         row.pin(false);
       }
-
-      // return row.getIsPinned() ? () => row.pin(false) : () => row.pin('top');
 
       return (
         <div className="flex gap-[2px] font-semibold">
