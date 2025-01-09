@@ -12,7 +12,7 @@ import {
 
 import { ChevronDown } from 'lucide-react';
 
-const platformData = {
+const exchangesData = {
   upbit: {
     key: 'upbit',
     label: '업비트',
@@ -35,7 +35,7 @@ type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 
 interface MarketDropdownProps {
   exchangePlatform: 'upbit' | 'bithumb' | 'binance';
-  setExchangePlatform: (platform: keyof typeof platformData) => void;
+  setExchangePlatform: (platform: keyof typeof exchangesData) => void;
   setIsLoading: (loading: boolean) => void;
   setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>;
   setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
@@ -48,9 +48,9 @@ export const MarketDropdown = ({
   setRowPinning,
   setTickers,
 }: MarketDropdownProps) => {
-  const exchangeList = Object.values(platformData);
-  const selectedPlatform = platformData[exchangePlatform] || platformData.upbit;
-  type ExchangePlatform = keyof typeof platformData;
+  const exchangeList = Object.values(exchangesData);
+  const selectedPlatform = exchangesData[exchangePlatform] || exchangesData.upbit;
+  type ExchangePlatform = keyof typeof exchangesData;
 
   useEffect(() => {
     chrome.runtime.sendMessage({ action: 'changeExchange', exchange: exchangePlatform });
