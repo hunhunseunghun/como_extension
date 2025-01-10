@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,33 +16,21 @@ type ExchangeTicker = {
 };
 type AllExchangesTickers = ExchangeTicker[];
 
+const MAX_ITEMS = 4; // 렌더링할 최대 항목 수
+
 const searchTicker = (ticker: ExchangeTicker, searchValue: string): boolean => {
-  const trimmedSearch = searchValue.trim();
+  const trimmedSearch = searchValue.trim().toLowerCase();
   const market = ticker.market.toLowerCase();
   const koreanName = ticker.koreanName || '';
 
-  console.log(`Filter - Search: "${trimmedSearch}", Market: "${market}", KoreanName: "${koreanName}"`);
+  if (!trimmedSearch) return true;
 
-  if (!trimmedSearch) return true; // 검색어가 없으면 모두 표시
+  if (market.includes(trimmedSearch)) return true;
+  if (koreanName.toLowerCase().includes(trimmedSearch)) return true;
 
-  // 영어 검색 (market)
-  if (market.includes(trimmedSearch.toLowerCase())) {
-    console.log(`Matched market: ${market}`);
-    return true;
-  }
-
-  // 한글 전체 텍스트 검색
-  if (koreanName && koreanName.includes(trimmedSearch)) {
-    console.log(`Matched full koreanName: ${koreanName}`);
-    return true;
-  }
-
-  // 한글 초성 검색
-  if (koreanName && trimmedSearch) {
+  if (koreanName) {
     const chosungRegex = getRegExp(trimmedSearch, { initialSearch: true });
-    const isMatch = chosungRegex.test(koreanName);
-    console.log(`Chosung match for "${trimmedSearch}" on "${koreanName}": ${isMatch}`);
-    return isMatch;
+    return chosungRegex.test(koreanName);
   }
 
   return false;
@@ -61,7 +49,6 @@ export const PriceNotiPopover = () => {
 
     port.onMessage.addListener(({ type, data }) => {
       if (type === 'allExchangesTickers') {
-        console.log('Loaded tickers:', data.slice(0, 5)); // 처음 5개만 로그
         setAllExchangesTickers(data);
         setIsLoading(false);
       }
@@ -80,6 +67,31 @@ export const PriceNotiPopover = () => {
     return disconnect;
   }, [initializeChromeConnection]);
 
+  // 필터링된 결과 메모이제이션
+  const filteredTickers = useMemo(() => {
+    if (isLoading || allExchangesTickers.length === 0) return [];
+    const result = allExchangesTickers.filter(ticker => searchTicker(ticker, searchValue));
+    return result.slice(0, MAX_ITEMS); // 최대 50개로 제한
+  }, [allExchangesTickers, searchValue, isLoading]);
+
+  // CommandItem 렌더링 함수 메모이제이션
+  const renderTickerItem = useCallback(
+    (ticker: ExchangeTicker) => (
+      <CommandItem
+        key={ticker.market}
+        value={ticker.market}
+        onSelect={value => {
+          const foundTicker = allExchangesTickers.find(t => t.market === value);
+          setSelectedTicker(foundTicker ?? null);
+          setIsCommandOpen(false);
+          setSearchValue('');
+        }}>
+        {ticker.koreanName ? `${ticker.koreanName} (${ticker.market})` : ticker.market}
+      </CommandItem>
+    ),
+    [allExchangesTickers],
+  );
+
   return (
     <div className="relative inline-flex group">
       <Popover>
@@ -93,10 +105,9 @@ export const PriceNotiPopover = () => {
             <Command
               filter={(value, search) => {
                 const ticker = allExchangesTickers.find(t => t.market === value);
-                if (!ticker) return 0;
-                return searchTicker(ticker, search) ? 1 : 0;
+                return ticker && searchTicker(ticker, search) ? 1 : 0;
               }}>
-              <div>{selectedTicker?.market ?? 'Coin'}</div>
+              <div>{selectedTicker ? selectedTicker.market : 'Coin'}</div>
               <CommandInput
                 placeholder="코인 검색"
                 value={searchValue}
@@ -108,26 +119,10 @@ export const PriceNotiPopover = () => {
                 <CommandList>
                   {isLoading ? (
                     <CommandEmpty>로딩 중...</CommandEmpty>
-                  ) : allExchangesTickers.length === 0 ? (
+                  ) : filteredTickers.length === 0 ? (
                     <CommandEmpty>결과 없음</CommandEmpty>
                   ) : (
-                    <CommandGroup>
-                      {allExchangesTickers
-                        .filter(ticker => searchTicker(ticker, searchValue))
-                        .map(ticker => (
-                          <CommandItem
-                            key={ticker.market}
-                            value={ticker.market} // value는 market과 일치
-                            onSelect={value => {
-                              const foundTicker = allExchangesTickers.find(t => t.market === value);
-                              setSelectedTicker(foundTicker ?? null);
-                              setIsCommandOpen(false);
-                              setSearchValue('');
-                            }}>
-                            {ticker.koreanName ? `${ticker.koreanName} (${ticker.market})` : ticker.market}
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
+                    <CommandGroup>{filteredTickers.map(renderTickerItem)}</CommandGroup>
                   )}
                 </CommandList>
               )}
