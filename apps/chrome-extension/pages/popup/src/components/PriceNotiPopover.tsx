@@ -1,39 +1,84 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { getRegExp } from 'korean-regexp';
 import { Bell } from 'lucide-react';
 
-type exchangeTicker = { exchange: string; market: string; changeRate: number; lastPrice: number };
-type AllExchangesTickers = exchangeTicker[];
+type ExchangeTicker = {
+  exchange: string;
+  market: string;
+  currentPrice: number;
+  changeRate: number;
+  koreanName?: string;
+};
+type AllExchangesTickers = ExchangeTicker[];
+
+const searchTicker = (ticker: ExchangeTicker, searchValue: string): boolean => {
+  const trimmedSearch = searchValue.trim();
+  const market = ticker.market.toLowerCase();
+  const koreanName = ticker.koreanName || '';
+
+  console.log(`Filter - Search: "${trimmedSearch}", Market: "${market}", KoreanName: "${koreanName}"`);
+
+  if (!trimmedSearch) return true; // 검색어가 없으면 모두 표시
+
+  // 영어 검색 (market)
+  if (market.includes(trimmedSearch.toLowerCase())) {
+    console.log(`Matched market: ${market}`);
+    return true;
+  }
+
+  // 한글 전체 텍스트 검색
+  if (koreanName && koreanName.includes(trimmedSearch)) {
+    console.log(`Matched full koreanName: ${koreanName}`);
+    return true;
+  }
+
+  // 한글 초성 검색
+  if (koreanName && trimmedSearch) {
+    const chosungRegex = getRegExp(trimmedSearch, { initialSearch: true });
+    const isMatch = chosungRegex.test(koreanName);
+    console.log(`Chosung match for "${trimmedSearch}" on "${koreanName}": ${isMatch}`);
+    return isMatch;
+  }
+
+  return false;
+};
 
 export const PriceNotiPopover = () => {
-  const [selectedTicker, setSelectTicker] = useState<exchangeTicker | null>(null); // Status 대신 exchangeTicker 사용
+  const [selectedTicker, setSelectedTicker] = useState<ExchangeTicker | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [allExchangesTickers, setAllExchangesTickers] = useState<AllExchangesTickers>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
-  useEffect(() => {
+  const initializeChromeConnection = useCallback(() => {
+    setIsLoading(true);
     const port = chrome.runtime.connect({ name: 'popup' });
 
     port.onMessage.addListener(({ type, data }) => {
-      switch (type) {
-        case 'allExchangesTickers':
-          console.log('allExchangesTickers in priceNotiPopover', data);
-          setAllExchangesTickers(data); // data로 업데이트 (빈 배열 대신)
-          break;
+      if (type === 'allExchangesTickers') {
+        console.log('Loaded tickers:', data.slice(0, 5)); // 처음 5개만 로그
+        setAllExchangesTickers(data);
+        setIsLoading(false);
       }
     });
 
     port.onDisconnect.addListener(() => {
-      setTimeout(() => chrome.runtime.connect({ name: 'popup' }), 500);
+      setTimeout(() => initializeChromeConnection(), 500);
     });
 
     chrome.runtime.sendMessage({ action: 'getAllExchangesTickers' });
-
     return () => port.disconnect();
   }, []);
+
+  useEffect(() => {
+    const disconnect = initializeChromeConnection();
+    return disconnect;
+  }, [initializeChromeConnection]);
 
   return (
     <div className="relative inline-flex group">
@@ -45,29 +90,45 @@ export const PriceNotiPopover = () => {
         </PopoverTrigger>
         <PopoverContent className="w-80 p-1">
           <div className="grid gap-4">
-            <Command>
-              <div>{selectedTicker ? selectedTicker.market : 'Coin'}</div>
+            <Command
+              filter={(value, search) => {
+                const ticker = allExchangesTickers.find(t => t.market === value);
+                if (!ticker) return 0;
+                return searchTicker(ticker, search) ? 1 : 0;
+              }}>
+              <div>{selectedTicker?.market ?? 'Coin'}</div>
               <CommandInput
-                placeholder="Search coin"
+                placeholder="코인 검색"
+                value={searchValue}
+                onValueChange={setSearchValue}
                 onFocus={() => setIsCommandOpen(true)}
                 onBlur={() => setIsCommandOpen(false)}
               />
               {isCommandOpen && (
                 <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
-                  <CommandGroup>
-                    {allExchangesTickers.map(ticker => (
-                      <CommandItem
-                        key={ticker.market}
-                        value={ticker.market}
-                        onSelect={value => {
-                          setSelectTicker(allExchangesTickers.find(ticker => ticker.market.includes(value)) || null);
-                          setIsCommandOpen(false);
-                        }}>
-                        {ticker.market} {/* ticker 객체의 market 사용 */}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+                  {isLoading ? (
+                    <CommandEmpty>로딩 중...</CommandEmpty>
+                  ) : allExchangesTickers.length === 0 ? (
+                    <CommandEmpty>결과 없음</CommandEmpty>
+                  ) : (
+                    <CommandGroup>
+                      {allExchangesTickers
+                        .filter(ticker => searchTicker(ticker, searchValue))
+                        .map(ticker => (
+                          <CommandItem
+                            key={ticker.market}
+                            value={ticker.market} // value는 market과 일치
+                            onSelect={value => {
+                              const foundTicker = allExchangesTickers.find(t => t.market === value);
+                              setSelectedTicker(foundTicker ?? null);
+                              setIsCommandOpen(false);
+                              setSearchValue('');
+                            }}>
+                            {ticker.koreanName ? `${ticker.koreanName} (${ticker.market})` : ticker.market}
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  )}
                 </CommandList>
               )}
               <div className="space-y-2">
