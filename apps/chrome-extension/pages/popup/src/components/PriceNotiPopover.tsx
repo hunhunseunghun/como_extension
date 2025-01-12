@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,22 +6,34 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Bell } from 'lucide-react';
 
-type Status = {
-  value: string;
-  label: string;
-};
+type exchangeTicker = { exchange: string; market: string; changeRate: number; lastPrice: number };
+type AllExchangesTickers = exchangeTicker[];
 
 export const PriceNotiPopover = () => {
-  const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
-  const [isCommandOpen, setIsCommandOpen] = useState(false); // CommandList 열림/닫힘 상태
+  const [selectedTicker, setSelectTicker] = useState<exchangeTicker | null>(null); // Status 대신 exchangeTicker 사용
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [allExchangesTickers, setAllExchangesTickers] = useState<AllExchangesTickers>([]);
 
-  const statuses: Status[] = [
-    { value: 'backlog', label: 'Backlog' },
-    { value: 'todo', label: 'Todo' },
-    { value: 'in progress', label: 'In Progress' },
-    { value: 'done', label: 'Done' },
-    { value: 'canceled', label: 'Canceled' },
-  ];
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: 'popup' });
+
+    port.onMessage.addListener(({ type, data }) => {
+      switch (type) {
+        case 'allExchangesTickers':
+          console.log('allExchangesTickers in priceNotiPopover', data);
+          setAllExchangesTickers(data); // data로 업데이트 (빈 배열 대신)
+          break;
+      }
+    });
+
+    port.onDisconnect.addListener(() => {
+      setTimeout(() => chrome.runtime.connect({ name: 'popup' }), 500);
+    });
+
+    chrome.runtime.sendMessage({ action: 'getAllExchangesTickers' });
+
+    return () => port.disconnect();
+  }, []);
 
   return (
     <div className="relative inline-flex group">
@@ -31,28 +43,28 @@ export const PriceNotiPopover = () => {
             <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80">
+        <PopoverContent className="w-80 p-1">
           <div className="grid gap-4">
             <Command>
-              <div>{selectedStatus ? selectedStatus.label : 'Coin'}</div>
+              <div>{selectedTicker ? selectedTicker.market : 'Coin'}</div>
               <CommandInput
                 placeholder="Search coin"
-                onFocus={() => setIsCommandOpen(true)} // 포커스 시 열기
-                onBlur={() => setIsCommandOpen(false)} // 포커스 해제 시 닫기
+                onFocus={() => setIsCommandOpen(true)}
+                onBlur={() => setIsCommandOpen(false)}
               />
-              {isCommandOpen && ( // 조건부 렌더링
+              {isCommandOpen && (
                 <CommandList>
                   <CommandEmpty>No results found.</CommandEmpty>
                   <CommandGroup>
-                    {statuses.map(status => (
+                    {allExchangesTickers.map(ticker => (
                       <CommandItem
-                        key={status.value}
-                        value={status.value}
+                        key={ticker.market}
+                        value={ticker.market}
                         onSelect={value => {
-                          setSelectedStatus(statuses.find(priority => priority.value === value) || null);
-                          setIsCommandOpen(false); // 선택 시 닫기
+                          setSelectTicker(allExchangesTickers.find(ticker => ticker.market.includes(value)) || null);
+                          setIsCommandOpen(false);
                         }}>
-                        {status.label}
+                        {ticker.market} {/* ticker 객체의 market 사용 */}
                       </CommandItem>
                     ))}
                   </CommandGroup>
