@@ -36,7 +36,7 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
     triggered[exchange][ticker] = triggered[exchange][ticker] || {};
 
     // 종목별 데드밴드 가져오기, 없으면 기본값
-    const deadband = deadbandSettings[exchange]?.[ticker] ?? DEFAULT_DEADBAND;
+    const deadband = deadbandSettings[exchange]?.[ticker] ?? 0;
 
     alertPrices.forEach(alertPrice => {
       if (lastPrice !== null && alertPrice) {
@@ -87,7 +87,7 @@ function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) 
     type: 'basic',
     iconUrl: 'como-logo.png',
     title: `${exchange.toUpperCase()} ${ticker} 가격 알림`,
-    message: `${ticker}가 ${alertPrice}를 ${currentPrice > alertPrice ? '상향' : '하향'} 돌파했습니다!`,
+    message: `${ticker}가 ${alertPrice}를 도달하여 ${currentPrice > alertPrice ? '상향' : '하향'}했습니다.`,
   });
 }
 // 지정가 및 데드밴드 저장 함수
