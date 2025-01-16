@@ -35,6 +35,7 @@ import { MarketDropdown } from '@/components/MarketDropdown';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { FavoriteToggle } from '@/components/FavoriteToggle';
+import { PriceNotiPopover } from '@/components/PriceNotiPopover';
 import { Search, Loader2 } from 'lucide-react';
 
 import fireLogo from '@/assets/icons/fire.svg';
@@ -347,31 +348,30 @@ const App = () => {
     }
   };
 
-  const setPriceAlert = () => {
-    const exchange = 'upbit'; // 예시, 실제로는 선택 UI 필요
-    const ticker = 'KRW-BTC';
-    const pricesInput = '127944000,128132000,127965000,127874000,127888000';
-    const deadband = 0.00000000001 / 100; // %를 소수로 변환
-    const prices = pricesInput.split(',').map(Number);
+  // const setPriceAlert = () => {
+  //   const exchange = 'upbit'; // 예시, 실제로는 선택 UI 필요
+  //   const ticker = 'KRW-BTC';
+  //   const pricesInput = '127944000,128132000,127965000,127874000,127888000';
+  //   const deadband = 0.00000000001 / 100; // %를 소수로 변환
+  //   const prices = pricesInput.split(',').map(Number);
 
-    chrome.runtime.sendMessage(
-      {
-        action: 'setPriceAlert',
-        exchange,
-        ticker,
-        prices,
-        deadband,
-      },
-      response => {
-        if (response) {
-          console.log('지정가 및 데드밴드 설정 성공');
-        }
-      },
-    );
-  };
+  //   chrome.runtime.sendMessage(
+  //     {
+  //       action: 'setPriceAlert',
+  //       exchange,
+  //       ticker,
+  //       prices,
+  //       deadband,
+  //     },
+  //     response => {
+  //       if (response) {
+  //         console.log('지정가 및 데드밴드 설정 성공');
+  //       }
+  //     },
+  //   );
+  // };
   return (
     <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
-      <button onClick={setPriceAlert}>test</button>
       <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
         <nav className="flex-shrink-0 p-1">
           <div className="flex justify-between items-end mx-auto w-full">
@@ -391,7 +391,7 @@ const App = () => {
                     {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
                   </span>
 
-                  <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                  <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                     {'상위 상승 종목'}
                   </span>
                 </div>
@@ -399,6 +399,7 @@ const App = () => {
             </section>
             <section className="flex gap-1">
               <UpdateNoteToggle updatedVersion={updatedVersion} />
+              <PriceNotiPopover />
               <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
               <ModeToggle />
               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
@@ -422,7 +423,7 @@ const App = () => {
               <div className="relative flex justify-center items-center h-6 w-15 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
                 <span>Total</span>
                 <span className="w-[17px]">{table.getRowModel().rows.length}</span>
-                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                   {'현재 거래소 종목수'}
                 </span>
               </div>
