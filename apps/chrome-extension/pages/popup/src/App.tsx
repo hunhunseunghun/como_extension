@@ -1,505 +1,506 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import '@/styles/App.css';
-import { Ticker } from '@/types';
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  flexRender,
-  VisibilityState,
-  RowPinningState,
-  useReactTable,
-} from '@tanstack/react-table';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getUpbitColumns } from '@/columns/upbitColumns';
-import { getBithumbColumns } from '@/columns/bithumbColumns';
-import { ThemeProvider } from '@/components/ThemeProvider';
-import { LoadingSpinner } from '@/components/ui/loadingSpinner';
-import { Input } from '@/components/ui/input';
-import { ModeToggle } from '@/components/ModeToggle';
-import { SizeToggle } from '@/components/SizeToggle';
-import { MarketDropdown } from '@/components/MarketDropdown';
-import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
-import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
-import { FavoriteToggle } from '@/components/FavoriteToggle';
-import { Search, Loader2 } from 'lucide-react';
-import comoLogo from '@/assets/icons/como-logo.png';
+// 다중 테이블 original codes
+// import { useState, useEffect, useMemo, useRef } from 'react';
+// import '@/styles/App.css';
+// import { Ticker } from '@/types';
+// import {
+//   ColumnDef,
+//   ColumnFiltersState,
+//   SortingState,
+//   getCoreRowModel,
+//   getSortedRowModel,
+//   getFilteredRowModel,
+//   flexRender,
+//   VisibilityState,
+//   RowPinningState,
+//   useReactTable,
+// } from '@tanstack/react-table';
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+// import { getUpbitColumns } from '@/columns/upbitColumns';
+// import { getBithumbColumns } from '@/columns/bithumbColumns';
+// import { ThemeProvider } from '@/components/ThemeProvider';
+// import { LoadingSpinner } from '@/components/ui/loadingSpinner';
+// import { Input } from '@/components/ui/input';
+// import { ModeToggle } from '@/components/ModeToggle';
+// import { SizeToggle } from '@/components/SizeToggle';
+// import { MarketDropdown } from '@/components/MarketDropdown';
+// import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
+// import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
+// import { FavoriteToggle } from '@/components/FavoriteToggle';
+// import { Search, Loader2 } from 'lucide-react';
+// import comoLogo from '@/assets/icons/como-logo.png';
 
-// 컴포넌트 외부에서 안정적인 fallback 데이터 정의
-const fallbackData: Ticker[] = [];
+// // 컴포넌트 외부에서 안정적인 fallback 데이터 정의
+// const fallbackData: Ticker[] = [];
 
-const App = () => {
-  const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({});
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
-  const [wideSize, setWideSize] = useState<boolean>(true);
-  const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
-  const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
-  const [exchangeMarketType, setExchangeMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
-  const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb'>('upbit');
-  const [isLoading, setIsLoading] = useState(true);
-  const [favoriteCoins, setFavoriteCoins] = useState<{ upbit: string[]; bithumb: string[] }>({
-    upbit: [],
-    bithumb: [],
-  });
-  const [favoriteFunc, setFavoriteFunc] = useState(true);
+// const App = () => {
+//   const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({});
+//   const [sorting, setSorting] = useState<SortingState>([]);
+//   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+//   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+//   const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
+//   const [wideSize, setWideSize] = useState<boolean>(true);
+//   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
+//   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
+//   const [exchangeMarketType, setExchangeMarketType] = useState<'KRW' | 'BTC' | 'USDT'>('KRW');
+//   const [exchangePlatform, setExchangePlatform] = useState<'upbit' | 'bithumb'>('upbit');
+//   const [isLoading, setIsLoading] = useState(true);
+//   const [favoriteCoins, setFavoriteCoins] = useState<{ upbit: string[]; bithumb: string[] }>({
+//     upbit: [],
+//     bithumb: [],
+//   });
+//   const [favoriteFunc, setFavoriteFunc] = useState(true);
 
-  // rowPinning 초기화
-  useEffect(() => {
-    console.log('Resetting rowPinning due to market/platform change:', { exchangePlatform, exchangeMarketType });
-    setRowPinning({ top: [], bottom: [] });
-  }, [exchangeMarketType, exchangePlatform]);
+//   // rowPinning 초기화
+//   useEffect(() => {
+//     console.log('Resetting rowPinning due to market/platform change:', { exchangePlatform, exchangeMarketType });
+//     setRowPinning({ top: [], bottom: [] });
+//   }, [exchangeMarketType, exchangePlatform]);
 
-  // 모든 테이블 데이터에 대해 안정적인 참조를 제공
-  const tableDataUpbitKRW = useMemo(() => {
-    if (!Object.values(tickers).length) return fallbackData;
-    if (exchangePlatform === 'upbit') {
-      const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('KRW-'));
-      console.log('tableDataUpbitKRW:', filtered);
-      return filtered;
-    }
-    return fallbackData;
-  }, [tickers, exchangePlatform]);
+//   // 모든 테이블 데이터에 대해 안정적인 참조를 제공
+//   const tableDataUpbitKRW = useMemo(() => {
+//     if (!Object.values(tickers).length) return fallbackData;
+//     if (exchangePlatform === 'upbit') {
+//       const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('KRW-'));
+//       console.log('tableDataUpbitKRW:', filtered);
+//       return filtered;
+//     }
+//     return fallbackData;
+//   }, [tickers, exchangePlatform]);
 
-  const tableDataUpbitBTC = useMemo(() => {
-    if (!Object.values(tickers).length) return fallbackData;
-    if (exchangePlatform === 'upbit') {
-      const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('BTC-'));
-      console.log('tableDataUpbitBTC:', filtered);
-      return filtered;
-    }
-    return fallbackData;
-  }, [tickers, exchangePlatform]);
+//   const tableDataUpbitBTC = useMemo(() => {
+//     if (!Object.values(tickers).length) return fallbackData;
+//     if (exchangePlatform === 'upbit') {
+//       const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('BTC-'));
+//       console.log('tableDataUpbitBTC:', filtered);
+//       return filtered;
+//     }
+//     return fallbackData;
+//   }, [tickers, exchangePlatform]);
 
-  const tableDataUpbitUSDT = useMemo(() => {
-    if (!Object.values(tickers).length) return fallbackData;
-    if (exchangePlatform === 'upbit') {
-      const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('USDT-'));
-      console.log('tableDataUpbitUSDT:', filtered);
-      return filtered;
-    }
-    return fallbackData;
-  }, [tickers, exchangePlatform]);
+//   const tableDataUpbitUSDT = useMemo(() => {
+//     if (!Object.values(tickers).length) return fallbackData;
+//     if (exchangePlatform === 'upbit') {
+//       const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('USDT-'));
+//       console.log('tableDataUpbitUSDT:', filtered);
+//       return filtered;
+//     }
+//     return fallbackData;
+//   }, [tickers, exchangePlatform]);
 
-  const tableDataBithumbKRW = useMemo(() => {
-    if (!Object.values(tickers).length) return fallbackData;
-    if (exchangePlatform === 'bithumb') {
-      const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('KRW-'));
-      console.log('tableDataBithumbKRW:', filtered);
-      return filtered;
-    }
-    return fallbackData;
-  }, [tickers, exchangePlatform]);
+//   const tableDataBithumbKRW = useMemo(() => {
+//     if (!Object.values(tickers).length) return fallbackData;
+//     if (exchangePlatform === 'bithumb') {
+//       const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('KRW-'));
+//       console.log('tableDataBithumbKRW:', filtered);
+//       return filtered;
+//     }
+//     return fallbackData;
+//   }, [tickers, exchangePlatform]);
 
-  const tableDataBithumbBTC = useMemo(() => {
-    if (!Object.values(tickers).length) return fallbackData;
-    if (exchangePlatform === 'bithumb') {
-      const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('BTC-'));
-      console.log('tableDataBithumbBTC:', filtered);
-      return filtered;
-    }
-    return fallbackData;
-  }, [tickers, exchangePlatform]);
+//   const tableDataBithumbBTC = useMemo(() => {
+//     if (!Object.values(tickers).length) return fallbackData;
+//     if (exchangePlatform === 'bithumb') {
+//       const filtered = Object.values(tickers).filter(ticker => ticker.market?.startsWith('BTC-'));
+//       console.log('tableDataBithumbBTC:', filtered);
+//       return filtered;
+//     }
+//     return fallbackData;
+//   }, [tickers, exchangePlatform]);
 
-  const portRef = useRef<chrome.runtime.Port | null>(null);
-  const connectBackgroundStream = () => {
-    if (portRef.current) return;
-    const port = chrome.runtime.connect({ name: 'popup' });
-    portRef.current = port;
-    try {
-      port.onMessage.addListener(message => {
-        const { type, data } = message;
-        switch (type) {
-          case 'upbitWebsocketTicker':
-            setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
-            if (isLoading) setIsLoading(false);
-            break;
-          case 'bithumbWebsocketTicker':
-            setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
-            if (isLoading) setIsLoading(false);
-            break;
-          case 'upbitTickers':
-            console.log('Received upbitTickers:', data);
-            setTickers(data);
-            if (isLoading) setIsLoading(false);
-            break;
-          case 'bithumbTickers':
-            console.log('Received bithumbTickers:', data);
-            setTickers(data);
-            if (isLoading) setIsLoading(false);
-            break;
-          case 'exchangeRateUSD':
-            setExchangeRateUSD(data);
-            break;
-          case 'activeExchange':
-            setExchangePlatform(data);
-            break;
-          default:
-            break;
-        }
-      });
-      port.onDisconnect.addListener(() => {
-        portRef.current = null;
-        setIsLoading(true);
-        console.warn('WebSocket disconnected, reconnecting...');
-        setTimeout(() => connectBackgroundStream(), 1000);
-      });
-    } catch (error) {
-      console.error('Failed to connect to background:', error);
-    }
-  };
+//   const portRef = useRef<chrome.runtime.Port | null>(null);
+//   const connectBackgroundStream = () => {
+//     if (portRef.current) return;
+//     const port = chrome.runtime.connect({ name: 'popup' });
+//     portRef.current = port;
+//     try {
+//       port.onMessage.addListener(message => {
+//         const { type, data } = message;
+//         switch (type) {
+//           case 'upbitWebsocketTicker':
+//             setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
+//             if (isLoading) setIsLoading(false);
+//             break;
+//           case 'bithumbWebsocketTicker':
+//             setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
+//             if (isLoading) setIsLoading(false);
+//             break;
+//           case 'upbitTickers':
+//             console.log('Received upbitTickers:', data);
+//             setTickers(data);
+//             if (isLoading) setIsLoading(false);
+//             break;
+//           case 'bithumbTickers':
+//             console.log('Received bithumbTickers:', data);
+//             setTickers(data);
+//             if (isLoading) setIsLoading(false);
+//             break;
+//           case 'exchangeRateUSD':
+//             setExchangeRateUSD(data);
+//             break;
+//           case 'activeExchange':
+//             setExchangePlatform(data);
+//             break;
+//           default:
+//             break;
+//         }
+//       });
+//       port.onDisconnect.addListener(() => {
+//         portRef.current = null;
+//         setIsLoading(true);
+//         console.warn('WebSocket disconnected, reconnecting...');
+//         setTimeout(() => connectBackgroundStream(), 1000);
+//       });
+//     } catch (error) {
+//       console.error('Failed to connect to background:', error);
+//     }
+//   };
 
-  useEffect(() => {
-    connectBackgroundStream();
-    chrome.runtime.sendMessage({ action: 'getActiveExchange' });
-    chrome.storage.local.get('como_extension', result => {
-      const storageFavoriteCoins = result?.como_extension?.favoriteCoins;
-      if (storageFavoriteCoins) setFavoriteCoins({ ...storageFavoriteCoins });
-    });
-  }, []);
+//   useEffect(() => {
+//     connectBackgroundStream();
+//     chrome.runtime.sendMessage({ action: 'getActiveExchange' });
+//     chrome.storage.local.get('como_extension', result => {
+//       const storageFavoriteCoins = result?.como_extension?.favoriteCoins;
+//       if (storageFavoriteCoins) setFavoriteCoins({ ...storageFavoriteCoins });
+//     });
+//   }, []);
 
-  useEffect(() => {
-    chrome.storage.local.get('como_extension', result => {
-      const storageFavoriteCoins = result?.como_extension?.favoriteCoins?.[exchangePlatform];
-      if (storageFavoriteCoins) {
-        setFavoriteCoins(prev => ({ ...prev, [exchangePlatform]: [...storageFavoriteCoins] }));
-      }
-    });
-  }, [exchangePlatform]);
+//   useEffect(() => {
+//     chrome.storage.local.get('como_extension', result => {
+//       const storageFavoriteCoins = result?.como_extension?.favoriteCoins?.[exchangePlatform];
+//       if (storageFavoriteCoins) {
+//         setFavoriteCoins(prev => ({ ...prev, [exchangePlatform]: [...storageFavoriteCoins] }));
+//       }
+//     });
+//   }, [exchangePlatform]);
 
-  useEffect(() => {
-    chrome.storage.local.get('como_extension', result => {
-      const comoStorage = result?.como_extension?.favoriteCoins || { upbit: [], bithumb: [] };
-      comoStorage[exchangePlatform] = [...favoriteCoins[exchangePlatform]];
-      chrome.storage.local.set({
-        como_extension: { ...result.como_extension, favoriteCoins: comoStorage },
-      });
-    });
-  }, [favoriteCoins]);
+//   useEffect(() => {
+//     chrome.storage.local.get('como_extension', result => {
+//       const comoStorage = result?.como_extension?.favoriteCoins || { upbit: [], bithumb: [] };
+//       comoStorage[exchangePlatform] = [...favoriteCoins[exchangePlatform]];
+//       chrome.storage.local.set({
+//         como_extension: { ...result.como_extension, favoriteCoins: comoStorage },
+//       });
+//     });
+//   }, [favoriteCoins]);
 
-  // tickers 변경 시 rowPinning 동기화
-  useEffect(() => {
-    const selectedTable = renderSelectedTable(exchangePlatform, exchangeMarketType);
-    const rows = selectedTable.getRowModel().rows;
-    const validPinnedRows: string[] = [];
+//   // tickers 변경 시 rowPinning 동기화
+//   useEffect(() => {
+//     const selectedTable = renderSelectedTable(exchangePlatform, exchangeMarketType);
+//     const rows = selectedTable.getRowModel().rows;
+//     const validPinnedRows: string[] = [];
 
-    // rowPinning.top이 undefined일 경우 빈 배열로 처리
-    (rowPinning.top ?? []).forEach(rowId => {
-      if (rows.some(row => row.id === rowId)) {
-        validPinnedRows.push(rowId);
-      }
-    });
+//     // rowPinning.top이 undefined일 경우 빈 배열로 처리
+//     (rowPinning.top ?? []).forEach(rowId => {
+//       if (rows.some(row => row.id === rowId)) {
+//         validPinnedRows.push(rowId);
+//       }
+//     });
 
-    // favoriteCoins에 따라 새로운 핀 추가
-    rows.forEach(row => {
-      const market = row.original.market;
-      if (favoriteCoins[exchangePlatform].includes(market) && !validPinnedRows.includes(row.id)) {
-        validPinnedRows.push(row.id);
-      }
-    });
+//     // favoriteCoins에 따라 새로운 핀 추가
+//     rows.forEach(row => {
+//       const market = row.original.market;
+//       if (favoriteCoins[exchangePlatform].includes(market) && !validPinnedRows.includes(row.id)) {
+//         validPinnedRows.push(row.id);
+//       }
+//     });
 
-    // 길이 비교 시에도 undefined 방지
-    if (validPinnedRows.length !== (rowPinning.top ?? []).length) {
-      console.log('Updating rowPinning due to data change:', validPinnedRows);
-      setRowPinning(prev => ({ ...prev, top: validPinnedRows }));
-    }
-  }, [tickers, favoriteCoins, exchangePlatform, exchangeMarketType]);
+//     // 길이 비교 시에도 undefined 방지
+//     if (validPinnedRows.length !== (rowPinning.top ?? []).length) {
+//       console.log('Updating rowPinning due to data change:', validPinnedRows);
+//       setRowPinning(prev => ({ ...prev, top: validPinnedRows }));
+//     }
+//   }, [tickers, favoriteCoins, exchangePlatform, exchangeMarketType]);
 
-  const upbitColumns = useMemo(
-    () =>
-      getUpbitColumns(
-        coinNameKR,
-        setCoinNameKR,
-        exchangeRateUSD,
-        exchangeMarketType,
-        favoriteCoins,
-        setFavoriteCoins,
-        'upbit',
-      ),
-    [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins],
-  );
+//   const upbitColumns = useMemo(
+//     () =>
+//       getUpbitColumns(
+//         coinNameKR,
+//         setCoinNameKR,
+//         exchangeRateUSD,
+//         exchangeMarketType,
+//         favoriteCoins,
+//         setFavoriteCoins,
+//         'upbit',
+//       ),
+//     [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins],
+//   );
 
-  const bithumbColumns = useMemo(
-    () =>
-      getBithumbColumns(
-        coinNameKR,
-        setCoinNameKR,
-        exchangeRateUSD,
-        exchangeMarketType,
-        favoriteCoins,
-        setFavoriteCoins,
-        'bithumb',
-      ),
-    [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins],
-  );
+//   const bithumbColumns = useMemo(
+//     () =>
+//       getBithumbColumns(
+//         coinNameKR,
+//         setCoinNameKR,
+//         exchangeRateUSD,
+//         exchangeMarketType,
+//         favoriteCoins,
+//         setFavoriteCoins,
+//         'bithumb',
+//       ),
+//     [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins],
+//   );
 
-  const columns: ColumnDef<Ticker>[] = useMemo(() => {
-    if (exchangePlatform === 'upbit') {
-      return upbitColumns;
-    } else if (exchangePlatform === 'bithumb') {
-      return bithumbColumns;
-    }
-    return [];
-  }, [exchangePlatform, upbitColumns, bithumbColumns]);
+//   const columns: ColumnDef<Ticker>[] = useMemo(() => {
+//     if (exchangePlatform === 'upbit') {
+//       return upbitColumns;
+//     } else if (exchangePlatform === 'bithumb') {
+//       return bithumbColumns;
+//     }
+//     return [];
+//   }, [exchangePlatform, upbitColumns, bithumbColumns]);
 
-  const tableUpbitKRW = useReactTable({
-    data: tableDataUpbitKRW,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowPinningChange: setRowPinning,
-    state: { sorting, columnFilters, columnVisibility, rowPinning },
-    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
-    debugRows: true,
-  });
+//   const tableUpbitKRW = useReactTable({
+//     data: tableDataUpbitKRW,
+//     columns,
+//     getCoreRowModel: getCoreRowModel(),
+//     getSortedRowModel: getSortedRowModel(),
+//     getFilteredRowModel: getFilteredRowModel(),
+//     onSortingChange: setSorting,
+//     onColumnFiltersChange: setColumnFilters,
+//     onColumnVisibilityChange: setColumnVisibility,
+//     onRowPinningChange: setRowPinning,
+//     state: { sorting, columnFilters, columnVisibility, rowPinning },
+//     initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+//     debugRows: true,
+//   });
 
-  const tableUpbitBTC = useReactTable({
-    data: tableDataUpbitBTC,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowPinningChange: setRowPinning,
-    state: { sorting, columnFilters, columnVisibility, rowPinning },
-    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
-    debugRows: true,
-  });
+//   const tableUpbitBTC = useReactTable({
+//     data: tableDataUpbitBTC,
+//     columns,
+//     getCoreRowModel: getCoreRowModel(),
+//     getSortedRowModel: getSortedRowModel(),
+//     getFilteredRowModel: getFilteredRowModel(),
+//     onSortingChange: setSorting,
+//     onColumnFiltersChange: setColumnFilters,
+//     onColumnVisibilityChange: setColumnVisibility,
+//     onRowPinningChange: setRowPinning,
+//     state: { sorting, columnFilters, columnVisibility, rowPinning },
+//     initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+//     debugRows: true,
+//   });
 
-  const tableUpbitUSDT = useReactTable({
-    data: tableDataUpbitUSDT,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowPinningChange: setRowPinning,
-    state: { sorting, columnFilters, columnVisibility, rowPinning },
-    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
-    debugRows: true,
-  });
+//   const tableUpbitUSDT = useReactTable({
+//     data: tableDataUpbitUSDT,
+//     columns,
+//     getCoreRowModel: getCoreRowModel(),
+//     getSortedRowModel: getSortedRowModel(),
+//     getFilteredRowModel: getFilteredRowModel(),
+//     onSortingChange: setSorting,
+//     onColumnFiltersChange: setColumnFilters,
+//     onColumnVisibilityChange: setColumnVisibility,
+//     onRowPinningChange: setRowPinning,
+//     state: { sorting, columnFilters, columnVisibility, rowPinning },
+//     initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+//     debugRows: true,
+//   });
 
-  const tableBithumbKRW = useReactTable({
-    data: tableDataBithumbKRW,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowPinningChange: setRowPinning,
-    state: { sorting, columnFilters, columnVisibility, rowPinning },
-    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
-    debugRows: true,
-  });
+//   const tableBithumbKRW = useReactTable({
+//     data: tableDataBithumbKRW,
+//     columns,
+//     getCoreRowModel: getCoreRowModel(),
+//     getSortedRowModel: getSortedRowModel(),
+//     getFilteredRowModel: getFilteredRowModel(),
+//     onSortingChange: setSorting,
+//     onColumnFiltersChange: setColumnFilters,
+//     onColumnVisibilityChange: setColumnVisibility,
+//     onRowPinningChange: setRowPinning,
+//     state: { sorting, columnFilters, columnVisibility, rowPinning },
+//     initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+//     debugRows: true,
+//   });
 
-  const tableBithumbBTC = useReactTable({
-    data: tableDataBithumbBTC,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowPinningChange: setRowPinning,
-    state: { sorting, columnFilters, columnVisibility, rowPinning },
-    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
-    debugRows: true,
-  });
+//   const tableBithumbBTC = useReactTable({
+//     data: tableDataBithumbBTC,
+//     columns,
+//     getCoreRowModel: getCoreRowModel(),
+//     getSortedRowModel: getSortedRowModel(),
+//     getFilteredRowModel: getFilteredRowModel(),
+//     onSortingChange: setSorting,
+//     onColumnFiltersChange: setColumnFilters,
+//     onColumnVisibilityChange: setColumnVisibility,
+//     onRowPinningChange: setRowPinning,
+//     state: { sorting, columnFilters, columnVisibility, rowPinning },
+//     initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+//     debugRows: true,
+//   });
 
-  const renderSelectedTable = (platform: 'upbit' | 'bithumb', marketType: 'KRW' | 'BTC' | 'USDT') => {
-    console.log('KEY :: ', `${platform}${marketType}`);
-    const key = `${platform}${marketType}`;
-    switch (key) {
-      case 'upbitKRW':
-        return tableUpbitKRW;
-      case 'upbitBTC':
-        return tableUpbitBTC;
-      case 'upbitUSDT':
-        return tableUpbitUSDT;
-      case 'bithumbKRW':
-        return tableBithumbKRW;
-      case 'bithumbBTC':
-        return tableBithumbBTC;
+//   const renderSelectedTable = (platform: 'upbit' | 'bithumb', marketType: 'KRW' | 'BTC' | 'USDT') => {
+//     console.log('KEY :: ', `${platform}${marketType}`);
+//     const key = `${platform}${marketType}`;
+//     switch (key) {
+//       case 'upbitKRW':
+//         return tableUpbitKRW;
+//       case 'upbitBTC':
+//         return tableUpbitBTC;
+//       case 'upbitUSDT':
+//         return tableUpbitUSDT;
+//       case 'bithumbKRW':
+//         return tableBithumbKRW;
+//       case 'bithumbBTC':
+//         return tableBithumbBTC;
 
-      default:
-        console.warn(`Unknown table key, defaulting to empty table: ${key}`);
-        return tableUpbitKRW;
-    }
-  };
+//       default:
+//         console.warn(`Unknown table key, defaulting to empty table: ${key}`);
+//         return tableUpbitKRW;
+//     }
+//   };
 
-  useEffect(() => {
-    const selectedTable = renderSelectedTable(exchangePlatform, exchangeMarketType);
-    selectedTable.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
-  }, [wideSize, exchangePlatform, exchangeMarketType]);
+//   useEffect(() => {
+//     const selectedTable = renderSelectedTable(exchangePlatform, exchangeMarketType);
+//     selectedTable.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
+//   }, [wideSize, exchangePlatform, exchangeMarketType]);
 
-  useEffect(() => {
-    const selectedTable = renderSelectedTable(exchangePlatform, exchangeMarketType);
-    console.log('Current table data:', selectedTable.getRowModel().rows);
-    console.log('Current rowPinning:', rowPinning);
-  }, [rowPinning, exchangePlatform, exchangeMarketType]);
+//   useEffect(() => {
+//     const selectedTable = renderSelectedTable(exchangePlatform, exchangeMarketType);
+//     console.log('Current table data:', selectedTable.getRowModel().rows);
+//     console.log('Current rowPinning:', rowPinning);
+//   }, [rowPinning, exchangePlatform, exchangeMarketType]);
 
-  const topRows = () => {
-    try {
-      return renderSelectedTable(exchangePlatform, exchangeMarketType).getTopRows();
-    } catch (e) {
-      console.error('Error in getTopRows:', e);
-      return [];
-    }
-  };
-  topRows();
+//   const topRows = () => {
+//     try {
+//       return renderSelectedTable(exchangePlatform, exchangeMarketType).getTopRows();
+//     } catch (e) {
+//       console.error('Error in getTopRows:', e);
+//       return [];
+//     }
+//   };
+//   topRows();
 
-  return (
-    <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
-      <div className={`flex-col ${!wideSize ? 'w-[420px] h-[430px]' : 'w-[800px] h-[600px]'} overflow-hidden`}>
-        <nav className="flex-shrink-0">
-          <div className="flex justify-between items-center mx-auto w-full px-1.5 py-1">
-            <section>
-              <img src={comoLogo} className="size-6" />
-            </section>
-            <section className="flex gap-1">
-              <div className="relative flex justify-center items-center h-6 w-16 mr-2 text-[10px] gap-1 border-1 rounded-md hover:cursor-pointer group">
-                <span>{isLoading ? '-' : exchangeRateUSD}원</span>
-                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                  {'한국수출입은행 고시 환율'}
-                </span>
-              </div>
-              <UpdateNoteToggle />
-              <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
-              <ModeToggle />
-              <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
-            </section>
-          </div>
-          <div className="flex justify-between mx-auto w-full px-1.5 py-1">
-            <section className="relative items-center flex">
-              <Input
-                className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
-                placeholder=" BTC , 비트"
-                value={
-                  (renderSelectedTable(exchangePlatform, exchangeMarketType)
-                    .getColumn('market')
-                    ?.getFilterValue() as string) ?? ''
-                }
-                onChange={event =>
-                  renderSelectedTable(exchangePlatform, exchangeMarketType)
-                    .getColumn('market')
-                    ?.setFilterValue(event.target.value)
-                }
-              />
-              <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
-            </section>
-            <section className="flex gap-1">
-              <div className="flex justify-center items-center h-6 w-18 text-[10px] gap-1 border-1 rounded-md">
-                {!isLoading && <span>Total</span>}
-                <span>
-                  {isLoading ? (
-                    <Loader2 className="size-3 animate-spin text-gray-500" />
-                  ) : (
-                    renderSelectedTable(exchangePlatform, exchangeMarketType).getRowModel().rows.length
-                  )}
-                </span>
-              </div>
-              <MarketDropdown
-                exchangePlatform={exchangePlatform}
-                setExchangePlatform={setExchangePlatform}
-                setIsLoading={setIsLoading}
-                setTickers={setTickers}
-              />
-              <MarketTypeDropDown
-                exchangePlatform={exchangePlatform}
-                exchangeMarketType={exchangeMarketType}
-                setExchangeMarketType={setExchangeMarketType}
-              />
-            </section>
-          </div>
-        </nav>
-        <main
-          className={`flex-1 ${!wideSize ? 'h-[365px]' : 'h-[535px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}>
-          <Table className="table table-fixed text-xs">
-            <TableHeader className="sticky top-0 z-0 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
-              {renderSelectedTable(exchangePlatform, exchangeMarketType)
-                .getHeaderGroups()
-                .map(headerGroup => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map(header => (
-                      <TableHead
-                        key={header.id}
-                        className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-            </TableHeader>
-            <TableBody>
-              {isLoading || !Object.keys(tickers).length ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={
-                      renderSelectedTable(exchangePlatform, exchangeMarketType)
-                        .getAllColumns()
-                        .filter(col => col.getIsVisible()).length || 1
-                    }
-                    className="h-48 text-center">
-                    <LoadingSpinner />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {renderSelectedTable(exchangePlatform, exchangeMarketType)
-                    .getTopRows()
-                    .map(row => (
-                      <TableRow
-                        className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-10"
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}>
-                        {row.getVisibleCells().map(cell => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  {renderSelectedTable(exchangePlatform, exchangeMarketType)
-                    .getCenterRows()
-                    .map(row => (
-                      <TableRow
-                        className="border-transparent"
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}>
-                        {row.getVisibleCells().map(cell => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                </>
-              )}
-            </TableBody>
-          </Table>
-        </main>
-      </div>
-    </ThemeProvider>
-  );
-};
+//   return (
+//     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
+//       <div className={`flex-col ${!wideSize ? 'w-[420px] h-[430px]' : 'w-[800px] h-[600px]'} overflow-hidden`}>
+//         <nav className="flex-shrink-0">
+//           <div className="flex justify-between items-center mx-auto w-full px-1.5 py-1">
+//             <section>
+//               <img src={comoLogo} className="size-6" />
+//             </section>
+//             <section className="flex gap-1">
+//               <div className="relative flex justify-center items-center h-6 w-16 mr-2 text-[10px] gap-1 border-1 rounded-md hover:cursor-pointer group">
+//                 <span>{isLoading ? '-' : exchangeRateUSD}원</span>
+//                 <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+//                   {'한국수출입은행 고시 환율'}
+//                 </span>
+//               </div>
+//               <UpdateNoteToggle />
+//               <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
+//               <ModeToggle />
+//               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
+//             </section>
+//           </div>
+//           <div className="flex justify-between mx-auto w-full px-1.5 py-1">
+//             <section className="relative items-center flex">
+//               <Input
+//                 className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
+//                 placeholder=" BTC , 비트"
+//                 value={
+//                   (renderSelectedTable(exchangePlatform, exchangeMarketType)
+//                     .getColumn('market')
+//                     ?.getFilterValue() as string) ?? ''
+//                 }
+//                 onChange={event =>
+//                   renderSelectedTable(exchangePlatform, exchangeMarketType)
+//                     .getColumn('market')
+//                     ?.setFilterValue(event.target.value)
+//                 }
+//               />
+//               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
+//             </section>
+//             <section className="flex gap-1">
+//               <div className="flex justify-center items-center h-6 w-18 text-[10px] gap-1 border-1 rounded-md">
+//                 {!isLoading && <span>Total</span>}
+//                 <span>
+//                   {isLoading ? (
+//                     <Loader2 className="size-3 animate-spin text-gray-500" />
+//                   ) : (
+//                     renderSelectedTable(exchangePlatform, exchangeMarketType).getRowModel().rows.length
+//                   )}
+//                 </span>
+//               </div>
+//               <MarketDropdown
+//                 exchangePlatform={exchangePlatform}
+//                 setExchangePlatform={setExchangePlatform}
+//                 setIsLoading={setIsLoading}
+//                 setTickers={setTickers}
+//               />
+//               <MarketTypeDropDown
+//                 exchangePlatform={exchangePlatform}
+//                 exchangeMarketType={exchangeMarketType}
+//                 setExchangeMarketType={setExchangeMarketType}
+//               />
+//             </section>
+//           </div>
+//         </nav>
+//         <main
+//           className={`flex-1 ${!wideSize ? 'h-[365px]' : 'h-[535px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}>
+//           <Table className="table table-fixed text-xs">
+//             <TableHeader className="sticky top-0 z-0 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
+//               {renderSelectedTable(exchangePlatform, exchangeMarketType)
+//                 .getHeaderGroups()
+//                 .map(headerGroup => (
+//                   <TableRow key={headerGroup.id}>
+//                     {headerGroup.headers.map(header => (
+//                       <TableHead
+//                         key={header.id}
+//                         className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer">
+//                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+//                       </TableHead>
+//                     ))}
+//                   </TableRow>
+//                 ))}
+//             </TableHeader>
+//             <TableBody>
+//               {isLoading || !Object.keys(tickers).length ? (
+//                 <TableRow>
+//                   <TableCell
+//                     colSpan={
+//                       renderSelectedTable(exchangePlatform, exchangeMarketType)
+//                         .getAllColumns()
+//                         .filter(col => col.getIsVisible()).length || 1
+//                     }
+//                     className="h-48 text-center">
+//                     <LoadingSpinner />
+//                   </TableCell>
+//                 </TableRow>
+//               ) : (
+//                 <>
+//                   {renderSelectedTable(exchangePlatform, exchangeMarketType)
+//                     .getTopRows()
+//                     .map(row => (
+//                       <TableRow
+//                         className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-10"
+//                         key={row.id}
+//                         data-state={row.getIsSelected() && 'selected'}>
+//                         {row.getVisibleCells().map(cell => (
+//                           <TableCell key={cell.id}>
+//                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
+//                           </TableCell>
+//                         ))}
+//                       </TableRow>
+//                     ))}
+//                   {renderSelectedTable(exchangePlatform, exchangeMarketType)
+//                     .getCenterRows()
+//                     .map(row => (
+//                       <TableRow
+//                         className="border-transparent"
+//                         key={row.id}
+//                         data-state={row.getIsSelected() && 'selected'}>
+//                         {row.getVisibleCells().map(cell => (
+//                           <TableCell key={cell.id}>
+//                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
+//                           </TableCell>
+//                         ))}
+//                       </TableRow>
+//                     ))}
+//                 </>
+//               )}
+//             </TableBody>
+//           </Table>
+//         </main>
+//       </div>
+//     </ThemeProvider>
+//   );
+// };
 
-export default App;
+// export default App;
 //==============================================================================================================================================
 
 // import { useState, useEffect, useMemo, useRef } from 'react';
@@ -859,3 +860,671 @@ export default App;
 // };
 
 // export default App;
+
+// 다중 테이블 리팩토링 코드 최적화 ============================================================================
+// import { useState, useEffect, useMemo, useRef } from 'react';
+// import '@/styles/App.css';
+// import { Ticker } from '@/types';
+// import {
+//   ColumnDef,
+//   ColumnFiltersState,
+//   SortingState,
+//   getCoreRowModel,
+//   getSortedRowModel,
+//   getFilteredRowModel,
+//   flexRender,
+//   VisibilityState,
+//   RowPinningState,
+//   useReactTable,
+// } from '@tanstack/react-table';
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+// import { getUpbitColumns } from '@/columns/upbitColumns';
+// import { getBithumbColumns } from '@/columns/bithumbColumns';
+// import { ThemeProvider } from '@/components/ThemeProvider';
+// import { LoadingSpinner } from '@/components/ui/loadingSpinner';
+// import { Input } from '@/components/ui/input';
+// import { ModeToggle } from '@/components/ModeToggle';
+// import { SizeToggle } from '@/components/SizeToggle';
+// import { MarketDropdown } from '@/components/MarketDropdown';
+// import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
+// import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
+// import { FavoriteToggle } from '@/components/FavoriteToggle';
+// import { Search, Loader2 } from 'lucide-react';
+// import comoLogo from '@/assets/icons/como-logo.png';
+
+// // 타입 정의
+// type ExchangePlatform = 'upbit' | 'bithumb';
+// type MarketType = 'KRW' | 'BTC' | 'USDT';
+// type FavoriteCoins = { upbit: string[]; bithumb: string[] };
+
+// // 컴포넌트 외부에서 안정적인 fallback 데이터 정의
+// const fallbackData: Ticker[] = [];
+
+// // 테이블 데이터 생성 헬퍼 함수
+// const getTableData = (
+//   tickers: { [key: string]: Ticker },
+//   platform: ExchangePlatform,
+//   marketType: MarketType,
+// ): Ticker[] => {
+//   if (!Object.values(tickers).length) return fallbackData;
+//   return Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${marketType}-`));
+// };
+
+// // WebSocket 연결 커스텀 훅
+// const usePort = (
+//   setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: Ticker }>>,
+//   setExchangePlatform: React.Dispatch<React.SetStateAction<ExchangePlatform>>,
+//   setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
+//   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
+// ) => {
+//   const portRef = useRef<chrome.runtime.Port | null>(null);
+
+//   const connect = () => {
+//     if (portRef.current) return;
+//     const port = chrome.runtime.connect({ name: 'popup' });
+//     portRef.current = port;
+
+//     port.onMessage.addListener(({ type, data }) => {
+//       switch (type) {
+//         case 'upbitWebsocketTicker':
+//         case 'bithumbWebsocketTicker':
+//           setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
+//           setIsLoading(false);
+//           break;
+//         case 'upbitTickers':
+//         case 'bithumbTickers':
+//           console.log(`Received ${type}:`, data);
+//           setTickers(data);
+//           setIsLoading(false);
+//           break;
+//         case 'exchangeRateUSD':
+//           setExchangeRateUSD(data);
+//           break;
+//         case 'activeExchange':
+//           setExchangePlatform(data);
+//           break;
+//       }
+//     });
+
+//     port.onDisconnect.addListener(() => {
+//       portRef.current = null;
+//       setIsLoading(true);
+//       console.warn('WebSocket disconnected, reconnecting...');
+//       setTimeout(connect, 1000);
+//     });
+//   };
+
+//   useEffect(() => {
+//     connect();
+//     chrome.runtime.sendMessage({ action: 'getActiveExchange' });
+//   }, []);
+// };
+
+// // 즐겨찾기 관리 커스텀 훅
+// const useFavorites = (exchangePlatform: ExchangePlatform) => {
+//   const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({ upbit: [], bithumb: [] });
+
+//   useEffect(() => {
+//     chrome.storage.local.get('como_extension', result => {
+//       const stored = result?.como_extension?.favoriteCoins;
+//       if (stored) setFavoriteCoins(stored);
+//     });
+//   }, []);
+
+//   useEffect(() => {
+//     chrome.storage.local.get('como_extension', result => {
+//       const stored = result?.como_extension?.favoriteCoins || { upbit: [], bithumb: [] };
+//       stored[exchangePlatform] = [...favoriteCoins[exchangePlatform]];
+//       chrome.storage.local.set({ como_extension: { ...result.como_extension, favoriteCoins: stored } });
+//     });
+//   }, [favoriteCoins, exchangePlatform]);
+
+//   return [favoriteCoins, setFavoriteCoins] as const;
+// };
+
+// // 테이블 인스턴스 생성 헬퍼 함수
+// const createTableInstance = (
+//   data: Ticker[],
+//   columns: ColumnDef<Ticker>[],
+//   state: {
+//     sorting: SortingState;
+//     columnFilters: ColumnFiltersState;
+//     columnVisibility: VisibilityState;
+//     rowPinning: RowPinningState;
+//   },
+//   setters: {
+//     setSorting: React.Dispatch<React.SetStateAction<SortingState>>;
+//     setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+//     setColumnVisibility: React.Dispatch<React.SetStateAction<VisibilityState>>;
+//     setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
+//   },
+// ) => {
+//   return useReactTable({
+//     data,
+//     columns,
+//     getCoreRowModel: getCoreRowModel(),
+//     getSortedRowModel: getSortedRowModel(),
+//     getFilteredRowModel: getFilteredRowModel(),
+//     onSortingChange: setters.setSorting,
+//     onColumnFiltersChange: setters.setColumnFilters,
+//     onColumnVisibilityChange: setters.setColumnVisibility,
+//     onRowPinningChange: setters.setRowPinning,
+//     state,
+//     initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+//     debugRows: true,
+//   });
+// };
+
+// const App = () => {
+//   const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({});
+//   const [sorting, setSorting] = useState<SortingState>([]);
+//   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+//   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+//   const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
+//   const [wideSize, setWideSize] = useState<boolean>(true);
+//   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
+//   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
+//   const [exchangeMarketType, setExchangeMarketType] = useState<MarketType>('KRW');
+//   const [exchangePlatform, setExchangePlatform] = useState<ExchangePlatform>('upbit');
+//   const [isLoading, setIsLoading] = useState(true);
+//   const [favoriteFunc, setFavoriteFunc] = useState(true);
+
+//   const [favoriteCoins, setFavoriteCoins] = useFavorites(exchangePlatform);
+
+//   usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading);
+
+//   // rowPinning 초기화
+//   useEffect(() => {
+//     console.log('Resetting rowPinning:', { exchangePlatform, exchangeMarketType });
+//     setRowPinning({ top: [], bottom: [] });
+//   }, [exchangeMarketType, exchangePlatform]);
+
+//   // 테이블 데이터 및 컬럼
+//   const tableDataMap = useMemo(
+//     () => ({
+//       upbitKRW: getTableData(tickers, 'upbit', 'KRW'),
+//       upbitBTC: getTableData(tickers, 'upbit', 'BTC'),
+//       upbitUSDT: getTableData(tickers, 'upbit', 'USDT'),
+//       bithumbKRW: getTableData(tickers, 'bithumb', 'KRW'),
+//       bithumbBTC: getTableData(tickers, 'bithumb', 'BTC'),
+//     }),
+//     [tickers],
+//   );
+
+//   const upbitColumns = useMemo(
+//     () =>
+//       getUpbitColumns(coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins, 'upbit'),
+//     [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins],
+//   );
+
+//   const bithumbColumns = useMemo(
+//     () =>
+//       getBithumbColumns(
+//         coinNameKR,
+//         setCoinNameKR,
+//         exchangeRateUSD,
+//         exchangeMarketType,
+//         favoriteCoins,
+//         setFavoriteCoins,
+//         'bithumb',
+//       ),
+//     [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins],
+//   );
+
+//   const columns = useMemo(
+//     () => (exchangePlatform === 'upbit' ? upbitColumns : bithumbColumns),
+//     [exchangePlatform, upbitColumns, bithumbColumns],
+//   );
+
+//   // 테이블 인스턴스 생성
+//   const tables = useMemo(() => {
+//     const state = { sorting, columnFilters, columnVisibility, rowPinning };
+//     const setters = { setSorting, setColumnFilters, setColumnVisibility, setRowPinning };
+//     return {
+//       upbitKRW: createTableInstance(tableDataMap.upbitKRW, columns, state, setters),
+//       upbitBTC: createTableInstance(tableDataMap.upbitBTC, columns, state, setters),
+//       upbitUSDT: createTableInstance(tableDataMap.upbitUSDT, columns, state, setters),
+//       bithumbKRW: createTableInstance(tableDataMap.bithumbKRW, columns, state, setters),
+//       bithumbBTC: createTableInstance(tableDataMap.bithumbBTC, columns, state, setters),
+//     };
+//   }, [tableDataMap, columns, sorting, columnFilters, columnVisibility, rowPinning]);
+
+//   const selectedTable = useMemo(
+//     () => tables[`${exchangePlatform}${exchangeMarketType}` as keyof typeof tables] || tables.upbitKRW,
+//     [tables, exchangePlatform, exchangeMarketType],
+//   );
+
+//   // rowPinning 동기화
+//   useEffect(() => {
+//     const rows = selectedTable.getRowModel().rows;
+//     const validPinnedRows = (rowPinning.top ?? []).filter(rowId => rows.some(row => row.id === rowId));
+//     rows.forEach(row => {
+//       if (favoriteCoins[exchangePlatform].includes(row.original.market) && !validPinnedRows.includes(row.id)) {
+//         validPinnedRows.push(row.id);
+//       }
+//     });
+//     if (validPinnedRows.length !== (rowPinning.top ?? []).length) {
+//       console.log('Updating rowPinning:', validPinnedRows);
+//       setRowPinning({ top: validPinnedRows, bottom: [] });
+//     }
+//   }, [tickers, favoriteCoins, exchangePlatform, exchangeMarketType, selectedTable]);
+
+//   // 컬럼 가시성 토글
+//   useEffect(() => {
+//     selectedTable.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
+//   }, [wideSize, selectedTable]);
+
+//   return (
+//     <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
+//       <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
+//         <nav className="flex-shrink-0">
+//           <div className="flex justify-between items-center mx-auto w-full px-1.5 py-1">
+//             <section>
+//               <img src={comoLogo} className="size-6" />
+//             </section>
+//             <section className="flex gap-1">
+//               <div className="relative flex justify-center items-center h-6 w-16 mr-2 text-[10px] gap-1 border-1 rounded-md hover:cursor-pointer group">
+//                 <span>{isLoading ? '-' : exchangeRateUSD}원</span>
+//                 <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+//                   {'한국수출입은행 고시 환율'}
+//                 </span>
+//               </div>
+//               <UpdateNoteToggle />
+//               <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
+//               <ModeToggle />
+//               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
+//             </section>
+//           </div>
+//           <div className="flex justify-between mx-auto w-full px-1.5 py-1">
+//             <section className="relative items-center flex">
+//               <Input
+//                 className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
+//                 placeholder=" BTC , 비트"
+//                 value={(selectedTable.getColumn('market')?.getFilterValue() as string) ?? ''}
+//                 onChange={event => selectedTable.getColumn('market')?.setFilterValue(event.target.value)}
+//               />
+//               <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
+//             </section>
+//             <section className="flex gap-1">
+//               <div className="flex justify-center items-center h-6 w-18 text-[10px] gap-1 border-1 rounded-md">
+//                 {!isLoading && <span>Total</span>}
+//                 <span>
+//                   {isLoading ? (
+//                     <Loader2 className="size-3 animate-spin text-gray-500" />
+//                   ) : (
+//                     selectedTable.getRowModel().rows.length
+//                   )}
+//                 </span>
+//               </div>
+//               <MarketDropdown
+//                 exchangePlatform={exchangePlatform}
+//                 setExchangePlatform={setExchangePlatform}
+//                 setIsLoading={setIsLoading}
+//                 setTickers={setTickers}
+//               />
+//               <MarketTypeDropDown
+//                 exchangePlatform={exchangePlatform}
+//                 exchangeMarketType={exchangeMarketType}
+//                 setExchangeMarketType={setExchangeMarketType}
+//               />
+//             </section>
+//           </div>
+//         </nav>
+//         <main
+//           className={`flex-1 ${wideSize ? 'h-[535px]' : 'h-[365px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}
+//         >
+//           <Table className="table table-fixed text-xs">
+//             <TableHeader className="sticky top-0 z-0 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
+//               {selectedTable.getHeaderGroups().map(headerGroup => (
+//                 <TableRow key={headerGroup.id}>
+//                   {headerGroup.headers.map(header => (
+//                     <TableHead
+//                       key={header.id}
+//                       className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer"
+//                     >
+//                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+//                     </TableHead>
+//                   ))}
+//                 </TableRow>
+//               ))}
+//             </TableHeader>
+//             <TableBody>
+//               {isLoading || !Object.keys(tickers).length ? (
+//                 <TableRow>
+//                   <TableCell
+//                     colSpan={selectedTable.getAllColumns().filter(col => col.getIsVisible()).length || 1}
+//                     className="h-48 text-center"
+//                   >
+//                     <LoadingSpinner />
+//                   </TableCell>
+//                 </TableRow>
+//               ) : (
+//                 <>
+//                   {selectedTable.getTopRows().map(row => (
+//                     <TableRow
+//                       className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-10"
+//                       key={row.id}
+//                       data-state={row.getIsSelected() && 'selected'}
+//                     >
+//                       {row.getVisibleCells().map(cell => (
+//                         <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+//                       ))}
+//                     </TableRow>
+//                   ))}
+//                   {selectedTable.getCenterRows().map(row => (
+//                     <TableRow
+//                       className="border-transparent"
+//                       key={row.id}
+//                       data-state={row.getIsSelected() && 'selected'}
+//                     >
+//                       {row.getVisibleCells().map(cell => (
+//                         <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+//                       ))}
+//                     </TableRow>
+//                   ))}
+//                 </>
+//               )}
+//             </TableBody>
+//           </Table>
+//         </main>
+//       </div>
+//     </ThemeProvider>
+//   );
+// };
+
+// export default App;
+
+// 단일 테이블 최적화 ===================================================================================
+import { useState, useEffect, useMemo } from 'react';
+import '@/styles/App.css';
+import { Ticker } from '@/types';
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  flexRender,
+  VisibilityState,
+  RowPinningState,
+  useReactTable,
+} from '@tanstack/react-table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getUpbitColumns } from '@/columns/upbitColumns';
+import { getBithumbColumns } from '@/columns/bithumbColumns';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { LoadingSpinner } from '@/components/ui/loadingSpinner';
+import { Input } from '@/components/ui/input';
+import { ModeToggle } from '@/components/ModeToggle';
+import { SizeToggle } from '@/components/SizeToggle';
+import { MarketDropdown } from '@/components/MarketDropdown';
+import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
+import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
+import { FavoriteToggle } from '@/components/FavoriteToggle';
+import { Search, Loader2 } from 'lucide-react';
+import comoLogo from '@/assets/icons/como-logo.png';
+
+// 타입 정의
+type ExchangePlatform = 'upbit' | 'bithumb';
+type MarketType = 'KRW' | 'BTC' | 'USDT';
+type FavoriteCoins = { upbit: string[]; bithumb: string[] };
+
+// 컴포넌트 외부에서 안정적인 fallback 데이터 정의
+const fallbackData: Ticker[] = [];
+
+// WebSocket 연결 커스텀 훅
+const usePort = (
+  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: Ticker }>>,
+  setExchangePlatform: React.Dispatch<React.SetStateAction<ExchangePlatform>>,
+  setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
+) => {
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: 'popup' });
+
+    port.onMessage.addListener(({ type, data }) => {
+      switch (type) {
+        case 'upbitWebsocketTicker':
+        case 'bithumbWebsocketTicker':
+          setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
+          setIsLoading(false);
+          break;
+        case 'upbitTickers':
+        case 'bithumbTickers':
+          console.log(`Received ${type}:`, data);
+          setTickers(data);
+          setIsLoading(false);
+          break;
+        case 'exchangeRateUSD':
+          setExchangeRateUSD(data);
+          break;
+        case 'activeExchange':
+          setExchangePlatform(data);
+          break;
+      }
+    });
+
+    port.onDisconnect.addListener(() => {
+      setIsLoading(true);
+      console.warn('WebSocket disconnected, reconnecting...');
+      setTimeout(() => chrome.runtime.connect({ name: 'popup' }), 5000); // 재연결 지연 5초로 증가
+    });
+
+    chrome.runtime.sendMessage({ action: 'getActiveExchange' });
+
+    return () => port.disconnect();
+  }, [setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading]);
+};
+
+// 즐겨찾기 관리 커스텀 훅
+const useFavorites = (exchangePlatform: ExchangePlatform) => {
+  const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({ upbit: [], bithumb: [] });
+
+  useEffect(() => {
+    chrome.storage.local.get('como_extension', result => {
+      const stored = result?.como_extension?.favoriteCoins;
+      if (stored) setFavoriteCoins(stored);
+    });
+  }, []);
+
+  useEffect(() => {
+    chrome.storage.local.get('como_extension', result => {
+      const stored = result?.como_extension?.favoriteCoins || { upbit: [], bithumb: [] };
+      stored[exchangePlatform] = [...favoriteCoins[exchangePlatform]];
+      chrome.storage.local.set({ como_extension: { ...result.como_extension, favoriteCoins: stored } });
+    });
+  }, [favoriteCoins, exchangePlatform]);
+
+  return [favoriteCoins, setFavoriteCoins] as const;
+};
+
+const App = () => {
+  const [tickers, setTickers] = useState<{ [key: string]: Ticker }>({});
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
+  const [wideSize, setWideSize] = useState<boolean>(true);
+  const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
+  const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
+  const [exchangeMarketType, setExchangeMarketType] = useState<MarketType>('KRW');
+  const [exchangePlatform, setExchangePlatform] = useState<ExchangePlatform>('upbit');
+  const [isLoading, setIsLoading] = useState(true);
+  const [favoriteFunc, setFavoriteFunc] = useState(true);
+
+  const [favoriteCoins, setFavoriteCoins] = useFavorites(exchangePlatform);
+
+  usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading);
+
+  // 단일 테이블 데이터
+  const tableData = useMemo(() => {
+    if (!Object.values(tickers).length) return fallbackData;
+    return Object.values(tickers).filter(ticker => ticker.market?.startsWith(`${exchangeMarketType}-`));
+  }, [tickers, exchangeMarketType]);
+
+  // 컬럼 정의
+  const columns = useMemo<ColumnDef<Ticker>[]>(() => {
+    const columnArgs: [
+      boolean,
+      React.Dispatch<React.SetStateAction<boolean>>,
+      number,
+      MarketType,
+      FavoriteCoins,
+      React.Dispatch<React.SetStateAction<FavoriteCoins>>,
+    ] = [coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins];
+    return exchangePlatform === 'upbit'
+      ? getUpbitColumns(...columnArgs, 'upbit')
+      : getBithumbColumns(...columnArgs, 'bithumb');
+  }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform]);
+
+  // 단일 테이블 인스턴스
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowPinningChange: setRowPinning,
+    state: { sorting, columnFilters, columnVisibility, rowPinning },
+    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+    debugRows: true,
+  });
+
+  // rowPinning 초기화 및 동기화
+  useEffect(() => {
+    const rows = table.getRowModel().rows;
+    const validPinnedRows = (rowPinning.top ?? []).filter(rowId => rows.some(row => row.id === rowId));
+    rows.forEach(row => {
+      if (favoriteCoins[exchangePlatform].includes(row.original.market) && !validPinnedRows.includes(row.id)) {
+        validPinnedRows.push(row.id);
+      }
+    });
+    if (validPinnedRows.length !== (rowPinning.top ?? []).length) {
+      console.log('Updating rowPinning:', validPinnedRows);
+      setRowPinning({ top: validPinnedRows, bottom: [] });
+    }
+  }, [tableData, favoriteCoins, exchangePlatform, exchangeMarketType, table]);
+
+  // 컬럼 가시성 토글
+  useEffect(() => {
+    table.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
+  }, [wideSize, table]);
+
+  return (
+    <ThemeProvider defaultTheme="dark" storageKey="como-ui-theme">
+      <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
+        <nav className="flex-shrink-0">
+          <div className="flex justify-between items-center mx-auto w-full px-1.5 py-1">
+            <section>
+              <img src={comoLogo} className="size-6" />
+            </section>
+            <section className="flex gap-1">
+              <div className="relative flex justify-center items-center h-6 w-16 mr-2 text-[10px] gap-1 border-1 rounded-md hover:cursor-pointer group">
+                <span>{isLoading ? '- ' : exchangeRateUSD}원</span>
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                  {'한국수출입은행 고시 환율'}
+                </span>
+              </div>
+              <UpdateNoteToggle />
+              <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
+              <ModeToggle />
+              <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
+            </section>
+          </div>
+          <div className="flex justify-between mx-auto w-full px-1.5 py-1">
+            <section className="relative items-center flex">
+              <Input
+                className="h-6 w-22 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
+                placeholder=" BTC , 비트"
+                value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
+                onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
+              />
+              <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
+            </section>
+            <section className="flex gap-1">
+              <div className="flex justify-center items-center h-6 w-18 text-[10px] gap-1 border-1 rounded-md">
+                {!isLoading && <span>Total</span>}
+                <span>
+                  {isLoading ? (
+                    <Loader2 className="size-3 animate-spin text-gray-500" />
+                  ) : (
+                    table.getRowModel().rows.length
+                  )}
+                </span>
+              </div>
+              <MarketDropdown
+                exchangePlatform={exchangePlatform}
+                setExchangePlatform={setExchangePlatform}
+                setIsLoading={setIsLoading}
+                setTickers={setTickers}
+              />
+              <MarketTypeDropDown
+                exchangePlatform={exchangePlatform}
+                exchangeMarketType={exchangeMarketType}
+                setExchangeMarketType={setExchangeMarketType}
+              />
+            </section>
+          </div>
+        </nav>
+        <main
+          className={`flex-1 ${wideSize ? 'h-[535px]' : 'h-[365px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}>
+          <Table className="table table-fixed text-xs">
+            <TableHeader className="sticky top-0 z-0 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
+              {table.getHeaderGroups().map(headerGroup => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map(header => (
+                    <TableHead
+                      key={header.id}
+                      className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer">
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading || !Object.keys(tickers).length ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={table.getAllColumns().filter(col => col.getIsVisible()).length || 1}
+                    className="h-48 text-center">
+                    <LoadingSpinner />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
+                  {table.getTopRows().map(row => (
+                    <TableRow
+                      className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-10"
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}>
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                  {table.getCenterRows().map(row => (
+                    <TableRow
+                      className="border-transparent"
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}>
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </>
+              )}
+            </TableBody>
+          </Table>
+        </main>
+      </div>
+    </ThemeProvider>
+  );
+};
+
+export default App;
