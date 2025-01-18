@@ -25,7 +25,7 @@ import { MarketDropdown } from '@/components/MarketDropdown';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { FavoriteToggle } from '@/components/FavoriteToggle';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 컴포넌트 외부에서 안정적인 fallback 데이터 정의
@@ -405,8 +405,14 @@ const App = () => {
             </section>
             <section className="flex gap-1">
               <div className="flex justify-center items-center h-6 w-18 text-[10px] gap-1 border-1 rounded-md">
-                <span>Total</span>
-                <span>{renderSelectedTable(exchangePlatform, exchangeMarketType).getRowModel().rows.length}</span>
+                {!isLoading && <span>Total</span>}
+                <span>
+                  {isLoading ? (
+                    <Loader2 className="size-3 animate-spin text-gray-500" />
+                  ) : (
+                    renderSelectedTable(exchangePlatform, exchangeMarketType).getRowModel().rows.length
+                  )}
+                </span>
               </div>
               <MarketDropdown
                 exchangePlatform={exchangePlatform}

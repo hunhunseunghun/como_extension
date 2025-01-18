@@ -158,7 +158,7 @@ export const getUpbitColumns = (
             className={`${
               row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''
             }`}>
-            {`${row.original.change === 'RISE' ? '+' : '-'}${value}%`}
+            {`${row.original.change === 'RISE' ? '+' : ''}${value}%`}
           </span>
           {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signedChangePrice}</span>}
         </div>
