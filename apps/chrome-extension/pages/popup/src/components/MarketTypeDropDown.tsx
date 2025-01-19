@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 
-// ✅ 상수와 타입 정의
 const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
 type ExchangeMarketType = (typeof marketTypes)[number];
 type ExchangePlatform = 'upbit' | 'bithumb';
@@ -25,7 +24,6 @@ export function MarketTypeDropDown({
   exchangeMarketType,
   setExchangeMarketType,
 }: MarketTypeDropDownProps) {
-  // 🟢 readonly 타입으로 정의
   const filteredMarketTypes: readonly ExchangeMarketType[] =
     exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : marketTypes;
 

@@ -52,9 +52,9 @@ export const getBithumbColumns = (
 
       // && !row.getIsPinned()
       // && row.getIsPinned()
-      if (savedCoins.includes(market) && row.getCanPin()) {
+      if (savedCoins.includes(market) && !row.getIsPinned()) {
         row.pin('top');
-      } else if (!savedCoins.includes(market) && !row.getCanPin()) {
+      } else if (!savedCoins.includes(market) && row.getIsPinned()) {
         row.pin(false);
       }
 
