@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -27,6 +28,10 @@ export function MarketTypeDropDown({
   // 🟢 readonly 타입으로 정의
   const filteredMarketTypes: readonly ExchangeMarketType[] =
     exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : marketTypes;
+
+  useEffect(() => {
+    setExchangeMarketType('KRW');
+  }, [exchangePlatform]);
 
   return (
     <DropdownMenu>
