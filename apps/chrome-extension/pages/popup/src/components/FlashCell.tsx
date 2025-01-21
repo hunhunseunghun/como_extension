@@ -1,15 +1,16 @@
 // FlashContent.tsx
 import { useEffect, useState } from 'react';
-import { TableCell } from '@/components/ui/table';
+
 import type { UpbitTicker, BithumbTicker } from '@/types';
 
 type FlashContentProps = {
   ticker?: UpbitTicker | BithumbTicker;
   children: React.ReactNode;
   flashKey: string;
+  className: string;
 };
 
-export default function FlashCell({ ticker, children, flashKey }: FlashContentProps) {
+export default function FlashCell({ ticker, children, flashKey, className }: FlashContentProps) {
   const [flash, setFlash] = useState(false);
 
   useEffect(() => {
@@ -23,10 +24,8 @@ export default function FlashCell({ ticker, children, flashKey }: FlashContentPr
   const flashClass = ticker?.ask_bid === 'ASK' ? 'text-blue-500' : ticker?.ask_bid === 'BID' ? 'text-red-500' : '';
 
   return (
-    <TableCell
-      className={`w-full h-full transition-all duration-500 ease-out ${flash ? flashClass : ''}`}
-      key={`${flashKey}`}>
+    <div className={`${className} transition-all duration-500 ease-out ${flash ? flashClass : ''}`} key={`${flashKey}`}>
       {children}
-    </TableCell>
+    </div>
   );
 }

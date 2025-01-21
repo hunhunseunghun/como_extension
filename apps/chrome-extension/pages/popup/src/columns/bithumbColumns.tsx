@@ -107,33 +107,29 @@ export const getBithumbColumns = (
       switch (exchangeMarketType) {
         case 'KRW':
           return (
-            <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-              <div className="flex flex-col items-end font-medium">
-                <span>{valueKRW?.toLocaleString()}</span>
-                <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
-                  {exchangeRateUSD > 0 &&
-                    `$${changeRateKRW.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}`}
-                </span>
-              </div>
+            <FlashCell
+              key={cell.id}
+              flashKey={cell.id}
+              ticker={row.original}
+              className={'flex flex-col items-end font-medium'}>
+              <span>{valueKRW?.toLocaleString()}</span>
+              <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
+                {exchangeRateUSD > 0 &&
+                  `$${changeRateKRW.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`}
+              </span>
             </FlashCell>
           );
         case 'BTC':
           return (
-            <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-              <div className="flex flex-col items-end font-medium">
-                <span>{valueKRW.toFixed(8)}</span>
-              </div>
-            </FlashCell>
-          );
-        case 'USDT':
-          return (
-            <FlashCell key={cell.id} flashKey={cell.id} ticker={row.original}>
-              <div className="flex flex-col items-end font-medium">
-                <span>${valueKRW.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
+            <FlashCell
+              key={cell.id}
+              flashKey={cell.id}
+              ticker={row.original}
+              className={'flex flex-col items-end font-medium'}>
+              <span>{valueKRW.toFixed(8)}</span>
             </FlashCell>
           );
       }

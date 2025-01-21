@@ -1262,7 +1262,7 @@ import { MarketDropdown } from '@/components/MarketDropdown';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { FavoriteToggle } from '@/components/FavoriteToggle';
-import { Search, Loader2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 타입 정의
@@ -1282,6 +1282,7 @@ const usePort = (
 ) => {
   useEffect(() => {
     const port = chrome.runtime.connect({ name: 'popup' });
+    let isInitialLoad = true;
 
     port.onMessage.addListener(({ type, data }) => {
       switch (type) {
@@ -1297,7 +1298,10 @@ const usePort = (
           setIsLoading(false);
           break;
         case 'exchangeRateUSD':
-          setExchangeRateUSD(data);
+          if (isInitialLoad) {
+            setExchangeRateUSD(data);
+            isInitialLoad = false;
+          }
           break;
         case 'activeExchange':
           setExchangePlatform(data);
@@ -1423,8 +1427,11 @@ const App = () => {
               <img src={comoLogo} className="size-6" />
             </section>
             <section className="flex gap-1">
-              <div className="relative flex justify-center items-center h-6 w-16 mr-2 text-[10px] gap-1 border-1 rounded-md hover:cursor-pointer group">
-                <span>{isLoading ? '- ' : exchangeRateUSD}원</span>
+              <div className="relative flex justify-center items-center h-6 w-20 mr-2 text-[10px] gap-1 border-1 rounded-md hover:cursor-pointer group">
+                <span>
+                  {exchangeRateUSD}
+                  <span className="text-neutral-400"> KRW</span>
+                </span>
                 <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                   {'한국수출입은행 고시 환율'}
                 </span>
@@ -1447,14 +1454,8 @@ const App = () => {
             </section>
             <section className="flex gap-1">
               <div className="flex justify-center items-center h-6 w-18 text-[10px] gap-1 border-1 rounded-md">
-                {!isLoading && <span>Total</span>}
-                <span>
-                  {isLoading ? (
-                    <Loader2 className="size-3 animate-spin text-gray-500" />
-                  ) : (
-                    table.getRowModel().rows.length
-                  )}
-                </span>
+                <span>Total</span>
+                <span>{table.getRowModel().rows.length}</span>
               </div>
               <MarketDropdown
                 exchangePlatform={exchangePlatform}
@@ -1473,7 +1474,7 @@ const App = () => {
         <main
           className={`flex-1 ${wideSize ? 'h-[535px]' : 'h-[365px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}>
           <Table className="table table-fixed text-xs">
-            <TableHeader className="sticky top-0 z-0 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
+            <TableHeader className="sticky top-0 z-49 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map(header => (
@@ -1499,7 +1500,7 @@ const App = () => {
                 <>
                   {table.getTopRows().map(row => (
                     <TableRow
-                      className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-10"
+                      className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-48"
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}>
                       {row.getVisibleCells().map(cell => (
