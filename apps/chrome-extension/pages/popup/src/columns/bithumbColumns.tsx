@@ -11,8 +11,8 @@ export const getBithumbColumns = (
   exchangeRateUSD: number,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
   favoriteCoins: { upbit: string[]; bithumb: string[] },
-  // setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>,
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
+  favoriteFunc: boolean,
   exchangePlatform: 'upbit' | 'bithumb',
 ): ColumnDef<Ticker>[] => [
   {
@@ -50,26 +50,25 @@ export const getBithumbColumns = (
         }
       };
 
-      // && !row.getIsPinned()
-      // && row.getIsPinned()
-      if (savedCoins.includes(market) && !row.getIsPinned()) {
-        row.pin('top');
-      } else if (!savedCoins.includes(market) && row.getIsPinned()) {
-        row.pin(false);
-      }
+      // if (savedCoins.includes(market) && !row.getIsPinned()) {
+      //   row.pin('top');
+      // } else
 
       return (
         <div className="flex gap-[2px] font-semibold">
-          <div className="mt-[2px]">
-            <Star
-              className={
-                row.getIsPinned()
-                  ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                  : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
-              }
-              onClick={setPinningCoins}
-            />
-          </div>
+          {favoriteFunc && (
+            <div className="mt-[2px]">
+              <Star
+                className={
+                  row.getIsPinned()
+                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
+                    : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                }
+                onClick={setPinningCoins}
+              />
+            </div>
+          )}
+
           <div className="text-left break-word">
             <div className="flex gap-[2px]">
               <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>

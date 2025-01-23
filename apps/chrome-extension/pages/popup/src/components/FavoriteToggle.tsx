@@ -3,7 +3,7 @@ import { Toggle } from '@/components/ui/toggle';
 
 interface FavoriteToggleProps {
   favoriteFunc: boolean;
-  setFavoriteFunc: (loading: boolean) => void;
+  setFavoriteFunc: (value: boolean) => void;
 }
 
 export const FavoriteToggle = ({ favoriteFunc, setFavoriteFunc }: FavoriteToggleProps) => {

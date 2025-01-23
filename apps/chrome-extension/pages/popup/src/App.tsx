@@ -139,11 +139,12 @@ const App = () => {
       MarketType,
       FavoriteCoins,
       React.Dispatch<React.SetStateAction<FavoriteCoins>>,
-    ] = [coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins];
+      boolean,
+    ] = [coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins, favoriteFunc];
     return exchangePlatform === 'upbit'
       ? getUpbitColumns(...columnArgs, 'upbit')
       : getBithumbColumns(...columnArgs, 'bithumb');
-  }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform]);
+  }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc]);
 
   // 단일 테이블 인스턴스
   const table = useReactTable({
@@ -174,7 +175,7 @@ const App = () => {
       console.log('Updating rowPinning:', validPinnedRows);
       setRowPinning({ top: validPinnedRows, bottom: [] });
     }
-  }, [tableData, favoriteCoins, exchangePlatform, exchangeMarketType, table]);
+  }, [favoriteCoins, exchangePlatform, exchangeMarketType, favoriteFunc, setFavoriteCoins]);
 
   // 컬럼 가시성 토글
   useEffect(() => {
