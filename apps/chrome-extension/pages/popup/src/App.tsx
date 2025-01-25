@@ -95,7 +95,6 @@ const usePort = (
           updatedVersionHandler(data);
           break;
         case 'maxChangeRate':
-          console.log('maxChangeRate in App.tsx :', data);
           setMaxChangeRateCoin(data);
       }
     });
@@ -347,8 +346,32 @@ const App = () => {
         return;
     }
   };
+
+  const setPriceAlert = () => {
+    const exchange = 'upbit'; // 예시, 실제로는 선택 UI 필요
+    const ticker = 'KRW-BTC';
+    const pricesInput = '127944000,128132000,127965000,127874000,127888000';
+    const deadband = 0.00000000001 / 100; // %를 소수로 변환
+    const prices = pricesInput.split(',').map(Number);
+
+    chrome.runtime.sendMessage(
+      {
+        action: 'setPriceAlert',
+        exchange,
+        ticker,
+        prices,
+        deadband,
+      },
+      response => {
+        if (response) {
+          console.log('지정가 및 데드밴드 설정 성공');
+        }
+      },
+    );
+  };
   return (
     <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
+      <button onClick={setPriceAlert}>test</button>
       <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
         <nav className="flex-shrink-0 p-1">
           <div className="flex justify-between items-end mx-auto w-full">

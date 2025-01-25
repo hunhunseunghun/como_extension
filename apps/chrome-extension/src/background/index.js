@@ -21,6 +21,101 @@ chrome.alarms.onAlarm.addListener(alarm => {
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
+// 지정가 체크
+function checkPriceAlerts(exchange, ticker, currentPrice) {
+  chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
+    const alerts = result.priceAlerts || {};
+    let triggered = result.triggeredPrices || {};
+    const deadbandSettings = result.deadbandSettings || {};
+
+    if (!alerts[exchange] || !alerts[exchange][ticker]) return;
+
+    const lastPrice = allExchangesTickers[exchange][ticker].lastPrice || null;
+    const alertPrices = alerts[exchange][ticker];
+    triggered[exchange] = triggered[exchange] || {};
+    triggered[exchange][ticker] = triggered[exchange][ticker] || {};
+
+    // 종목별 데드밴드 가져오기, 없으면 기본값
+    const deadband = deadbandSettings[exchange]?.[ticker] ?? DEFAULT_DEADBAND;
+
+    alertPrices.forEach(alertPrice => {
+      if (lastPrice !== null && alertPrice) {
+        if (deadband === 0) {
+          // 데드밴드 0%면 히스테리시스 없이 즉시 알림
+          const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
+          const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
+          if (crossedUp || crossedDown) {
+            sendNotification(exchange, ticker, currentPrice, alertPrice, deadband);
+          }
+        } else {
+          // 데드밴드 있으면 히스테리시스 적용
+          const deadbandValue = alertPrice * deadband;
+          const upperBound = alertPrice + deadbandValue;
+          const lowerBound = alertPrice - deadbandValue;
+
+          if (!triggered[exchange][ticker][alertPrice]) {
+            const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
+            const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
+            if (crossedUp || crossedDown) {
+              sendNotification(exchange, ticker, currentPrice, alertPrice, deadband);
+              triggered[exchange][ticker][alertPrice] = true;
+            }
+          } else {
+            if (currentPrice <= lowerBound || currentPrice >= upperBound) {
+              triggered[exchange][ticker][alertPrice] = false;
+            }
+          }
+        }
+      }
+    });
+
+    allExchangesTickers[exchange][ticker].lastPrice = currentPrice;
+    if (deadband !== 0) {
+      chrome.storage.local.set({ triggeredPrices: triggered });
+    }
+  });
+}
+// 알림 전송 함수 (데드밴드 정보 추가로 로그 확인 가능)
+function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) {
+  console.log('notification excuted : ', {
+    type: 'basic',
+    iconUrl: 'como-logo.png',
+    title: `${exchange.toUpperCase()} ${ticker} 가격 알림`,
+    message: `${ticker}의 가격이 ${currentPrice}로 ${alertPrice}를 ${currentPrice > alertPrice ? '상향' : '하향'} 돌파했습니다! (데드밴드: ${deadband * 100}%)`,
+  });
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'como-logo.png',
+    title: `${exchange.toUpperCase()} ${ticker} 가격 알림`,
+    message: `${ticker}가 ${alertPrice}를 ${currentPrice > alertPrice ? '상향' : '하향'} 돌파했습니다!`,
+  });
+}
+// 지정가 및 데드밴드 저장 함수
+function savePriceAlert(exchange, ticker, prices, deadband = null, sendResponse) {
+  chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
+    let alerts = result.priceAlerts || {};
+    let triggered = result.triggeredPrices || {};
+    let deadbandSettings = result.deadbandSettings || {};
+
+    if (!alerts[exchange]) alerts[exchange] = {};
+    alerts[exchange][ticker] = prices.slice(0, 5);
+
+    if (deadband !== null) {
+      if (!deadbandSettings[exchange]) deadbandSettings[exchange] = {};
+      deadbandSettings[exchange][ticker] = deadband; // 종목별 데드밴드 저장
+    }
+
+    if (triggered[exchange] && triggered[exchange][ticker]) {
+      triggered[exchange][ticker] = {}; // 재설정 시 초기화
+    }
+
+    chrome.storage.local.set({ priceAlerts: alerts, triggeredPrices: triggered, deadbandSettings }, () => {
+      console.log(`${exchange} ${ticker} 설정 - 지정가: ${prices}, 데드밴드: ${deadband}`);
+      if (sendResponse) sendResponse({ success: true });
+    });
+  });
+}
+
 // 설치시 : 업데이트 버전, 제거시: 왈라설문조사
 let updatedVersion = '';
 chrome.runtime.onInstalled.addListener(details => {
@@ -43,6 +138,10 @@ chrome.runtime.onMessage.addListener(message => {
   if (message.action === 'changeExchange') handleExchangeChange(message.exchange);
   if (message.action === 'getActiveExchange' && activePort) {
     activePort.postMessage({ type: 'activeExchange', data: activeExchange });
+  }
+  if (message.action === 'setPriceAlert') {
+    const { exchange, ticker, prices, deadband } = message;
+    savePriceAlert(exchange, ticker, prices, deadband); // sendResponse 전달
   }
 });
 
@@ -231,16 +330,17 @@ class ExchangeData {
               currentPrice: binanceTicker.c ? Number(binanceTicker.c) : 0,
               changeRate: binanceTicker.P ? Number(binanceTicker.P) : 0,
             };
+            checkPriceAlerts(this.name, binanceTicker.s, Number(binanceTicker.c));
           });
         }
         if (this.name === 'upbit' || this.name === 'bithumb') {
-          console.log(this.name, 'ticker', ticker);
           allExchangesTickers[this.name][ticker.code] = {
             exchange: this.name,
             market: ticker.code ?? '',
             currentPrice: ticker.trade_price ? Number(ticker.trade_price) * 100 : 0,
             changeRate: ticker.signed_change_rate ? Number(ticker.signed_change_rate) * 100 : 0,
           };
+          checkPriceAlerts(this.name, ticker.code, Number(ticker.trade_price));
         }
 
         if (this.isPopupActive && this.port) {
@@ -500,13 +600,6 @@ chrome.runtime.onConnect.addListener(port => {
     maxChangeRate.market = maxTicker.market;
     maxChangeRate.changeRate = maxTicker.changeRate;
 
-    console.log(
-      "allExchangesTickers['upbit']",
-      allExchangesTickers['upbit'],
-      "allExchangesTickers['bithumb']",
-      allExchangesTickers['bithumb'],
-    );
-    console.log('backgroundscript index.js', maxChangeRate);
     if (activePort) {
       try {
         activePort.postMessage({ type: 'maxChangeRate', data: maxChangeRate });
