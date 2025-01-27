@@ -412,8 +412,8 @@ const App = () => {
                   {'한국수출입은행 고시 환율'}
                 </span>
               </div>
-              {maxChangeRateCoin.market && !wideSize && (
-                <div className="relative flex justify-center items-end h-6 text-[10px] font-semibold gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+              {maxChangeRateCoin.market && wideSize && (
+                <div className="relative flex justify-center items-center h-6  ml-[2px] text-[10px] font-semibold gap-0.5 border-transparent border-1 rounded-md group hover:cursor-default">
                   <img src={fireLogo} className="h-4 w-4" />
                   <div className="flex items-center gap-0.5">
                     <span>{maxChangeRateCoin.market}</span>
