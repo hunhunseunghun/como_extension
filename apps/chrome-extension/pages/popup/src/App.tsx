@@ -35,7 +35,9 @@ import { MarketDropdown } from '@/components/MarketDropdown';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { FavoriteToggle } from '@/components/FavoriteToggle';
-import { Search, Loader2, Flame } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
+
+import fireLogo from '@/assets/icons/fire.svg';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 타입 정의
@@ -349,20 +351,28 @@ const App = () => {
     <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
       <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
         <nav className="flex-shrink-0 p-1">
-          <div className="flex justify-between items-center mx-auto w-full">
+          <div className="flex justify-between items-end mx-auto w-full">
             <section>
               <img src={comoLogo} className="size-6 m-1 ml-0" />
             </section>
             <section>
-              <div className="relative flex justify-center items-center h-6 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
-                <Flame size={16} />
-                <img className="h-4 w-4" src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
-                <span>{maxChangeRateCoin.market} </span>
-                <span>{maxChangeRateCoin.market && maxChangeRateCoin.changeRate}%</span>
-                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                  {'인기 종목'}
-                </span>
-              </div>
+              {maxChangeRateCoin.market && (
+                <div className="relative flex justify-center items-end h-6 text-[10px] font-semibold gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                  <img src={fireLogo} className="h-4 w-4" />
+                  <div className="flex items-center gap-0.5">
+                    <span>{maxChangeRateCoin.market}</span>
+                    <img className="h-2.5 w-2.5" src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
+                  </div>
+                  <span className={maxChangeRateCoin.changeRate > 0 ? 'text-red-500' : 'text-blue-500'}>
+                    {maxChangeRateCoin.changeRate > 0 ? '+' : ''}
+                    {maxChangeRateCoin.market && maxChangeRateCoin.changeRate.toFixed(2)}%
+                  </span>
+
+                  <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                    {'상위 상승 종목'}
+                  </span>
+                </div>
+              )}
             </section>
             <section className="flex gap-1">
               <UpdateNoteToggle updatedVersion={updatedVersion} />
