@@ -35,7 +35,7 @@ import { MarketDropdown } from '@/components/MarketDropdown';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { FavoriteToggle } from '@/components/FavoriteToggle';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Flame } from 'lucide-react';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 타입 정의
@@ -354,11 +354,14 @@ const App = () => {
               <img src={comoLogo} className="size-6 m-1 ml-0" />
             </section>
             <section>
-              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                <img src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
-                <div>{maxChangeRateCoin.market} </div>
-                <div>{maxChangeRateCoin.market && maxChangeRateCoin.changeRate}%</div>
-                <span className="text-neutral-400"> KRW</span>
+              <div className="relative flex justify-center items-center h-6 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                <Flame size={16} />
+                <img className="h-4 w-4" src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
+                <span>{maxChangeRateCoin.market} </span>
+                <span>{maxChangeRateCoin.market && maxChangeRateCoin.changeRate}%</span>
+                <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                  {'인기 종목'}
+                </span>
               </div>
             </section>
             <section className="flex gap-1">

@@ -472,9 +472,9 @@
 // 전체 거래소 종목 정보
 const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
 // 최고 changeRate 종목
-const maxChangeRate = { exchange: null, market: null, changeRate: null };
+const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
-const CURRENT_DATE = new Date()
+let CURRENT_DATE = new Date()
   .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
   .replace(/\./g, '')
   .replace(/ /g, '');
@@ -489,30 +489,6 @@ chrome.alarms.onAlarm.addListener(alarm => {
       .replace(/ /g, '');
   }
 });
-
-setInterval(() => {
-  let maxRate = -Infinity;
-  let maxTicker = { exchange: null, market: null, changeRate: null };
-  let changeCount = 0;
-
-  const compare = { ...allExchangesTickers };
-
-  for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
-    for (const [market, ticker] of Object.entries(tickers)) {
-      const changeRate = ticker.changeRate ?? 0;
-      if (changeRate > maxRate) {
-        maxRate = changeRate;
-        maxTicker.exchange = ticker.exchange;
-        maxTicker.market = ticker.market;
-        maxTicker.changeRate = changeRate;
-      }
-      changeCount++;
-    }
-  }
-  maxChangeRate.exchange = maxTicker.exchange;
-  maxChangeRate.market = maxTicker.market;
-  maxChangeRate.changeRate = maxTicker.changeRate;
-}, 30000);
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
@@ -662,7 +638,7 @@ class ExchangeData {
         if (ticker.market) {
           allExchangesTickers[this.name][ticker.market] = {
             exchange: this.name,
-            market: ticker.market,
+            market: ticker.market ?? '',
             currentPrice: ticker.trade_price ?? 0,
             changeRate: ticker.signed_change_rate ?? 0,
           };
@@ -718,20 +694,21 @@ class ExchangeData {
         const ticker = JSON.parse(data);
 
         //allExchangesTickers update
-        if (this.name === 'binance' && Array.isArray(ticker)) {
-          ticker.forEach(binanceTicker => {
-            allExchangesTickers[this.name][binanceTicker.s] = {
-              exchange: this.name,
-              market: binanceTicker.s,
-              currentPrice: binanceTicker.c ? Number(binanceTicker.c) : 0,
-              changeRate: binanceTicker.P ? Number(binanceTicker.P) : 0,
-            };
-          });
-        }
+        // if (this.name === 'binance' && Array.isArray(ticker)) {
+        //   ticker.forEach(binanceTicker => {
+        //     allExchangesTickers[this.name][binanceTicker.s] = {
+        //       exchange: this.name,
+        //       market: binanceTicker.s,
+        //       currentPrice: binanceTicker.c ? Number(binanceTicker.c) : 0,
+        //       changeRate: binanceTicker.P ? Number(binanceTicker.P) : 0,
+        //     };
+        //   });
+        // }
         if (this.name === 'upbit' || this.name === 'bithumb') {
-          allExchangesTickers[this.name][ticker.market] = {
+          console.log(this.name, 'ticker', ticker);
+          allExchangesTickers[this.name][ticker.code] = {
             exchange: this.name,
-            market: ticker.market,
+            market: ticker.code ?? '',
             currentPrice: ticker.trade_price ? Number(ticker.trade_price) * 100 : 0,
             changeRate: ticker.signed_change_rate ? Number(ticker.signed_change_rate) * 100 : 0,
           };
@@ -878,12 +855,12 @@ class BinanceData extends ExchangeData {
       const tickersArray = await response.json();
       this.tickers = tickersArray.reduce((acc, ticker) => {
         if (ticker.symbol && Number(ticker.lastPrice) !== 0) {
-          allExchangesTickers[this.name][ticker.symbol] = {
-            exchange: this.name,
-            market: ticker.symbol,
-            currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
-            changeRate: ticker.priceChangePercent ? Number(ticker.priceChangePercent) : 0,
-          };
+          // allExchangesTickers[this.name][ticker.symbol] = {
+          //   exchange: this.name,
+          //   market: ticker.symbol,
+          //   currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
+          //   changeRate: ticker.priceChangePercent ? Number(ticker.priceChangePercent) : 0,
+          // };
           acc[ticker.symbol] = { ...ticker, market: ticker.symbol };
         }
         return acc;
@@ -976,9 +953,37 @@ chrome.runtime.onConnect.addListener(port => {
   port.postMessage({ type: 'activeExchange', data: activeExchange });
 
   setInterval(() => {
+    let maxRate = -Infinity;
+    let maxTicker = { exchange: '', market: '', changeRate: 0 };
+
+    for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
+      for (const [market, ticker] of Object.entries(tickers)) {
+        const changeRate = ticker.changeRate ?? 0;
+        if (changeRate > maxRate) {
+          maxRate = changeRate;
+          maxTicker.exchange = ticker.exchange;
+          maxTicker.market = ticker.market;
+          maxTicker.changeRate = changeRate;
+        }
+      }
+    }
+    maxChangeRate.exchange = maxTicker.exchange;
+    maxChangeRate.market = maxTicker.market;
+    maxChangeRate.changeRate = maxTicker.changeRate;
+
+    console.log(
+      "allExchangesTickers['upbit']",
+      allExchangesTickers['upbit'],
+      "allExchangesTickers['bithumb']",
+      allExchangesTickers['bithumb'],
+    );
     console.log('backgroundscript index.js', maxChangeRate);
-    if (port) {
-      port.postMessage({ type: 'maxChangeRate', data: maxChangeRate });
+    if (activePort) {
+      try {
+        activePort.postMessage({ type: 'maxChangeRate', data: maxChangeRate });
+      } catch (error) {
+        console.log('maxChangeRate failed :', error);
+      }
     }
   }, 2000);
 });
