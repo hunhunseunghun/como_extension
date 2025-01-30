@@ -721,15 +721,15 @@ class ExchangeData {
           allExchangesTickers[this.name][ticker.symbol] = {
             exchange: this.name,
             market: ticker.symbol,
-            currentPrice: ticker.trade_price || 0,
-            changeRate: ticker.signed_change_rate || 0,
+            currentPrice: ticker.c ? Number(ticker.c) : 0,
+            changeRate: ticker.P ? Number(ticker.P) : 0,
           };
         } else if ((ticker.market && this.name === 'upbit') || (ticker.market && this.name === 'bithumb')) {
           allExchangesTickers[this.name][ticker.market] = {
             exchange: this.name,
             market: ticker.symbol,
-            currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
-            changeRate: ticker.P ? Number(ticker.P) : 0,
+            currentPrice: ticker.trade_price ? Number(ticker.trade_price) : 0,
+            changeRate: ticker.signed_change_rate ? Number(ticker.signed_change_rate) : 0,
           };
         }
 
