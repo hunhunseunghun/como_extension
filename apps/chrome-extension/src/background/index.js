@@ -490,44 +490,28 @@ chrome.alarms.onAlarm.addListener(alarm => {
   }
 });
 
-function calMaxChangeRateTicker(data) {
-  console.log('calMaxChangeRateTicker 실행 :', maxChangeRate);
-  console.log('입력 데이터 (allExchangesTickers):', data);
-
+setInterval(() => {
   let maxRate = -Infinity;
   let maxTicker = { exchange: null, market: null, changeRate: null };
 
-  if (typeof data === 'object' && data !== null) {
-    Object.keys(data).forEach(exchange => {
-      const tickers = data[exchange];
-      console.log(`${exchange} 종목:`, tickers);
-      Object.keys(tickers).forEach(market => {
-        const ticker = tickers[market];
-        const changeRate = Number(ticker.changeRate) || 0;
-        console.log(`${exchange} - ${market} changeRate:`, changeRate);
-        if (changeRate > maxRate) {
-          maxRate = changeRate;
-          maxTicker = {
-            exchange: ticker.exchange,
-            market: ticker.market,
-            changeRate: changeRate,
-          };
-          console.log('최대 changeRate 갱신:', maxTicker);
-        }
-      });
-    });
-  } else {
-    console.warn('calMaxChangeRateTicker: 유효한 데이터가 없습니다.', data);
+  for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
+    for (const [market, ticker] of Object.entries(tickers)) {
+      const changeRate = ticker.changeRate ?? 0;
+      if (changeRate > maxRate) {
+        maxRate = changeRate;
+        maxTicker.exchange = ticker.exchange;
+        maxTicker.market = ticker.market;
+        maxTicker.changeRate = changeRate;
+      }
+    }
   }
 
   maxChangeRate.exchange = maxTicker.exchange;
   maxChangeRate.market = maxTicker.market;
   maxChangeRate.changeRate = maxTicker.changeRate;
 
-  console.log('최종 maxChangeRate:', maxChangeRate);
-  return maxTicker;
-}
-setInterval(calMaxChangeRateTicker(allExchangesTickers), 2000);
+  console.log('maxChangeRate', maxChangeRate);
+}, 2000);
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
