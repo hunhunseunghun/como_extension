@@ -8,6 +8,7 @@ import {
   ExchangePlatform,
   MarketType,
   FavoriteCoins,
+  maxChagneRateCoin,
 } from '@/types';
 import {
   ColumnDef,
@@ -47,6 +48,7 @@ const usePort = (
   setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
   updatedVersionHandler: (data: string) => void,
+  setMaxChangeRateCoin: React.Dispatch<React.SetStateAction<maxChagneRateCoin>>,
 ) => {
   useEffect(() => {
     const port = chrome.runtime.connect({ name: 'popup' });
@@ -90,6 +92,9 @@ const usePort = (
         case 'updatedVersion':
           updatedVersionHandler(data);
           break;
+        case 'maxChangeRate':
+          console.log('maxChangeRate in App.tsx :', data);
+          setMaxChangeRateCoin(data);
       }
     });
 
@@ -162,6 +167,11 @@ const App = () => {
   const [favoriteFunc, setFavoriteFunc] = useState<boolean>(true);
   const [updatedVersion, setUpdatedVersion] = useState<string>('');
   const [favoriteCoins, setFavoriteCoins] = useFavorites();
+  const [maxChangeRateCoin, setMaxChangeRateCoin] = useState<maxChagneRateCoin>({
+    exchange: '',
+    market: '',
+    changeRate: 0,
+  });
 
   const updatedVersionHandler = (newVersion: string) => {
     chrome.storage.local.get('updatedVersion', result => {
@@ -176,7 +186,14 @@ const App = () => {
     chrome.runtime.sendMessage('popupOpened');
   }, []);
 
-  usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading, updatedVersionHandler);
+  usePort(
+    setTickers,
+    setExchangePlatform,
+    setExchangeRateUSD,
+    setIsLoading,
+    updatedVersionHandler,
+    setMaxChangeRateCoin,
+  );
 
   const tableData = useMemo<TickerTypes[]>(() => {
     if (!Object.values(tickers).length) return fallbackData;
@@ -316,6 +333,18 @@ const App = () => {
     table.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
   }, [wideSize, exchangePlatform]);
 
+  const maxChangeRateCoinhandleLogo = (exchange: string) => {
+    switch (exchange) {
+      case 'upbit':
+        return 'https://coin-images.coingecko.com/markets/images/117/large/upbit.png?1706864294';
+      case 'bithumb':
+        return 'https://coin-images.coingecko.com/markets/images/6/large/bithumb_BI.png?1706864248';
+      case 'binance':
+        return 'https://coin-images.coingecko.com/markets/images/469/large/Binance.png?1706864454';
+      default:
+        return;
+    }
+  };
   return (
     <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
       <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
@@ -323,6 +352,14 @@ const App = () => {
           <div className="flex justify-between items-center mx-auto w-full">
             <section>
               <img src={comoLogo} className="size-6 m-1 ml-0" />
+            </section>
+            <section>
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                <img src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
+                <div>{maxChangeRateCoin.market} </div>
+                <div>{maxChangeRateCoin.market && maxChangeRateCoin.changeRate}%</div>
+                <span className="text-neutral-400"> KRW</span>
+              </div>
             </section>
             <section className="flex gap-1">
               <UpdateNoteToggle updatedVersion={updatedVersion} />

@@ -165,7 +165,7 @@ export const getBinanceColumns = (
       return (
         <div className="flex flex-col items-end font-medium">
           <span className={`${priceChange > 0 ? 'text-red-500' : priceChange < 0 ? 'text-blue-500' : ''}`}>
-            {`${value > 0 ? '-' : ''}${value.toFixed(2)}`}%
+            {`${value > 0 ? '+' : ''}${value.toFixed(2)}`}%
           </span>
           {exchangeMarketType !== 'BTC' && (
             <span className="text-[10px] text-gray-500">
