@@ -472,7 +472,7 @@
 // 전체 거래소 종목 정보
 const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
 // 최고 changeRate 종목
-const maxChangeRate = { exchange: null, market: null, rate: null };
+const maxChangeRate = { exchange: null, market: null, changeRate: null };
 
 const CURRENT_DATE = new Date()
   .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -492,39 +492,42 @@ chrome.alarms.onAlarm.addListener(alarm => {
 
 function calMaxChangeRateTicker(data) {
   console.log('calMaxChangeRateTicker 실행 :', maxChangeRate);
-  let maxRate = -Infinity;
-  let maxTicker = { exchange: null, market: null, rate: null };
+  console.log('입력 데이터 (allExchangesTickers):', data);
 
-  // data가 객체인지 확인
+  let maxRate = -Infinity;
+  let maxTicker = { exchange: null, market: null, changeRate: null };
+
   if (typeof data === 'object' && data !== null) {
-    // 모든 거래소(upbit, bithumb, binance) 순회
     Object.keys(data).forEach(exchange => {
       const tickers = data[exchange];
-      // 각 거래소의 종목 순회
+      console.log(`${exchange} 종목:`, tickers);
       Object.keys(tickers).forEach(market => {
         const ticker = tickers[market];
-        const changeRate = ticker.change_rate || 0; // change_rate가 없으면 0으로 처리
-        // 현재 change_rate가 최대값보다 크면 갱신
+        const changeRate = Number(ticker.changeRate) || 0;
+        console.log(`${exchange} - ${market} changeRate:`, changeRate);
         if (changeRate > maxRate) {
           maxRate = changeRate;
           maxTicker = {
             exchange: ticker.exchange,
             market: ticker.market,
-            rate: changeRate,
+            changeRate: changeRate,
           };
+          console.log('최대 changeRate 갱신:', maxTicker);
         }
       });
     });
+  } else {
+    console.warn('calMaxChangeRateTicker: 유효한 데이터가 없습니다.', data);
   }
 
-  // 최대 change_rate 정보를 maxChangeRate 객체에 저장
   maxChangeRate.exchange = maxTicker.exchange;
   maxChangeRate.market = maxTicker.market;
-  maxChangeRate.rate = maxTicker.rate;
+  maxChangeRate.changeRate = maxTicker.changeRate;
 
-  return maxTicker; // 결과 반환
+  console.log('최종 maxChangeRate:', maxChangeRate);
+  return maxTicker;
 }
-setInterval(calMaxChangeRateTicker, 2000);
+setInterval(calMaxChangeRateTicker(allExchangesTickers), 2000);
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
@@ -654,7 +657,7 @@ class ExchangeData {
     this.markets = [];
     this.marketsInfo = null;
     this.tickers = null;
-    this.initialReconnectDelay = 1000;
+    this.initialReconnectDelay = 2000;
     this.currentReconnectDelay = this.initialReconnectDelay;
     this.maxReconnectDelay = 10000;
     this.backoffFactor = 1.5;
@@ -676,7 +679,7 @@ class ExchangeData {
             exchange: this.name,
             market: ticker.market,
             currentPrice: ticker.trade_price || 0,
-            change_rate: ticker.signed_change_rate || 0,
+            changeRate: ticker.signed_change_rate || 0,
           };
           acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
         }
@@ -735,18 +738,16 @@ class ExchangeData {
             exchange: this.name,
             market: ticker.symbol,
             currentPrice: ticker.trade_price || 0,
-            change_rate: ticker.signed_change_rate || 0,
+            changeRate: ticker.signed_change_rate || 0,
           };
         } else if ((ticker.market && this.name === 'upbit') || (ticker.market && this.name === 'bithumb')) {
           allExchangesTickers[this.name][ticker.market] = {
             exchange: this.name,
             market: ticker.symbol,
             currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
-            change_rate: ticker.P ? Number(ticker.P) : 0,
+            changeRate: ticker.P ? Number(ticker.P) : 0,
           };
         }
-
-        console.log(allExchangesTickers);
 
         if (this.isPopupActive && this.port) {
           this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: ticker });
@@ -893,7 +894,7 @@ class BinanceData extends ExchangeData {
             exchange: this.name,
             market: ticker.symbol,
             currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
-            change_rate: ticker.priceChangePercent ? Number(ticker.priceChangePercent) : 0,
+            changeRate: ticker.priceChangePercent ? Number(ticker.priceChangePercent) : 0,
           };
           acc[ticker.symbol] = { ...ticker, market: ticker.symbol };
         }
