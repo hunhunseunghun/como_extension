@@ -472,7 +472,7 @@
 // 전체 거래소 종목 정보
 const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
 // 최고 changeRate 종목
-const maxChangeRate = { exchange: null, exchange: null, market: null, rate: null };
+const maxChangeRate = { exchange: null, market: null, rate: null };
 
 const CURRENT_DATE = new Date()
   .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -491,12 +491,40 @@ chrome.alarms.onAlarm.addListener(alarm => {
 });
 
 function calMaxChangeRateTicker(data) {
-  const allTickers = [];
+  console.log('calMaxChangeRateTicker 실행 :', maxChangeRate);
+  let maxRate = -Infinity;
+  let maxTicker = { exchange: null, market: null, rate: null };
 
-  if (typeof data === 'object') {
-    Object.keys(data).forEach(exchange => {});
+  // data가 객체인지 확인
+  if (typeof data === 'object' && data !== null) {
+    // 모든 거래소(upbit, bithumb, binance) 순회
+    Object.keys(data).forEach(exchange => {
+      const tickers = data[exchange];
+      // 각 거래소의 종목 순회
+      Object.keys(tickers).forEach(market => {
+        const ticker = tickers[market];
+        const changeRate = ticker.change_rate || 0; // change_rate가 없으면 0으로 처리
+        // 현재 change_rate가 최대값보다 크면 갱신
+        if (changeRate > maxRate) {
+          maxRate = changeRate;
+          maxTicker = {
+            exchange: ticker.exchange,
+            market: ticker.market,
+            rate: changeRate,
+          };
+        }
+      });
+    });
   }
+
+  // 최대 change_rate 정보를 maxChangeRate 객체에 저장
+  maxChangeRate.exchange = maxTicker.exchange;
+  maxChangeRate.market = maxTicker.market;
+  maxChangeRate.rate = maxTicker.rate;
+
+  return maxTicker; // 결과 반환
 }
+setInterval(calMaxChangeRateTicker, 2000);
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
