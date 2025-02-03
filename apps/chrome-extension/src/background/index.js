@@ -631,6 +631,7 @@ class ExchangeData {
     this.maxReconnectDelay = 10000;
     this.backoffFactor = 1.5;
     this.isPopupActive = false;
+    this.isReconnecting = false; // 재연결 상태 플래그
   }
 
   async fetchInitialTickers() {
@@ -681,6 +682,7 @@ class ExchangeData {
     this.socket.onopen = () => {
       console.log(`${this.name} WebSocket 연결됨`);
       // 연결 성공 시 지연 시간 초기화
+      this.isReconnecting = false;
       this.currentReconnectDelay = this.initialReconnectDelay;
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
         const subscription =
@@ -689,7 +691,7 @@ class ExchangeData {
             : JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }]);
         if (subscription) this.socket.send(subscription);
       } else {
-        console.warn(`${this.name} WebSocket 열림 상태 아님`);
+        console.warn(`${this.name} WebSocket open failed`);
       }
     };
 
@@ -740,11 +742,30 @@ class ExchangeData {
   }
 
   reconnectWebSocket() {
+    // 이미 재연결 중이면 중복 실행 방지
+    if (this.isReconnecting) {
+      console.log(`${this.name} 이미 재연결 중입니다.`);
+      return;
+    }
+
+    this.isReconnecting = true;
     const delay = this.currentReconnectDelay;
+
+    console.log(`${this.name} WebSocket 재연결 대기 중, 지연: ${delay}ms`);
+
     setTimeout(() => {
-      console.log(`${this.name} WebSocket 재연결 시도`, currentReconnectDelay);
+      // WebSocket이 이미 연결된 경우 재연결 중지
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        console.log(`${this.name} WebSocket 이미 연결됨. 재연결 중지.`);
+        this.isReconnecting = false;
+        this.currentReconnectDelay = this.initialReconnectDelay; // 초기화
+        return;
+      }
+
+      console.log(`${this.name} WebSocket 재연결 시도, 지연: ${this.currentReconnectDelay}ms`);
       this.connectWebSocket();
       this.currentReconnectDelay = Math.min(this.currentReconnectDelay * this.backoffFactor, this.maxReconnectDelay);
+      this.isReconnecting = false;
     }, delay);
   }
 
