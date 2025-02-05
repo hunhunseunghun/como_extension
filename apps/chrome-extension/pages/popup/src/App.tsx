@@ -340,7 +340,7 @@ const App = () => {
         <main
           className={`flex-1 ${wideSize ? 'h-[535px]' : 'h-[365px]'} overflow-y-scroll light-scrollbar dark-scrollbar`}>
           <Table className="table table-fixed text-xs">
-            <TableHeader className="sticky top-0 z-49 h-7.5 text-[10px] font-extrabold bg-zinc-50 dark:bg-zinc-800">
+            <TableHeader className="sticky top-0 z-49 h-7.5 text-[10px] font-extrabold bg-zinc-200 dark:bg-zinc-800">
               {table.getHeaderGroups().map(headerGroup => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map(header => (

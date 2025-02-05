@@ -104,7 +104,10 @@ export const getUpbitColumns = (
     cell: ({ row }) => {
       return (
         <div className="flex justify-center items-center">
-          <ChartToolTip className="flex justify-center items-center " symbol={row.original.market} exchange="upbit">
+          <ChartToolTip
+            className="flex justify-center items-center hover:text-red-500"
+            symbol={row.original.market}
+            exchange="upbit">
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>
@@ -125,7 +128,7 @@ export const getUpbitColumns = (
       const valueKRW = getValue() as number;
       const changeRateKRW = exchangeRateUSD > 0 ? valueKRW / exchangeRateUSD : 0;
 
-      const priceContent = (
+      return (
         <FlashCell
           key={cell.id}
           flashKey={cell.id}
@@ -149,8 +152,6 @@ export const getUpbitColumns = (
           )}
         </FlashCell>
       );
-
-      return priceContent;
     },
     enableHiding: false,
   },
@@ -234,7 +235,7 @@ export const getUpbitColumns = (
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래대금(24h)</span>
+        <span>거래금(일)</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),

@@ -1,6 +1,6 @@
 import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { BinanceTicker } from '@/types';
-import { Star, ArrowDownUp, ChevronsUpDown } from 'lucide-react';
+import { Star, ArrowDownUp, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
 
@@ -92,6 +92,28 @@ export const getBinanceColumns = (
     enableHiding: false,
   },
   {
+    accessorKey: 'candlestick_chart',
+    header: ({ column }) => (
+      <div className="flex justify-center" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <span className="text-[10px] font-bold underline-offset-2">차트</span>
+      </div>
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-center items-center">
+          <ChartToolTip
+            className="flex justify-center items-center hover:text-red-500"
+            symbol={row.original.symbol}
+            exchange="binance">
+            <ChartCandlestick size={16} />
+          </ChartToolTip>
+        </div>
+      );
+    },
+    enableHiding: false,
+    size: 60,
+  },
+  {
     accessorFn: row => (row.c ? row.c : row.lastPrice),
     id: 'trade_price',
     header: ({ column }) => (
@@ -108,32 +130,8 @@ export const getBinanceColumns = (
         lastPrice >= 1
           ? lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
           : String(lastPrice).replace(/\.?0+$/, '');
-      const symbol = row.original.symbol;
-      // switch (exchangeMarketType) {
-      //   case 'USDT':
-      //     return (
-      //       <FlashCell
-      //         key={cell.id}
-      //         flashKey={cell.id}
-      //         bidAskStatus={bidAskStatus ? bidAskStatus : ''}
-      //         className={'flex flex-col items-end font-medium'}
-      //         symbol={symbol}>
-      //         <span>${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}</span>
-      //       </FlashCell>
-      //     );
-      //   case 'BTC':
-      //     return (
-      //       <FlashCell
-      //         key={cell.id}
-      //         flashKey={cell.id}
-      //         bidAskStatus={bidAskStatus ? bidAskStatus : ''}
-      //         className={'flex flex-col items-end font-medium'}
-      //         symbol={symbol}>
-      //         <span>{lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</span>
-      //       </FlashCell>
-      //     );
-      // }
-      const priceContent = (
+
+      return (
         <FlashCell
           key={cell.id}
           flashKey={cell.id}
@@ -145,12 +143,6 @@ export const getBinanceColumns = (
               : lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}
           </span>
         </FlashCell>
-      );
-
-      return (
-        <ChartToolTip className="w-full" symbol={symbol} exchange="binance">
-          {priceContent}
-        </ChartToolTip>
       );
     },
     enableHiding: false,
@@ -256,7 +248,7 @@ export const getBinanceColumns = (
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래대금(24H)</span>
+        <span>거래금(일)</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),

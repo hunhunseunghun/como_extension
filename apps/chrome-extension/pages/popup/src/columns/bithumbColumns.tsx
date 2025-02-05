@@ -1,6 +1,6 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { BithumbTicker } from '@/types';
-import { Star, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
+import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
 import FlashCell from '@/components/FlashCell';
@@ -93,6 +93,28 @@ export const getBithumbColumns = (
     enableHiding: false,
   },
   {
+    accessorKey: 'candlestick_chart',
+    header: ({ column }) => (
+      <div className="flex justify-center" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <span className="text-[10px] font-bold underline-offset-2">차트</span>
+      </div>
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-center items-center">
+          <ChartToolTip
+            className="flex justify-center items-center hover:text-red-500"
+            symbol={row.original.market}
+            exchange="bithumb">
+            <ChartCandlestick size={16} />
+          </ChartToolTip>
+        </div>
+      );
+    },
+    enableHiding: false,
+    size: 60,
+  },
+  {
     accessorKey: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -103,36 +125,8 @@ export const getBithumbColumns = (
     cell: ({ getValue, row, cell }) => {
       const valueKRW = getValue() as number;
       const changeRateKRW = exchangeRateUSD > 0 ? valueKRW / exchangeRateUSD : 0;
-      // switch (exchangeMarketType) {
-      //   case 'KRW':
-      //     return (
-      //       <FlashCell
-      //         key={cell.id}
-      //         flashKey={cell.id}
-      //         bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
-      //         className={'flex flex-col items-end font-medium'}>
-      //         <span>{valueKRW?.toLocaleString()}</span>
-      //         <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
-      //           {exchangeRateUSD > 0 &&
-      //             `$${changeRateKRW.toLocaleString('en-US', {
-      //               minimumFractionDigits: 2,
-      //               maximumFractionDigits: 2,
-      //             })}`}
-      //         </span>
-      //       </FlashCell>
-      //     );
-      //   case 'BTC':
-      //     return (
-      //       <FlashCell
-      //         key={cell.id}
-      //         flashKey={cell.id}
-      //         bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
-      //         className={'flex flex-col items-end font-medium'}>
-      //         <span>{valueKRW.toFixed(8)}</span>
-      //       </FlashCell>
-      //     );
-      // }
-      const priceContent = (
+
+      return (
         <FlashCell
           key={cell.id}
           flashKey={cell.id}
@@ -152,12 +146,6 @@ export const getBithumbColumns = (
           )}
           {exchangeMarketType === 'BTC' && <span>{valueKRW.toFixed(8)}</span>}
         </FlashCell>
-      );
-
-      return (
-        <ChartToolTip className="w-full" symbol={row.original.market} exchange="bithumb">
-          {priceContent}
-        </ChartToolTip>
       );
     },
     enableHiding: false,
@@ -241,7 +229,7 @@ export const getBithumbColumns = (
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래대금(24h)</span>
+        <span>거래금(일))</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
