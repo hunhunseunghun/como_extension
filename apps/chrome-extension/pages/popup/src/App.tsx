@@ -328,7 +328,7 @@ const App = () => {
             </section>
             <section className="relative items-center flex">
               <Input
-                className="h-6 w-26 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
+                className="h-6 w-30 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
                 placeholder=" BTC , 비트"
                 value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
                 onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
@@ -366,7 +366,7 @@ const App = () => {
                 <>
                   {table.getTopRows()?.map(row => (
                     <TableRow
-                      className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-48 hover:bg-muted"
+                      className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-48"
                       key={row.id}
                       data-state={row.getIsSelected() && 'selected'}>
                       {row.getVisibleCells().map(cell => (

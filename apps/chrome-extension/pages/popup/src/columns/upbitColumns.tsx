@@ -1,6 +1,6 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { UpbitTicker } from '@/types';
-import { Star, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
+import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
 import FlashCell from '@/components/FlashCell';
@@ -95,6 +95,25 @@ export const getUpbitColumns = (
     enableHiding: false,
   },
   {
+    accessorKey: 'candlestick_chart',
+    header: ({ column }) => (
+      <div className="flex justify-center" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <span className="text-[10px] font-bold underline-offset-2">차트</span>
+      </div>
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-center items-center">
+          <ChartToolTip className="flex justify-center items-center " symbol={row.original.market} exchange="upbit">
+            <ChartCandlestick size={16} />
+          </ChartToolTip>
+        </div>
+      );
+    },
+    enableHiding: false,
+    size: 60,
+  },
+  {
     accessorKey: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -131,15 +150,11 @@ export const getUpbitColumns = (
         </FlashCell>
       );
 
-      return (
-        <ChartToolTip className="w-full" symbol={row.original.market} exchange="upbit">
-          {priceContent}
-        </ChartToolTip>
-      );
+      return priceContent;
     },
-
     enableHiding: false,
   },
+
   {
     accessorFn: row => (row.signed_change_rate * 100).toFixed(2),
     id: 'signed_change_rate',
@@ -267,6 +282,7 @@ export const getUpbitColumns = (
     },
     enableHiding: false,
   },
+
   // {
   //   accessorKey: 'candlestic_chart_30d',
   //   id: 'candlestic_chart_30d',
