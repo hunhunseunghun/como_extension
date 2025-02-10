@@ -15,9 +15,10 @@ interface ChartTooltipProps {
   children: React.ReactNode;
   className: string;
   symbol?: string;
+  exchange?: 'binance' | 'upbit' | 'bithumb'; // 거래소 선택
 }
 
-const useChartData = (symbol?: string) => {
+const useChartData = (symbol?: string, exchange: 'binance' | 'upbit' | 'bithumb' = 'binance') => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +30,9 @@ const useChartData = (symbol?: string) => {
       return;
     }
 
-    if (cache[symbol]) {
-      setChartData(cache[symbol]);
+    const cacheKey = `${exchange}-${symbol}`;
+    if (cache[cacheKey]) {
+      setChartData(cache[cacheKey]);
       return;
     }
 
@@ -41,22 +43,52 @@ const useChartData = (symbol?: string) => {
     }, 200);
 
     try {
-      const response = await axios.get(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=30`);
-      const data = response.data;
+      let response;
+      let formattedData: ChartDataPoint[];
 
-      if (!Array.isArray(data) || data.length === 0) {
-        throw new Error('Invalid or empty API response');
+      if (exchange === 'binance') {
+        response = await axios.get(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1d&limit=30`);
+        const data = response.data;
+        if (!Array.isArray(data) || data.length === 0) throw new Error('Invalid Binance response');
+        formattedData = data.map((item: [string, string, string, string, string]) => ({
+          time: Math.floor(parseInt(item[0]) / 1000) as Time,
+          open: parseFloat(item[1]),
+          high: parseFloat(item[2]),
+          low: parseFloat(item[3]),
+          close: parseFloat(item[4]),
+        }));
+      } else if (exchange === 'upbit') {
+        response = await axios.get(`https://api.upbit.com/v1/candles/days?market=${symbol}&count=30`);
+        const data = response.data;
+        if (!Array.isArray(data) || data.length === 0) throw new Error('Invalid Upbit response');
+        formattedData = data.map((item: any) => ({
+          time: Math.floor(new Date(item.candle_date_time_utc).getTime() / 1000) as Time,
+          open: item.opening_price,
+          high: item.high_price,
+          low: item.low_price,
+          close: item.trade_price,
+        }));
+      } else if (exchange === 'bithumb') {
+        const [orderCurrency, paymentCurrency] = symbol.split('-'); // 예: BTC-KRW
+        response = await axios.get(
+          `https://api.bithumb.com/public/candlestick/${orderCurrency}_${paymentCurrency}/24h`,
+        );
+        const data = response.data.data;
+        if (!Array.isArray(data) || data.length === 0) throw new Error('Invalid Bithumb response');
+        formattedData = data
+          .slice(-30) // 최근 30일만 가져오기
+          .map((item: [number, string, string, string, string]) => ({
+            time: Math.floor(item[0] / 1000) as Time,
+            open: parseFloat(item[1]),
+            close: parseFloat(item[2]),
+            high: parseFloat(item[3]),
+            low: parseFloat(item[4]),
+          }));
+      } else {
+        throw new Error('Unsupported exchange');
       }
 
-      const formattedData = data.map((item: [string, string, string, string, string]) => ({
-        time: Math.floor(parseInt(item[0]) / 1000) as Time,
-        open: parseFloat(item[1]),
-        high: parseFloat(item[2]),
-        low: parseFloat(item[3]),
-        close: parseFloat(item[4]),
-      }));
-
-      setCache(prev => ({ ...prev, [symbol]: formattedData }));
+      setCache(prev => ({ ...prev, [cacheKey]: formattedData }));
       setChartData(formattedData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -66,18 +98,18 @@ const useChartData = (symbol?: string) => {
       if (!hasTimedOut) setLoading(false);
       else setLoading(false);
     }
-  }, [symbol, cache]);
+  }, [symbol, exchange, cache]);
 
   return { chartData, loading, error, fetchData };
 };
 
-const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol }) => {
+const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol, exchange = 'binance' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
-  const { chartData, loading, error, fetchData } = useChartData(symbol);
+  const { chartData, loading, error, fetchData } = useChartData(symbol, exchange);
 
   const popupWidth = window.innerWidth;
   const popupHeight = window.innerHeight;
@@ -153,14 +185,13 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
       layout: {
         background: { color: 'transparent' },
         textColor: '#d1d4dc',
-        fontSize: 10, // X축, Y축 텍스트 크기 10px로 통합 설정
-        attributionLogo: false,
+        fontSize: 10,
       },
       grid: { vertLines: { visible: false }, horzLines: { visible: false } },
       rightPriceScale: {
         visible: true,
         borderVisible: false,
-        entireTextOnly: true, // 텍스트 잘림 방지
+        entireTextOnly: true,
       },
       timeScale: {
         visible: true,
@@ -169,13 +200,13 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
         secondsVisible: false,
       },
       crosshair: { mode: 0 },
-      handleScroll: false, // 로고 제거
-      handleScale: false, // 로고 제거
+      handleScroll: false,
+      handleScale: false,
     });
 
     seriesRef.current = chartRef.current.addSeries(CandlestickSeries, {
-      upColor: '#ef4444', // 빨강 (상승)
-      downColor: '#3b82f6', // 파랑 (하락)
+      upColor: '#ef4444',
+      downColor: '#3b82f6',
       borderVisible: false,
       wickUpColor: '#ef4444',
       wickDownColor: '#3b82f6',
@@ -216,7 +247,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
             </div>
           )}
           {!loading && !error && !chartData.length && (
-            <a href="https://www.tradingview.com" className="text-gray-400">
+            <a href="https://www.tradingview.com" className="text-gray-400" target="_blank">
               No data available
             </a>
           )}

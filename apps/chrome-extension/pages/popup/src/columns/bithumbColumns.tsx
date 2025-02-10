@@ -4,6 +4,7 @@ import { Star, ArrowRightLeft, ChevronsUpDown } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
 import FlashCell from '@/components/FlashCell';
+import ChartToolTip from '@/components/ChartToolTip';
 
 export const getBithumbColumns = (
   coinNameKR: boolean,
@@ -102,14 +103,43 @@ export const getBithumbColumns = (
     cell: ({ getValue, row, cell }) => {
       const valueKRW = getValue() as number;
       const changeRateKRW = exchangeRateUSD > 0 ? valueKRW / exchangeRateUSD : 0;
-      switch (exchangeMarketType) {
-        case 'KRW':
-          return (
-            <FlashCell
-              key={cell.id}
-              flashKey={cell.id}
-              bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
-              className={'flex flex-col items-end font-medium'}>
+      // switch (exchangeMarketType) {
+      //   case 'KRW':
+      //     return (
+      //       <FlashCell
+      //         key={cell.id}
+      //         flashKey={cell.id}
+      //         bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
+      //         className={'flex flex-col items-end font-medium'}>
+      //         <span>{valueKRW?.toLocaleString()}</span>
+      //         <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
+      //           {exchangeRateUSD > 0 &&
+      //             `$${changeRateKRW.toLocaleString('en-US', {
+      //               minimumFractionDigits: 2,
+      //               maximumFractionDigits: 2,
+      //             })}`}
+      //         </span>
+      //       </FlashCell>
+      //     );
+      //   case 'BTC':
+      //     return (
+      //       <FlashCell
+      //         key={cell.id}
+      //         flashKey={cell.id}
+      //         bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
+      //         className={'flex flex-col items-end font-medium'}>
+      //         <span>{valueKRW.toFixed(8)}</span>
+      //       </FlashCell>
+      //     );
+      // }
+      const priceContent = (
+        <FlashCell
+          key={cell.id}
+          flashKey={cell.id}
+          bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
+          className={'flex flex-col items-end font-medium'}>
+          {exchangeMarketType === 'KRW' && (
+            <>
               <span>{valueKRW?.toLocaleString()}</span>
               <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
                 {exchangeRateUSD > 0 &&
@@ -118,19 +148,17 @@ export const getBithumbColumns = (
                     maximumFractionDigits: 2,
                   })}`}
               </span>
-            </FlashCell>
-          );
-        case 'BTC':
-          return (
-            <FlashCell
-              key={cell.id}
-              flashKey={cell.id}
-              bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
-              className={'flex flex-col items-end font-medium'}>
-              <span>{valueKRW.toFixed(8)}</span>
-            </FlashCell>
-          );
-      }
+            </>
+          )}
+          {exchangeMarketType === 'BTC' && <span>{valueKRW.toFixed(8)}</span>}
+        </FlashCell>
+      );
+
+      return (
+        <ChartToolTip className="w-full" symbol={row.original.market} exchange="bithumb">
+          {priceContent}
+        </ChartToolTip>
+      );
     },
     enableHiding: false,
   },

@@ -148,7 +148,7 @@ export const getBinanceColumns = (
       );
 
       return (
-        <ChartToolTip className="w-full" symbol={symbol}>
+        <ChartToolTip className="w-full" symbol={symbol} exchange="binance">
           {priceContent}
         </ChartToolTip>
       );
