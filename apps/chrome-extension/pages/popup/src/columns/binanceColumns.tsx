@@ -2,6 +2,7 @@ import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { BinanceTicker } from '@/types';
 import { Star, ArrowDownUp, ChevronsUpDown } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
+import ChartToolTip from '@/components/ChartToolTip';
 
 export const getBinanceColumns = (
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
@@ -107,29 +108,50 @@ export const getBinanceColumns = (
         lastPrice >= 1
           ? lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
           : String(lastPrice).replace(/\.?0+$/, '');
+      const symbol = row.original.symbol;
+      // switch (exchangeMarketType) {
+      //   case 'USDT':
+      //     return (
+      //       <FlashCell
+      //         key={cell.id}
+      //         flashKey={cell.id}
+      //         bidAskStatus={bidAskStatus ? bidAskStatus : ''}
+      //         className={'flex flex-col items-end font-medium'}
+      //         symbol={symbol}>
+      //         <span>${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}</span>
+      //       </FlashCell>
+      //     );
+      //   case 'BTC':
+      //     return (
+      //       <FlashCell
+      //         key={cell.id}
+      //         flashKey={cell.id}
+      //         bidAskStatus={bidAskStatus ? bidAskStatus : ''}
+      //         className={'flex flex-col items-end font-medium'}
+      //         symbol={symbol}>
+      //         <span>{lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</span>
+      //       </FlashCell>
+      //     );
+      // }
+      const priceContent = (
+        <FlashCell
+          key={cell.id}
+          flashKey={cell.id}
+          bidAskStatus={bidAskStatus ? bidAskStatus : ''}
+          className={'flex flex-col items-end font-medium'}>
+          <span>
+            {exchangeMarketType === 'USDT'
+              ? `$${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}`
+              : lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}
+          </span>
+        </FlashCell>
+      );
 
-      switch (exchangeMarketType) {
-        case 'USDT':
-          return (
-            <FlashCell
-              key={cell.id}
-              flashKey={cell.id}
-              bidAskStatus={bidAskStatus ? bidAskStatus : ''}
-              className={'flex flex-col items-end font-medium'}>
-              <span>${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}</span>
-            </FlashCell>
-          );
-        case 'BTC':
-          return (
-            <FlashCell
-              key={cell.id}
-              flashKey={cell.id}
-              bidAskStatus={bidAskStatus ? bidAskStatus : ''}
-              className={'flex flex-col items-end font-medium'}>
-              <span>{lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</span>
-            </FlashCell>
-          );
-      }
+      return (
+        <ChartToolTip className="w-full" symbol={symbol}>
+          {priceContent}
+        </ChartToolTip>
+      );
     },
     enableHiding: false,
   },
