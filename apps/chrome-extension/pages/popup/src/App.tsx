@@ -155,18 +155,14 @@ const App = () => {
   const [updatedVersion, setUpdatedVersion] = useState<string>('');
   const [favoriteCoins, setFavoriteCoins] = useFavorites();
 
-  console.log('sorting', sorting);
   const updatedVersionHandler = (newVersion: string) => {
     chrome.storage.local.get('updatedVersion', result => {
       const stored = result?.updatedVersion || '';
-      console.log('new version in popup result: ', result);
-      console.log('new version in popup stored: ', stored);
+
       if (stored !== newVersion) {
         setUpdatedVersion(newVersion);
       }
     });
-
-    console.log('new version in popup : ', newVersion);
   };
   useEffect(() => {
     chrome.runtime.sendMessage('popupOpened');
@@ -253,7 +249,6 @@ const App = () => {
     debugRows: true,
   });
 
-  console.log('updatedVersion : ', updatedVersion);
   // favoriteCoins와 rowPinning 동기화
   useEffect(() => {
     if (isLoading || !favoriteFunc) {

@@ -42,7 +42,6 @@ export const getBinanceColumns = (
           const updated = { ...prev };
           if (savedCoins.includes(symbol)) {
             updated.binance = updated.binance.filter(coin => coin !== symbol);
-            console.log('binance symbol includes', updated);
             row.pin(false); // 고정 해제
           } else {
             updated.binance = [...updated.binance, symbol];
