@@ -151,7 +151,7 @@ export const getBinanceColumns = (
       return (
         <div className="flex flex-col items-end font-medium">
           <span className={`${priceChange > 0 ? 'text-red-500' : priceChange < 0 ? 'text-blue-500' : ''}`}>
-            {value.toFixed(2)}%
+            {`${value > 0 ? '-' : ''}${value.toFixed(2)}`}%
           </span>
           {exchangeMarketType !== 'BTC' && (
             <span className="text-[10px] text-gray-500">
@@ -163,122 +163,79 @@ export const getBinanceColumns = (
     },
     enableHiding: false,
   },
-  // {
-  //   accessorFn: row => (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
-  //   id: 'highest_52_week_diff',
-  //   header: ({ column }) => (
-  //     <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-  //       <span>고가대비(52주)</span>
-  //       <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-  //     </div>
-  //   ),
-  //   cell: ({ getValue, row }) => {
-  //     const value = String(getValue());
-  //     const highestPrice = row.original.highest_52_week_price?.toLocaleString();
-  //     return (
-  //       <div className="flex flex-col items-end text-blue-500 font-medium">
-  //         <span>-{value}%</span>
-  //         {exchangeMarketType !== 'BTC' ? (
-  //           <span className="text-[10px] text-gray-500">{highestPrice}</span>
-  //         ) : (
-  //           <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
-  //         )}
-  //       </div>
-  //     );
-  //   },
-  // },
-  // {
-  //   accessorFn: row => (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
-  //   id: 'lowest_52_week_diff',
-  //   header: ({ column }) => (
-  //     <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-  //       <p>저가대비(52주)</p>
-  //       <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-  //     </div>
-  //   ),
-  //   cell: ({ getValue, row }) => {
-  //     const value = String(getValue());
-  //     const lowestPrice = row.original.lowest_52_week_price;
-  //     return (
-  //       <div className="flex flex-col items-end text-red-500 font-medium">
-  //         <span>+{value}%</span>
-  //         {exchangeMarketType !== 'BTC' ? (
-  //           <span className="text-[10px] text-gray-500">{lowestPrice?.toLocaleString()}</span>
-  //         ) : (
-  //           <span className="text-[10px] text-gray-500">{lowestPrice?.toFixed(8)}</span>
-  //         )}
-  //       </div>
-  //     );
-  //   },
-  // },
   {
     accessorFn: row => {
-      const ask = parseFloat(row.a as string) || 0;
-      const bid = parseFloat(row.b as string) || 0;
-      const lastPrice = parseFloat(row.c as string) || 0;
-      return lastPrice === 0 ? 0 : (((ask - bid) / lastPrice) * 100).toFixed(2);
+      if (row.h) {
+        return ((Number(row.c) - Number(row.h)) / Number(row.h)) * 100;
+      } else if (row.highPrice) {
+        return ((Number(row.lastPrice) - Number(row.highPrice)) / Number(row.highPrice)) * 100;
+      }
     },
-    id: 'bid_ask_spread',
+    id: 'highest_24h_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>매수-매도 스프레드</p>
+        <span>고가대비(24H)</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
-    cell: ({ getValue }) => {
-      const spread = parseFloat(getValue() as string);
-      let spreadClass = 'text-gray-500';
-
-      if (spread < 0.05) spreadClass = 'text-green-500';
-      else if (spread < 0.2) spreadClass = 'text-blue-500';
-      else if (spread < 1) spreadClass = 'text-orange-500';
-      else spreadClass = 'text-red-500';
-
+    cell: ({ getValue, row }) => {
+      const value = Number(getValue());
+      const highestPrice = row.original.h ? Number(row.original.h) : Number(row.original.highPrice);
       return (
-        <div className={`flex font-medium ${spreadClass} justify-end`}>
-          <span>{spread.toLocaleString()}</span>
+        <div
+          className={`flex flex-col items-end ${value < 0 ? 'text-blue-500' : value > 0 ? 'text-red-500' : 'text-black-500'} font-medium`}>
+          <span>{value.toFixed(2)}%</span>
+          {exchangeMarketType !== 'BTC' ? (
+            <span className="text-[10px] text-gray-500">
+              {highestPrice > 1 ? highestPrice?.toFixed(2) : String(highestPrice).replace(/\.?0+$/, '')}
+            </span>
+          ) : (
+            <span className="text-[10px] text-gray-500">{Number(highestPrice)?.toFixed(8)}</span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    accessorFn: row => {
+      if (row.l) {
+        return ((Number(row.c) - Number(row.l)) / Number(row.l)) * 100;
+      } else if (row.lowPrice) {
+        return ((Number(row.lastPrice) - Number(row.lowPrice)) / Number(row.lowPrice)) * 100;
+      }
+    },
+    id: 'lowest_24h_diff',
+    header: ({ column }) => (
+      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <p>저가대비(24H)</p>
+        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+      </div>
+    ),
+    cell: ({ getValue, row }) => {
+      const value = Number(getValue());
+      const lowestPrice = row.original.l ? Number(row.original.l) : Number(row.original.lowPrice);
+      return (
+        <div
+          className={`flex flex-col items-end ${value > 0 ? 'text-red-500' : value < 0 ? 'text-blue-500' : 'text-black-500'} font-medium`}>
+          <span>+{value.toFixed(2)}%</span>
+          {exchangeMarketType !== 'BTC' ? (
+            <span className="text-[10px] text-gray-500">
+              {lowestPrice > 1 ? lowestPrice?.toFixed(2) : String(lowestPrice).replace(/\.?0+$/, '')}
+            </span>
+          ) : (
+            <span className="text-[10px] text-gray-500">{lowestPrice?.toFixed(8)}</span>
+          )}
         </div>
       );
     },
   },
 
-  // 체결 강도 (Volume Ratio)
-  {
-    accessorFn: row => {
-      const buyVolume = parseFloat(row.Q as string) || 0; // 실제 매수 거래량 필드로 교체 필요
-      const sellVolume = parseFloat(row.q as string) || 0; // 실제 매도 거래량 필드로 교체 필요
-      return sellVolume === 0 ? 0 : (buyVolume / sellVolume).toFixed(2);
-    },
-    id: 'volume_ratio',
-    header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>체결 강도</p>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
-    ),
-    cell: ({ getValue }) => {
-      const ratio = parseFloat(getValue() as string);
-      let ratioClass = 'text-gray-500';
-
-      if (ratio > 2) ratioClass = 'text-green-500';
-      else if (ratio > 1.1) ratioClass = 'text-blue-500';
-      else if (ratio > 0.9) ratioClass = 'text-gray-500';
-      else if (ratio > 0.5) ratioClass = 'text-orange-500';
-      else ratioClass = 'text-red-500';
-
-      return (
-        <div className={`flex font-medium ${ratioClass} justify-end`}>
-          <span>{ratio.toLocaleString()}</span>
-        </div>
-      );
-    },
-  },
   {
     accessorFn: row => (row.q ? (row.q as string) : (row.quoteVolume as string)),
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래대금(24h)</span>
+        <span>거래대금(24H)</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),

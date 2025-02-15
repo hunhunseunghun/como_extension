@@ -10,17 +10,25 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import UpbitLogo from '@/assets/icons/upbit-logo.png';
-import BithumbLogo from '@/assets/icons/bithumb-logo.png';
-// import CoinOneLogo from '@/assets/icons/coinone-logo.png';
-import BinanceLogo from '@/assets/icons/binance-logo.png';
 import { ChevronDown } from 'lucide-react';
 
 const platformData = {
-  upbit: { key: 'upbit', label: '업비트', logo: UpbitLogo },
-  bithumb: { key: 'bithumb', label: '빗썸', logo: BithumbLogo },
+  upbit: {
+    key: 'upbit',
+    label: '업비트',
+    logo: 'https://coin-images.coingecko.com/markets/images/117/large/upbit.png?1706864294',
+  },
+  bithumb: {
+    key: 'bithumb',
+    label: '빗썸',
+    logo: 'https://coin-images.coingecko.com/markets/images/6/large/bithumb_BI.png?1706864248',
+  },
   // coinone: { key: 'coinone', label: '코인원', logo: CoinOneLogo },
-  binance: { key: 'binance', label: '바이낸스', logo: BinanceLogo },
+  binance: {
+    key: 'binance',
+    label: '바이낸스',
+    logo: 'https://coin-images.coingecko.com/markets/images/469/large/Binance.png?1706864454',
+  },
 } as const;
 
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;

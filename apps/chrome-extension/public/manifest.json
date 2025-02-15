@@ -7,6 +7,7 @@
   "host_permissions": [
     "https://api.upbit.com/*",
     "https://api.bithumb.com/*",
+    "https://api.binance.com/*",
     "https://www.koreaexim.go.kr/*",
     "https://finance.naver.com/*"
   ],

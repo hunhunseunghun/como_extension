@@ -1,4 +1,4 @@
-<div align="center"><img src="./apps/chrome-extension/public/como-logo.png"  width="120" height="120" />
+<div align="center"><img src="https://www.notion.so/COMO-15f29bb357f98026be3dd2c062a18257"  width="120" height="120" />
 <br>
 <h3>COMO</h1>
 <h4>(암호화폐 시세조회 익스텐션)</h3>
