@@ -155,6 +155,7 @@ const App = () => {
   const [updatedVersion, setUpdatedVersion] = useState<string>('');
   const [favoriteCoins, setFavoriteCoins] = useFavorites();
 
+  console.log('sorting', sorting);
   const updatedVersionHandler = (newVersion: string) => {
     chrome.storage.local.get('updatedVersion', result => {
       const stored = result?.updatedVersion || '';
@@ -230,6 +231,7 @@ const App = () => {
           favoriteCoins,
           setFavoriteCoins,
           favoriteFunc,
+          setSorting,
         ) as ColumnDef<TickerTypes>[];
     }
   }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc]);

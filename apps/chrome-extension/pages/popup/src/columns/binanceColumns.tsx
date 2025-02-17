@@ -1,4 +1,4 @@
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { BinanceTicker } from '@/types';
 import { Star, ArrowDownUp, ChevronsUpDown } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
@@ -8,12 +8,17 @@ export const getBinanceColumns = (
   favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
+  setSorting: React.Dispatch<React.SetStateAction<SortingState>>,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
     id: 'market',
     header: () => (
-      <div className="flex">
+      <div
+        className="flex"
+        onClick={() => {
+          setSorting((prev: SortingState) => [{ id: 'market', desc: prev[0]?.desc ? false : true }]);
+        }}>
         <a href="#" className="mr-[2px] font-bold">
           이름
         </a>
