@@ -236,7 +236,7 @@ const App = () => {
 
   const table = useReactTable<TickerTypes>({
     data: tableData,
-    columns: columns ?? [],
+    columns: columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -280,7 +280,7 @@ const App = () => {
 
   useEffect(() => {
     table.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
-  }, [wideSize, table]);
+  }, [wideSize, exchangePlatform]);
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">

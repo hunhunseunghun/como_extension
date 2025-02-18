@@ -11,11 +11,11 @@ export const getBinanceColumns = (
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
-    id: 'symbol',
+    id: 'market',
     header: () => (
       <div className="flex">
         <a href="#" className="mr-[2px] font-bold">
-          Name
+          이름
         </a>
         <ArrowDownUp size={10} strokeWidth={3} className="mt-[2px]" />
       </div>
@@ -26,13 +26,9 @@ export const getBinanceColumns = (
         ? symbol.slice(0, -3)
         : row.original.symbol?.endsWith('USDT')
           ? symbol.slice(0, -4)
-          : symbol;
-      const urlSymbol = row.original.symbol?.endsWith('BTC')
-        ? symbol?.slice(0, -3) + '_BTC'
-        : row.original?.symbol?.endsWith('USDT')
-          ? symbol.slice(0, -4) + 'USDT'
-          : 'BTC_USDT';
-      const binanceTradeURL = `https://www.binance.com/en/trade/${urlSymbol}?type=spot`;
+          : row.original.symbol;
+
+      const binanceTradeURL = `https://www.binance.com/en/trade/${symbol}?type=spot`;
       const savedCoins = favoriteCoins?.upbit?.join(',');
 
       const toggleFavorite = () => {
@@ -76,16 +72,22 @@ export const getBinanceColumns = (
       );
     },
     filterFn: (row, _columnId, filterValue) => {
-      if (!filterValue) return true;
       const symbol = row.original.symbol.toLowerCase();
       const searchValue = filterValue.toLowerCase().trim();
-      return symbol.includes(searchValue);
+      if (!filterValue) return true;
+      const removeMarket = symbol?.endsWith('BTC')
+        ? symbol.slice(0, -3)
+        : symbol?.endsWith('USDT')
+          ? symbol.slice(0, -4)
+          : symbol;
+      const fullTextMatch = removeMarket.includes(searchValue);
+      return fullTextMatch;
     },
     enableHiding: false,
   },
   {
     accessorFn: row => (row.c ? row.c : row.lastPrice),
-    id: 'lastPrice',
+    id: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
         <span className="text-[10px] font-bold underline-offset-2">현재가</span>
@@ -128,7 +130,7 @@ export const getBinanceColumns = (
   },
   {
     accessorFn: row => (row.P ? (row.P as string) : (row.priceChangePercent as string)),
-    id: 'priceChangePercent',
+    id: 'signed_change_rate',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
         <p>전일대비</p>
