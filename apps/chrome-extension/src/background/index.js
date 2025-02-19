@@ -1,0 +1,135 @@
+class UpbitData {
+  constructor() {
+    this.socket = null;
+    this.port = null;
+    this.upbitMarkets = [];
+    this.upbitMarketsInfo = null;
+    this.tickersInitData = null;
+  }
+
+  // popup 연결 시 port 처리
+  connectPopup(port) {
+    console.log('📡 popup 연결됨:', port.name);
+    this.port = port;
+
+    this.port.onDisconnect.addListener(() => {
+      console.log('❌ popup 연결 종료');
+      this.port = null;
+    });
+
+    if (this.tickersInitData && this.port) {
+      this.port.postMessage({ type: 'upbitTickers', data: this.tickersInitData });
+    }
+  }
+
+  async fetchUpbitMarkets() {
+    try {
+      const response = await fetch('https://api.upbit.com/v1/market/all?is_details=true', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      const cautionFilteredData = data.map(item => {
+        const isCautionTrue = item.market_event?.caution === true;
+        if (item.market_event) item.market_event.caution = isCautionTrue;
+        return item;
+      });
+      this.upbitMarketsInfo = cautionFilteredData.reduce((acc, curr) => {
+        if (curr.market) {
+          acc[curr.market] = { ...curr };
+        }
+        return acc;
+      }, {});
+      this.upbitMarkets = cautionFilteredData.map(item => item.market);
+
+      return this.upbitMarkets;
+    } catch (error) {
+      console.error('fetchUpbitMarketsfailed:', error.message);
+      this.upbitMarkets = ['KRW-BTC'];
+      return this.upbitMarkets;
+    }
+  }
+
+  async fetchUpbitTickersInit() {
+    try {
+      const param = this.upbitMarkets.join(',');
+      const url = `https://api.upbit.com/v1/ticker?markets=${param}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      const tickersArray = await response.json();
+      this.tickersInitData = tickersArray.reduce((acc, curr) => {
+        if (curr.market) {
+          acc[curr.market] = { ...curr, ...this.upbitMarketsInfo[curr.market] };
+        }
+        return acc;
+      }, {});
+
+      console.log('this.tickersInitData:', this.tickersInitData);
+      console.log('this.upbitMarketsInfo:', this.upbitMarketsInfo);
+    } catch (error) {
+      console.error('fetchUpbitTickersInit failed:', error.message);
+    }
+  }
+
+  async connectWebSocket() {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      console.log('✅ WebSocket 이미 연결됨.');
+      return;
+    }
+
+    this.socket = new WebSocket('wss://api.upbit.com/websocket/v1');
+
+    this.socket.onopen = () => {
+      console.log('✅ WebSocket 연결 성공');
+      this.socket.send(JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.upbitMarkets }])); // 마켓 코드 전송
+    };
+
+    this.socket.onmessage = async event => {
+      const data = await event.data.text();
+      const ticker = JSON.parse(data);
+
+      if (this.port) {
+        this.port.postMessage({ type: 'upbitWebsocketTicker', data: ticker });
+      }
+    };
+
+    this.socket.onerror = error => {
+      console.error('❌ WebSocket Error:', error);
+      this.socket = null;
+      this.port = null;
+    };
+
+    this.socket.onclose = () => {
+      console.log('⚠️ WebSocket closed - Reconnecting...');
+      this.socket = null;
+      setTimeout(() => this.connectWebSocket(), 250);
+    };
+  }
+
+  async connectUpbitData() {
+    this.upbitMarkets = await this.fetchUpbitMarkets();
+
+    if (this.upbitMarkets.length > 2) {
+      await this.fetchUpbitTickersInit();
+      this.connectWebSocket();
+    }
+  }
+}
+
+// UpbitData 인스턴스를 생성
+const upbitData = new UpbitData();
+
+// popup 연결을 위한 리스너
+chrome.runtime.onConnect.addListener(port => {
+  upbitData.connectPopup(port);
+});
+
+// Upbit 데이터 수집 시작
+upbitData.connectUpbitData();

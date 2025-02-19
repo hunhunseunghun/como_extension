@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "como_turbo",
+  "version": "0.1.0",
+  "description": "__MSG_extensionDescription__",
+  "permissions": ["tabs", "storage", "alarms", "notifications"],
+  "host_permissions": ["https://api.upbit.com/*"],
+  "background": {
+    "service_worker": "background.iife.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": "vite.svg"
+  },
+  "icons": {
+    "128": "vite.svg"
+  }
+}

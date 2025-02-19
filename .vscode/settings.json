@@ -1,7 +1,26 @@
 {
-  "eslint.workingDirectories": [
-    {
-      "mode": "auto"
-    }
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.fixAll.stylelint": true
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "files.autoSave": "afterDelay",
+  "eslint.validate": [
+    "javascript",
+    "typescript",
+    "javascriptreact",
+    "typescriptreact"
+  ], // ESLint 적용할 파일 설정
+  "stylelint.validate": [
+    "css",
+  ],
+  "prettier.requireConfig": true,
+  "tailwindCSS.emmetCompletions": true,
+  "tailwindCSS.experimental.classRegex": [
+    [
+      "cn\\(([^)]*)\\)",
+      "(?:'|\"|`)([^'\"`]*)"
+    ]
   ]
 }

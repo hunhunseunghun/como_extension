@@ -1,0 +1,8 @@
+dist
+node_modules
+.gitignore
+.github
+.eslintignore
+.nvmrc
+.prettierignore
+pnpm-lock.yaml
