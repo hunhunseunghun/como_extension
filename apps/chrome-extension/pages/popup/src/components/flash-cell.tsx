@@ -19,7 +19,7 @@ export default function FlashCell({ ticker, children }: FlashContentProps) {
     }
   }, [ticker?.ask_bid]);
 
-  const flashClass = ticker?.ask_bid === 'ASK' ? 'border-blue-500' : ticker?.ask_bid === 'BID' ? 'border-red-500' : '';
+  const flashClass = ticker?.ask_bid === 'ASK' ? 'border-blue-400' : ticker?.ask_bid === 'BID' ? 'border-red-400' : '';
 
   return (
     // <div>를 사용하여 셀 내부에 효과를 적용합니다.

@@ -430,14 +430,15 @@ const App = () => {
                   className="border-1 border-transparent"
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}>
-                  {row.getVisibleCells().map(cell =>
-                    cell.column.id === 'trade_price' ? (
-                      // trade_price 셀은 FlashTableCell이 이미 <td>를 반환하므로 바로 렌더링
-                      flexRender(cell.column.columnDef.cell, cell.getContext())
-                    ) : (
-                      <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                    ),
-                  )}
+                  {row
+                    .getVisibleCells()
+                    .map(cell =>
+                      cell.column.id === 'trade_price' ? (
+                        flexRender(cell.column.columnDef.cell, cell.getContext())
+                      ) : (
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      ),
+                    )}
                 </TableRow>
               ))
             ) : (
