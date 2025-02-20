@@ -13,7 +13,7 @@ export default defineConfig({
     alias: {
       '@root': rootDir,
       '@src': srcDir,
-      '@': path.resolve(__dirname, './src'),
+      '@': srcDir,
     },
   },
   publicDir: resolve(rootDir, 'public'),

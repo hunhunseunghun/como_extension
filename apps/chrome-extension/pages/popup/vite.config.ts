@@ -27,7 +27,4 @@ export default defineConfig({
     },
     reportCompressedSize: true,
   },
-  esbuild: {
-    jsx: 'automatic',
-  },
 });

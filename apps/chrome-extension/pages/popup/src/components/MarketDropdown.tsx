@@ -15,9 +15,7 @@ export function MarketDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          className="h-6 w-22 text-[10px] text-semibold hover:cursor-pointer gap-1 dark:text-neutral-400">
+        <Button variant="outline" className="h-6 w-22 text-[10px] text-semibold hover:cursor-pointer gap-1  ">
           <img src={UpbitLogo} className="size-3" />
           <span>바이낸스</span>
           <ChevronDown className="size-2.5" />

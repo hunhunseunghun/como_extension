@@ -1,6 +1,6 @@
 import { Moon, Sun } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
-import { useTheme } from '@/components/theme-provider';
+import { useTheme } from '@/components/ThemeProvider';
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
@@ -10,7 +10,7 @@ export function ModeToggle() {
   return (
     <Toggle
       className="hover:cursor-pointer hover:bg-accent size-6 min-w-6 border-1"
-      variants="outline"
+      variant="outline"
       onClick={switchTheme}>
       <Moon
         size={14}
