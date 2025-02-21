@@ -219,24 +219,28 @@ export const getBithumbColumns = (
     ),
     cell: ({ getValue }) => {
       const value = Number(getValue() as number);
+      const formatCurrencyKR = (value: number) => {
+        return new Intl.NumberFormat('ko-KR', {
+          style: 'currency',
+          currency: 'KRW',
+          notation: 'compact', // 자동으로 만, 억, 조 단위 적용
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(value);
+      };
+
       switch (exchangeMarketType) {
         case 'KRW':
           return (
             <div className="flex justify-end font-medium">
-              <span>{Math.floor(value / 1_000_000)?.toLocaleString()}</span>
-              <span>백만</span>
+              <span>{formatCurrencyKR(value)}</span>
             </div>
           );
         case 'BTC':
           return (
             <div className="flex justify-end font-medium">
-              <span>{value.toFixed(3)}</span>
-            </div>
-          );
-        case 'USDT':
-          return (
-            <div className="flex justify-end font-medium">
-              <span>{Math.round(value)?.toLocaleString()}</span>
+              <span>{String(value).replace(/\.?0+$/, '')}</span>
+              <span className="text-[10px] text-gray-500">{formatCurrencyKR(value)}</span>
             </div>
           );
       }
