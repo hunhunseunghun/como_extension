@@ -293,12 +293,12 @@ class BithumbData extends ExchangeData {
 // Binance 클래스
 class Binance extends ExchangeData {
   constructor() {
-    super('binance', ' https://api.binance.com/api/v3/ticker/24hr', 'wss://stream.binance.com:9443/ws/!ticker@arr');
+    super('binance', ' https://api.binance.com/api/v3', 'wss://stream.binance.com:9443/ws/!ticker@arr');
   }
 
   async fetchInitialTickers() {
     try {
-      const response = await fetch(`${this.apiUrl}`, {
+      const response = await fetch(`${this.apiUrl}/ticker/24hr`, {
         headers: { Accept: 'application/json' },
       });
       const tickersArray = await response.json();

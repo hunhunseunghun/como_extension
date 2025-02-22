@@ -1,0 +1,284 @@
+import { ColumnDef } from '@tanstack/react-table';
+import { Ticker } from '@/types';
+import { Star, ArrowDownUp, ChevronsUpDown } from 'lucide-react';
+import FlashCell from '@/components/FlashCell';
+
+export const getBinanceColumns = (
+  exchangeRateUSD: number,
+  exchangeMarketType: 'USDT' | 'BTC',
+  favoriteCoins: { upbit: string[]; bithumb: string[] },
+  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
+  favoriteFunc: boolean,
+): ColumnDef<Ticker>[] => [
+  {
+    accessorFn: row => `${row.symbol}`,
+    id: 'symbol',
+    header: () => (
+      <div className="flex">
+        <a href="#" className="mr-[2px] font-bold">
+          Name
+        </a>
+        <ArrowDownUp size={10} strokeWidth={3} className="mt-[2px]" />
+      </div>
+    ),
+    cell: ({ row }) => {
+      const symbol = row.original.symbol;
+      const removeMarket = row.original.symbol?.endsWith('BTC')
+        ? symbol.slice(0, -3)
+        : row.original.symbol?.endsWith('USDT')
+          ? symbol.slice(0, -4)
+          : symbol;
+      const urlSymbol = row.original.symbol?.endsWith('BTC')
+        ? symbol?.slice(0, -3) + '_BTC'
+        : row.original?.symbol?.endsWith('USDT')
+          ? (symbol.slice(0, -4) = 'USDT')
+          : 'BTC_USDT';
+      const binanceTradeURL = `https://www.binance.com/en/trade/${urlSymbol}?type=spot`;
+      const savedCoins = favoriteCoins?.upbit?.join(',');
+
+      const toggleFavorite = () => {
+        if (!row.getCanPin()) return; // 고정 불가능 시 무시
+        setFavoriteCoins(prev => {
+          const updated = { ...prev };
+          if (savedCoins.includes(symbol)) {
+            updated.binance = updated.binance.filter(coin => coin !== symbol);
+            row.pin(false); // 고정 해제
+          } else {
+            updated.binance = [...updated.binance, symbol];
+            row.pin('top'); // 상단 고정
+          }
+          return updated;
+        });
+      };
+
+      return (
+        <div className="flex gap-[2px] font-semibold">
+          {favoriteFunc && (
+            <div className="mt-[2px]">
+              <Star
+                className={
+                  row.getIsPinned()
+                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
+                    : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                }
+                onClick={toggleFavorite}
+              />
+            </div>
+          )}
+          <div className="text-left break-word">
+            <div className="flex gap-[2px]">
+              <a href={binanceTradeURL} target="_blank" className="hover:text-gray-400">
+                {removeMarket}
+              </a>
+            </div>
+            <span className="text-[11px] text-gray-500 font-medium">{symbol}</span>
+          </div>
+        </div>
+      );
+    },
+    filterFn: (row, _columnId, filterValue) => {
+      if (!filterValue) return true;
+      const symbol = row.original.symbol.toLowerCase();
+      const searchValue = filterValue.toLowerCase().trim();
+      return symbol.includes(searchValue);
+    },
+    enableHiding: false,
+  },
+  {
+    accessorFn: () => (row.c ? row.c : row.lastPrice),
+    id: 'lastPrice',
+    header: ({ column }) => (
+      <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <span className="text-[10px] font-bold underline-offset-2">현재가</span>
+        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+      </div>
+    ),
+    cell: ({ getValue, row, cell }) => {
+      const lastPrice = getValue();
+      const bidPrice = row.original.b || '0';
+      const bidAskStatus = Number(lastPrice) <= Number(bidPrice) ? 'BID' : 'ASK';
+      const flashProps = {
+        ask_bid: bidAskStatus,
+      };
+
+      switch (exchangeMarketType) {
+        case 'USDT':
+          return (
+            <FlashCell
+              key={cell.id}
+              flashKey={cell.id}
+              ticker={flashProps}
+              className={'flex flex-col items-end font-medium'}>
+              <span>${lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </FlashCell>
+          );
+        case 'BTC':
+          return (
+            <FlashCell
+              key={cell.id}
+              flashKey={cell.id}
+              ticker={flashProps}
+              className={'flex flex-col items-end font-medium'}>
+              <span>{lastPrice.toFixed(8)}</span>
+            </FlashCell>
+          );
+      }
+    },
+    enableHiding: false,
+  },
+  {
+    accessorFn: row => (row.P ? row.P : row.priceChangePercent),
+    id: 'priceChangePercent',
+    header: ({ column }) => (
+      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <p>전일대비</p>
+        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+      </div>
+    ),
+    cell: ({ row, getValue }) => {
+      const value = Number(getValue());
+      const priceChange = Number(row.original.priceChange);
+
+      return (
+        <div className="flex flex-col items-end font-medium">
+          <span className={`${priceChange > 0 ? 'text-red-500' : priceChange < 0 ? 'text-blue-500' : ''}`}>
+            {value}%
+          </span>
+          {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{priceChange.toFixed(8)}</span>}
+        </div>
+      );
+    },
+    enableHiding: false,
+  },
+  // {
+  //   accessorFn: row => (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
+  //   id: 'highest_52_week_diff',
+  //   header: ({ column }) => (
+  //     <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+  //       <span>고가대비(52주)</span>
+  //       <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+  //     </div>
+  //   ),
+  //   cell: ({ getValue, row }) => {
+  //     const value = String(getValue());
+  //     const highestPrice = row.original.highest_52_week_price?.toLocaleString();
+  //     return (
+  //       <div className="flex flex-col items-end text-blue-500 font-medium">
+  //         <span>-{value}%</span>
+  //         {exchangeMarketType !== 'BTC' ? (
+  //           <span className="text-[10px] text-gray-500">{highestPrice}</span>
+  //         ) : (
+  //           <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
+  //         )}
+  //       </div>
+  //     );
+  //   },
+  // },
+  // {
+  //   accessorFn: row => (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
+  //   id: 'lowest_52_week_diff',
+  //   header: ({ column }) => (
+  //     <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+  //       <p>저가대비(52주)</p>
+  //       <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+  //     </div>
+  //   ),
+  //   cell: ({ getValue, row }) => {
+  //     const value = String(getValue());
+  //     const lowestPrice = row.original.lowest_52_week_price;
+  //     return (
+  //       <div className="flex flex-col items-end text-red-500 font-medium">
+  //         <span>+{value}%</span>
+  //         {exchangeMarketType !== 'BTC' ? (
+  //           <span className="text-[10px] text-gray-500">{lowestPrice?.toLocaleString()}</span>
+  //         ) : (
+  //           <span className="text-[10px] text-gray-500">{lowestPrice?.toFixed(8)}</span>
+  //         )}
+  //       </div>
+  //     );
+  //   },
+  // },
+  {
+    accessorFn: row => {
+      const ask = parseFloat(row.a) || 0;
+      const bid = parseFloat(row.b) || 0;
+      const lastPrice = parseFloat(row.c) || 0;
+      return lastPrice === 0 ? 0 : (((ask - bid) / lastPrice) * 100).toFixed(2);
+    },
+    id: 'bid_ask_spread',
+    header: ({ column }) => (
+      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <p>매수-매도 스프레드</p>
+        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+      </div>
+    ),
+    cell: ({ getValue }) => {
+      const spread = parseFloat(getValue());
+      let spreadClass = 'text-gray-500';
+
+      if (spread < 0.05) spreadClass = 'text-green-500';
+      else if (spread < 0.2) spreadClass = 'text-blue-500';
+      else if (spread < 1) spreadClass = 'text-orange-500';
+      else spreadClass = 'text-red-500';
+
+      return <span className={`font-medium ${spreadClass}`}>{spread.toLocaleString()}%</span>;
+    },
+  },
+
+  // 체결 강도 (Volume Ratio)
+  {
+    accessorFn: row => {
+      const buyVolume = parseFloat(row.Q) || 0; // 실제 매수 거래량 필드로 교체 필요
+      const sellVolume = parseFloat(row.q) || 0; // 실제 매도 거래량 필드로 교체 필요
+      return sellVolume === 0 ? 0 : (buyVolume / sellVolume).toFixed(2);
+    },
+    id: 'volume_ratio',
+    header: ({ column }) => (
+      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <p>체결 강도</p>
+        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+      </div>
+    ),
+    cell: ({ getValue }) => {
+      const ratio = parseFloat(getValue());
+      let ratioClass = 'text-gray-500';
+
+      if (ratio > 2) ratioClass = 'text-green-500';
+      else if (ratio > 1.1) ratioClass = 'text-blue-500';
+      else if (ratio > 0.9) ratioClass = 'text-gray-500';
+      else if (ratio > 0.5) ratioClass = 'text-orange-500';
+      else ratioClass = 'text-red-500';
+
+      return <span className={`font-medium ${ratioClass}`}>{ratio.toLocaleString()}</span>;
+    },
+  },
+  {
+    accessorFn: row => (row.q ? row.q : row.quoteVolume),
+    id: 'acc_trade_price_24h',
+    header: ({ column }) => (
+      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+        <span>거래대금(24h)</span>
+        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
+      </div>
+    ),
+    cell: ({ getValue }) => {
+      const value = Number(getValue());
+      switch (exchangeMarketType) {
+        case 'USDT':
+          return (
+            <div className="flex justify-end font-medium">
+              <span>${Math.floor(value / 1_000_000)?.toLocaleString()}</span>
+              <span>백만</span>
+            </div>
+          );
+        case 'BTC':
+          return (
+            <div className="flex justify-end font-medium">
+              <span>{value.toFixed(3)}</span>
+            </div>
+          );
+      }
+    },
+    enableHiding: false,
+  },
+];

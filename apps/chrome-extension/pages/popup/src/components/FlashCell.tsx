@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import type { UpbitTicker, BithumbTicker } from '@/types';
 
 type FlashContentProps = {
-  ticker?: UpbitTicker | BithumbTicker;
+  ticker?: UpbitTicker | BithumbTicker | BinanceTicker;
   children: React.ReactNode;
   flashKey: string;
   className: string;
 };
 
-export default function FlashCell({ ticker, children, flashKey, className }: FlashContentProps) {
+export function FlashCell({ ticker, children, flashKey, className }: FlashContentProps) {
   const [flash, setFlash] = useState(false);
 
   useEffect(() => {

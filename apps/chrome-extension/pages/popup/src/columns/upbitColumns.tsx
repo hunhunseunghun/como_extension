@@ -96,7 +96,7 @@ export const getUpbitColumns = (
     accessorKey: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-xs font-bold underline-offset-2">현재가</span>
+        <span className="text-[10px] font-bold underline-offset-2">현재가</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -224,7 +224,7 @@ export const getUpbitColumns = (
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래대금</span>
+        <span>거래대금(24h)</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),

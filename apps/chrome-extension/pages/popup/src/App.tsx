@@ -172,7 +172,11 @@ const App = () => {
       React.Dispatch<React.SetStateAction<FavoriteCoins>>,
       boolean,
     ] = [coinNameKR, setCoinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins, favoriteFunc];
-    return exchangePlatform === 'upbit' ? getUpbitColumns(...columnArgs) : getBithumbColumns(...columnArgs);
+    return exchangePlatform === 'upbit'
+      ? getUpbitColumns(...columnArgs)
+      : exchangePlatform === 'bithumb'
+        ? getBithumbColumns(...columnArgs)
+        : getBinanceColumns(exchangeRateUSD, exchangeMarketType, favoriteCoins, setFavoriteCoins, favoriteFunc);
   }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc]);
 
   const table = useReactTable({
