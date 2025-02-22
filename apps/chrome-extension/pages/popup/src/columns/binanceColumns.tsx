@@ -96,6 +96,10 @@ export const getBinanceColumns = (
       const lastPrice = Number(getValue() as string);
       const bidPrice = row.original.b || '0';
       const bidAskStatus = Number(lastPrice) <= Number(bidPrice) ? 'BID' : 'ASK';
+      const formattedPrice =
+        lastPrice >= 1
+          ? lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : String(lastPrice).replace(/\.?0+$/, '');
 
       switch (exchangeMarketType) {
         case 'USDT':
@@ -105,7 +109,7 @@ export const getBinanceColumns = (
               flashKey={cell.id}
               bidAskStatus={bidAskStatus ? bidAskStatus : ''}
               className={'flex flex-col items-end font-medium'}>
-              <span>${lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span>${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}</span>
             </FlashCell>
           );
         case 'BTC':
@@ -134,13 +138,18 @@ export const getBinanceColumns = (
     cell: ({ row, getValue }) => {
       const value = Number(getValue());
       const priceChange = Number(row.original.priceChange);
+      const formattedPriceChange = row.original.priceChange?.replace(/\.?0+$/, '');
 
       return (
         <div className="flex flex-col items-end font-medium">
           <span className={`${priceChange > 0 ? 'text-red-500' : priceChange < 0 ? 'text-blue-500' : ''}`}>
-            {value}%
+            {value.toFixed(2)}%
           </span>
-          {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{priceChange.toFixed(8)}</span>}
+          {exchangeMarketType !== 'BTC' && (
+            <span className="text-[10px] text-gray-500">
+              {formattedPriceChange.includes('e') ? priceChange.toFixed(8) : formattedPriceChange}
+            </span>
+          )}
         </div>
       );
     },
@@ -217,7 +226,11 @@ export const getBinanceColumns = (
       else if (spread < 1) spreadClass = 'text-orange-500';
       else spreadClass = 'text-red-500';
 
-      return <span className={`font-medium ${spreadClass}`}>{spread.toLocaleString()}%</span>;
+      return (
+        <div className={`flex font-medium ${spreadClass} justify-end`}>
+          <span>{spread.toLocaleString()}</span>
+        </div>
+      );
     },
   },
 
@@ -245,7 +258,11 @@ export const getBinanceColumns = (
       else if (ratio > 0.5) ratioClass = 'text-orange-500';
       else ratioClass = 'text-red-500';
 
-      return <span className={`font-medium ${ratioClass}`}>{ratio.toLocaleString()}</span>;
+      return (
+        <div className={`flex font-medium ${ratioClass} justify-end`}>
+          <span>{ratio.toLocaleString()}</span>
+        </div>
+      );
     },
   },
   {

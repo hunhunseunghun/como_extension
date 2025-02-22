@@ -1,6 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import '@/styles/App.css';
-import { UpbitTicker, BithumbTicker, BinanceTicker, ExchangePlatform, MarketType, FavoriteCoins } from '@/types';
+import {
+  UpbitTicker,
+  BithumbTicker,
+  BinanceTicker,
+  BinanceWebsocketTicker,
+  ExchangePlatform,
+  MarketType,
+  FavoriteCoins,
+} from '@/types';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -50,10 +58,20 @@ const usePort = (
         case 'bithumbWebsocketTicker':
           setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
           break;
+        case 'binanceWebsocketTicker':
+          setTickers(prev => {
+            const updateTickers = { ...prev };
+            data.forEach((ticker: { s: string } & BinanceWebsocketTicker) => {
+              if (ticker.s) {
+                updateTickers[ticker.s] = { ...updateTickers[ticker.s], ...ticker };
+              }
+            });
+            return updateTickers;
+          });
+          break;
         case 'upbitTickers':
         case 'bithumbTickers':
         case 'binanceTickers':
-          console.log('Tickers pop : ', data);
           setTickers({});
           setTickers(data);
           setIsLoading(false);

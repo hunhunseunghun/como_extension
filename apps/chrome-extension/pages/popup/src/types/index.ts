@@ -127,3 +127,29 @@ export type BinanceTicker = {
   n?: number; // 거래 횟수 → 업비트: "trade_count"
   ask_bid?: 'ASK' | 'BID';
 };
+
+export type BinanceWebsocketTicker = {
+  A: string; // Best ask price
+  B: string; // Best bid price
+  C: number; // Close time
+  E: number; // Event time
+  F: number; // First trade ID
+  L: number; // Last trade ID
+  O: number; // Open time
+  P: string; // Price change percentage
+  Q: string; // Last quantity
+  a: string; // Best ask quantity
+  b: string; // Best bid quantity
+  c: string; // Last price
+  e: string; // Event type (always "24hrTicker")
+  h: string; // High price
+  l: string; // Low price
+  n: number; // Total number of trades
+  o: string; // Open price
+  p: string; // Price change
+  q: string; // Total traded quote asset volume
+  s: string; // Symbol (trading pair)
+  v: string; // Total traded base asset volume
+  w: string; // Weighted average price
+  x: string; // Last price 24 hours ago
+};

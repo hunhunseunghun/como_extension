@@ -291,7 +291,7 @@ class BithumbData extends ExchangeData {
   }
 }
 // Binance 클래스
-class Binance extends ExchangeData {
+class BinanceData extends ExchangeData {
   constructor() {
     super('binance', ' https://api.binance.com/api/v3', 'wss://stream.binance.com:9443/ws/!ticker@arr');
   }
@@ -304,7 +304,7 @@ class Binance extends ExchangeData {
       const tickersArray = await response.json();
 
       this.tickers = tickersArray.reduce((acc, ticker) => {
-        if (ticker.symbol) acc[ticker.symbol] = { ...ticker, market: symbol };
+        if (ticker.symbol && Number(ticker.lastPrice) !== 0) acc[ticker.symbol] = { ...ticker, market: ticker.symbol };
         return acc;
       }, {});
       // 팝업이 이미 연결된 경우 즉시 전송
@@ -317,7 +317,9 @@ class Binance extends ExchangeData {
   }
 
   async connectWebSocket() {
+    console.log('binance websocket start');
     if (!this.isActive) return;
+    console.log('binance websocket start active', this.active);
     if (this.socket && this.socket?.readyState === WebSocket.OPEN) return;
 
     if (this.socket) {
@@ -394,6 +396,7 @@ async function handleExchangeChange(exchange) {
     bithumb.setActive(true);
     if (activePort) bithumb.connectPopup(activePort);
   } else if (exchange === 'binance') {
+    binance.setActive(true);
     if (activePort) binance.connectPopup(activePort);
   }
 
