@@ -5,7 +5,7 @@ const CURRENT_DATE = new Date()
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
-let updatedVersion = null;
+let updatedVersion = '';
 
 chrome.runtime.onInstalled.addListener(details => {
   // como extension  제거시 왈라 설문조사 다이렉션
@@ -349,12 +349,6 @@ async function initialize() {
       activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
     }
   }
-
-  //updated version post
-  if (activePort && updatedVersion) {
-    console.log(activePort, 'post updated version to pop up : ', updatedVersion);
-    activePort.postMessage({ type: 'updatedVersion', data: updatedVersion });
-  }
 }
 
 chrome.runtime.onConnect.addListener(port => {
@@ -371,6 +365,12 @@ chrome.runtime.onConnect.addListener(port => {
     upbit.connectPopup(activePort);
   } else if (activeExchange === 'bithumb' && bithumb.tickers) {
     bithumb.connectPopup(activePort);
+  }
+
+  //updated version post
+  if (activePort) {
+    console.log(activePort, 'post updated version to pop up : ', updatedVersion);
+    activePort.postMessage({ type: 'updatedVersion', data: updatedVersion });
   }
 
   port;

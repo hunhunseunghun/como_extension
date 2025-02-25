@@ -140,10 +140,14 @@ const App = () => {
   const updatedVersionHandler = (newVersion: string) => {
     chrome.storage.local.get('updatedVersion', result => {
       const stored = result?.updatedVersion || '';
+      console.log('new version in popup result: ', result);
+      console.log('new version in popup stored: ', stored);
       if (stored !== newVersion) {
-        setUpdatedVersion(stored);
+        setUpdatedVersion(newVersion);
       }
     });
+
+    console.log('new version in popup : ', newVersion);
   };
   useEffect(() => {
     chrome.runtime.sendMessage('popupOpened');
