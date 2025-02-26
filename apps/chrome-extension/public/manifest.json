@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "COMO - 비트코인 & 암호화폐 실시간 가격 (Bitcoin & Crypto Live Prices)",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "빠르고 간편하게 가상자산 거래소들의 가격을 실시간 모니터링 하세요!",
   "permissions": ["storage", "notifications", "alarms"],
   "host_permissions": [

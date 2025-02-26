@@ -186,6 +186,7 @@ const App = () => {
     debugRows: true,
   });
 
+  console.log('updatedVersion : ', updatedVersion);
   // favoriteCoins와 rowPinning 동기화
   useEffect(() => {
     if (isLoading || !favoriteFunc) {

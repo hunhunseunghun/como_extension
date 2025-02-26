@@ -13,7 +13,7 @@ chrome.runtime.onInstalled.addListener(details => {
     chrome.runtime.setUninstallURL('https://walla.my/v/a6J0FV5gUKCyzupMaG71');
   }
   // como extension 설치 or 업데이트시 update note icon 변경
-  if (details.reason === 'install' || details.reason === 'update') {
+  if (details.reason === 'update') {
     updatedVersion = details?.previousVersion || null;
     console.log('when installed or update  :', details?.previousVersion, updatedVersion);
   }
