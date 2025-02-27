@@ -5,6 +5,8 @@ const CURRENT_DATE = new Date()
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
+let updatedVersion = null;
+
 chrome.runtime.onInstalled.addListener(details => {
   // como extension  제거시 왈라 설문조사 다이렉션
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
@@ -12,7 +14,8 @@ chrome.runtime.onInstalled.addListener(details => {
   }
   // como extension 설치 or 업데이트시 update note icon 변경
   if (details.reason === 'install' || details.reason === 'update') {
-    activePort.postMessage({ type: 'updatedVersion', data: details?.previousVersion });
+    updatedVersion = details?.previousVersion || null;
+    console.log('when installed or update  :', details?.previousVersion, updatedVersion);
   }
 });
 
@@ -168,6 +171,7 @@ class ExchangeData {
       // if (this.socket) this.socket.close();
       return;
     });
+
     if (this.isActive && this.tickers) {
       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
     }
@@ -344,6 +348,12 @@ async function initialize() {
     } else if (activeExchange === 'bithumb' && bithumb.tickers) {
       activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
     }
+  }
+
+  //updated version post
+  if (activePort && updatedVersion) {
+    console.log(activePort, 'post updated version to pop up : ', updatedVersion);
+    activePort.postMessage({ type: 'updatedVersion', data: updatedVersion });
   }
 }
 
