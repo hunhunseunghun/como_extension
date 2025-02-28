@@ -139,7 +139,7 @@ const App = () => {
 
   const updatedVersionHandler = (newVersion: string) => {
     chrome.storage.local.get('updatedVersion', result => {
-      const stored = result || '';
+      const stored = result?.updatedVersion || '';
       if (stored !== newVersion) {
         setUpdatedVersion(stored);
       }

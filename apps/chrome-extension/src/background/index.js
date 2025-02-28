@@ -12,7 +12,7 @@ chrome.runtime.onInstalled.addListener(details => {
   }
   // como extension 설치 or 업데이트시 update note icon 변경
   if (details.reason === 'install' || details.reason === 'update') {
-    activePort.postMessage({ type: 'updatedVersion', data: detais?.previousVersion });
+    activePort.postMessage({ type: 'updatedVersion', data: details?.previousVersion });
   }
 });
 
