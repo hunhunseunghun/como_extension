@@ -19,16 +19,11 @@ body {
     'Segoe UI Emoji',
     'Segoe UI Symbol',
     sans-serif;
-  width: 420px;
-  height: 370px;
-  max-width: 810px;
-  max-height: 580px;
 }
 
 :root {
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -45,7 +40,7 @@ body {
   --secondary: hsl(0 0% 96.1%);
   --secondary-foreground: hsl(0 0% 9%);
   --muted: hsl(0 0% 96.1%);
-  --muted-foreground: hsl(0 0% 45.1%);
+  --muted-foreground: hsl(0, 0%, 76%);
   --accent: hsl(0, 0%, 88%);
   --accent-foreground: hsl(0 0% 9%);
   --destructive: hsl(0 84.2% 60.2%);
@@ -62,7 +57,7 @@ body {
 }
 
 .dark {
-  --background: hsl(0 0% 3.9%);
+  --background: hsl(0, 0%, 13%);
   --foreground: hsl(0 0% 98%);
   --card: hsl(0 0% 3.9%);
   --card-foreground: hsl(0 0% 98%);
@@ -125,5 +120,52 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* scrollbar style */
+  .light-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .light-scrollbar::-webkit-scrollbar-track {
+    background: var(--muted); /* 트랙 색상: 테마 배경색 */
+    border-radius: 2px;
+  }
+
+  .light-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(0, 0%, 86%); /* 스크롤바 색상: muted 색상 사용 */
+    border-radius: 2px;
+  }
+
+  .light-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(0, 0%, 82%); /* 호버 시 색상: muted-foreground */
+  }
+  .light-scrollbar::-webkit-scrollbar-button {
+    display: block;
+    background: var(--background);
+    height: 0px;
+  }
+
+  .dark .dark-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .dark .dark-scrollbar::-webkit-scrollbar-track {
+    background: var(--muted);
+  }
+
+  .dark .dark-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(0, 0%, 19%);
+    border-radius: 4px;
+  }
+
+  .dark .dark-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(0, 0%, 23%);
+  }
+
+  .dark .dark-scrollbar::-webkit-scrollbar-button {
+    display: block;
+    background: var(--background);
+    height: 0px;
   }
 }

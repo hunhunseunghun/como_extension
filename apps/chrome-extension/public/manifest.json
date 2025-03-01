@@ -1,19 +1,28 @@
 {
   "manifest_version": 3,
-  "name": "como_turbo",
-  "version": "0.1.0",
-  "description": "__MSG_extensionDescription__",
-  "permissions": ["tabs", "storage", "alarms", "notifications"],
-  "host_permissions": ["https://api.upbit.com/*", "https://www.koreaexim.go.kr/*"],
+  "name": "COMO-비트코인 & 암호화폐 실시간 가격 (Bitcoin & Crypto Live Prices)",
+  "version": "2.0.1",
+  "description": "빠르고 간편하게 암호화폐 가격을 실시간 모니터링 하세요!",
+  "permissions": ["storage", "notifications"],
+  "host_permissions": ["https://api.upbit.com/*", "https://www.koreaexim.go.kr/*", "https://finance.naver.com/*"],
   "background": {
     "service_worker": "background.iife.js",
     "type": "module"
   },
   "action": {
     "default_popup": "popup/index.html",
-    "default_icon": "vite.svg"
+    "default_icon": "como-logo.png"
   },
   "icons": {
-    "128": "vite.svg"
+    "128": "como-logo.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Space",
+        "mac": "Command+Space"
+      },
+      "description": "팝업 열기/닫기"
+    }
   }
 }
