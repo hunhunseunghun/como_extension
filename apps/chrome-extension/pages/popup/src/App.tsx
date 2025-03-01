@@ -40,7 +40,7 @@ const usePort = (
   setExchangePlatform: React.Dispatch<React.SetStateAction<ExchangePlatform>>,
   setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  setUpdateNotification: React.Dishpatch<React.SetStateAction<boolean>>,
+  updatedVersionHandler: (data: string) => void,
 ) => {
   useEffect(() => {
     const port = chrome.runtime.connect({ name: 'popup' });
@@ -68,7 +68,7 @@ const usePort = (
           }
           break;
         case 'updatedVersion':
-          setUpdateNotification(true);
+          updatedVersionHandler(data);
           break;
       }
     });
@@ -132,17 +132,24 @@ const App = () => {
   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
   const [exchangeMarketType, setExchangeMarketType] = useState<MarketType>('KRW');
   const [exchangePlatform, setExchangePlatform] = useState<ExchangePlatform>('upbit');
-  const [isLoading, setIsLoading] = useState(true);
-  const [favoriteFunc, setFavoriteFunc] = useState(true);
-  const [updateNotification, setUpdateNotification] = useState<boolean>(false);
-
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [favoriteFunc, setFavoriteFunc] = useState<boolean>(true);
+  const [updatedVersion, setUpdatedVersion] = useState<string>('');
   const [favoriteCoins, setFavoriteCoins] = useFavorites();
 
+  const updatedVersionHandler = (newVersion: string) => {
+    chrome.storage.local.get('updatedVersion', result => {
+      const stored = result || '';
+      if (stored !== newVersion) {
+        setUpdatedVersion(stored);
+      }
+    });
+  };
   useEffect(() => {
     chrome.runtime.sendMessage('popupOpened');
   }, []);
 
-  usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading, setUpdateNotification);
+  usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading, updatedVersionHandler);
 
   const tableData = useMemo(() => {
     if (!Object.values(tickers).length) return fallbackData;
@@ -227,7 +234,7 @@ const App = () => {
                   {'한국수출입은행 고시 환율'}
                 </span>
               </div>
-              <UpdateNoteToggle updateNotification={updateNotification} />
+              <UpdateNoteToggle updatedVersion={updatedVersion} />
               <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
               <ModeToggle />
               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
