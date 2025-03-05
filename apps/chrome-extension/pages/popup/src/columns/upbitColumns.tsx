@@ -32,23 +32,6 @@ export const getUpbitColumns = (
       const market = row.original.market;
       const savedCoins = favoriteCoins?.upbit?.join(',');
 
-      // const setPinningCoins = () => {
-      //   if (savedCoins.includes(market)) {
-      //     setFavoriteCoins(prev => {
-      //       const pinedCoins = { ...prev };
-      //       pinedCoins.upbit = pinedCoins.upbit.filter(coin => coin !== market);
-      //       console.log('pinedCoins', pinedCoins);
-      //       return pinedCoins;
-      //     });
-      //   } else {
-      //     setFavoriteCoins(prev => {
-      //       const pinedCoins = { ...prev };
-      //       pinedCoins['upbit'].push(market);
-      //       return pinedCoins;
-      //     });
-      //   }
-      // };
-
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
         setFavoriteCoins(prev => {
@@ -80,7 +63,7 @@ export const getUpbitColumns = (
           )}
           <div className="text-left break-word">
             <div className="flex gap-[2px]">
-              <a href={`https://upbit.com/exchange?code=CRIX.UPBIT.${row.original?.market}`}>
+              <a href={`https://upbit.com/exchange?code=CRIX.UPBIT.${row.original?.market}`} target="_blank">
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
               <div className="flex gap-[1px] items-center">

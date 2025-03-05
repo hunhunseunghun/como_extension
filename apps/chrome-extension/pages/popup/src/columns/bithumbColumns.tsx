@@ -27,27 +27,9 @@ export const getBithumbColumns = (
     ),
     cell: ({ row }) => {
       const splitMarket = row.original.market?.split('-');
-      const convertMarket = splitMarket[1] + '/' + splitMarket[0];
       const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' };
       const market = row.original.market;
       const savedCoins = favoriteCoins?.bithumb?.join(',');
-
-      // const setPinningCoins = () => {
-      //   if (savedCoins.includes(market)) {
-      //     setFavoriteCoins(prev => {
-      //       const pinedCoins = { ...prev };
-      //       pinedCoins.bithumb = pinedCoins.bithumb.filter(coin => coin !== market);
-      //       console.log('pinedCoins', pinedCoins);
-      //       return pinedCoins;
-      //     });
-      //   } else {
-      //     setFavoriteCoins(prev => {
-      //       const pinedCoins = { ...prev };
-      //       pinedCoins['bithumb'].push(market);
-      //       return pinedCoins;
-      //     });
-      //   }
-      // };
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
@@ -63,10 +45,6 @@ export const getBithumbColumns = (
           return updated;
         });
       };
-
-      // if (savedCoins.includes(market) && !row.getIsPinned()) {
-      //   row.pin('top');
-      // } else
 
       return (
         <div className="flex gap-[2px] font-semibold">
@@ -85,10 +63,16 @@ export const getBithumbColumns = (
 
           <div className="text-left break-word">
             <div className="flex gap-[2px]">
-              <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
+              <a
+                href={`https://www.bithumb.com/react/trade/order/${splitMarket.length && splitMarket[1] + '-' + splitMarket[0]}`}
+                target="_blank">
+                {coinNameKR ? row.original.korean_name : row.original.english_name}
+              </a>
               {bithumbRow.market_warning !== 'NONE' && <WarningIcon />}
             </div>
-            <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
+            <span className="text-[11px] text-gray-500 font-medium">
+              {splitMarket.length && splitMarket[1] + '/' + splitMarket[0]}
+            </span>
           </div>
         </div>
       );
