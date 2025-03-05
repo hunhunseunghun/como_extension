@@ -131,7 +131,7 @@ class ExchangeData {
     this.markets = [];
     this.marketsInfo = null;
     this.tickers = null;
-    this.reconnectDelay = 1000;
+    this.reconnectDelay = 3000;
     this.isActive = false;
   }
 
