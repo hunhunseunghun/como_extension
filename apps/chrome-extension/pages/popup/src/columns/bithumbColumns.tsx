@@ -54,10 +54,10 @@ export const getBithumbColumns = (
         setFavoriteCoins(prev => {
           const updated = { ...prev };
           if (savedCoins.includes(market)) {
-            updated.upbit = updated.upbit.filter(coin => coin !== market);
+            updated.bithumb = updated.bithumb.filter(coin => coin !== market);
             row.pin(false); // 고정 해제
           } else {
-            updated.upbit = [...updated.upbit, market];
+            updated.bithumb = [...updated.bithumb, market];
             row.pin('top'); // 상단 고정
           }
           return updated;

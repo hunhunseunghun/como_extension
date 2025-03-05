@@ -106,7 +106,7 @@ class ExchangeRateManager {
       this.exchangeRateUSD = exchangeRateUSD;
       await this.saveExchangeRate(exchangeRateUSD, CURRENT_DATE);
     } catch (error) {
-      console.error('Naver crawling failed:', error.message);
+      console.log('Naver crawling failed:', error.message);
       this.exchangeRateUSD = null;
     }
   }
