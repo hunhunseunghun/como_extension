@@ -80,7 +80,9 @@ export const getUpbitColumns = (
           )}
           <div className="text-left break-word">
             <div className="flex gap-[2px]">
-              <span>{coinNameKR ? row.original.korean_name : row.original.english_name}</span>
+              <a href={`https://upbit.com/exchange?code=CRIX.UPBIT.${row.original?.market}`}>
+                {coinNameKR ? row.original.korean_name : row.original.english_name}
+              </a>
               <div className="flex gap-[1px] items-center">
                 {upbitRow.market_event?.warning && <WarningIcon />}
                 {upbitRow.market_event?.caution && <CautionIcon />}
