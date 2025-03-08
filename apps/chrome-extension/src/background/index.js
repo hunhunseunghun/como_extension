@@ -6,11 +6,11 @@ const CURRENT_DATE = new Date()
 const getDynamicUserAgent = () => navigator.userAgent;
 
 // como extension  제거시 왈라 설문조사 다이렉션
-// chrome.runtime.onInstalled.addListener(details => {
-//   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
-//     chrome.runtime.setUninstallURL('https://walla.my/survey/a6J0FV5gUKCyzupMaG71');
-//   }
-// });
+chrome.runtime.onInstalled.addListener(details => {
+  if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+    chrome.runtime.setUninstallURL('https://walla.my/survey/a6J0FV5gUKCyzupMaG71');
+  }
+});
 
 //chrome alarm background script 주기적 실행
 chrome.alarms.create('keepAlive', { periodInMinutes: 10 });
