@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { RowPinningState } from '@tanstack/react-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,15 +18,23 @@ interface MarketTypeDropDownProps {
   exchangeMarketType: ExchangeMarketType;
   exchangePlatform: ExchangePlatform;
   setExchangeMarketType: (type: ExchangeMarketType) => void;
+  setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
 }
 
 export function MarketTypeDropDown({
   exchangePlatform,
   exchangeMarketType,
   setExchangeMarketType,
+  setRowPinning,
 }: MarketTypeDropDownProps) {
   const filteredMarketTypes: readonly ExchangeMarketType[] =
     exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : marketTypes;
+
+  const dropdownSeletedHandler = (type: ExchangeMarketType) => {
+    const initRowPinning: RowPinningState = { top: [], bottom: [] };
+    setExchangeMarketType(type);
+    setRowPinning(initRowPinning);
+  };
 
   useEffect(() => {
     setExchangeMarketType('KRW');
@@ -44,7 +53,7 @@ export function MarketTypeDropDown({
           {filteredMarketTypes.map(type => (
             <DropdownMenuItem
               key={type}
-              onClick={() => setExchangeMarketType(type)}
+              onClick={() => dropdownSeletedHandler(type)}
               className="gap-1 px-1 py-1 text-xs">
               {type}
             </DropdownMenuItem>

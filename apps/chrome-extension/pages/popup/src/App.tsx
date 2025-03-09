@@ -75,7 +75,7 @@ const usePort = (
     port.onDisconnect.addListener(() => {
       setIsLoading(true);
       console.warn('WebSocket disconnected, reconnecting...');
-      setTimeout(() => chrome.runtime.connect({ name: 'popup' }), 5000); // 재연결 지연 5초로 증가
+      setTimeout(() => chrome.runtime.connect({ name: 'popup' }), 1000); // 재연결 지연 5초로 증가
     });
 
     chrome.runtime.sendMessage({ action: 'getActiveExchange' });
@@ -162,20 +162,29 @@ const App = () => {
     debugRows: true,
   });
 
-  // rowPinning 초기화 및 동기화
+  // rowPinning 동기화
   useEffect(() => {
+    console.log(
+      'Table rows:',
+      table.getRowModel().rows.map(row => row.id),
+    );
+    console.log('Received tickers:', tickers);
+
     const rows = table.getRowModel().rows;
-    const validPinnedRows = (rowPinning.top ?? []).filter(rowId => rows.some(row => row.id === rowId));
-    rows.forEach(row => {
-      if (favoriteCoins[exchangePlatform].includes(row.original.market) && !validPinnedRows.includes(row.id)) {
-        validPinnedRows.push(row.id);
-      }
-    });
-    if (validPinnedRows.length !== (rowPinning.top ?? []).length) {
-      console.log('Updating rowPinning:', validPinnedRows);
-      setRowPinning({ top: validPinnedRows, bottom: [] });
+    let newPinnedRows: string[] = [];
+
+    if (favoriteFunc && rows.length > 0) {
+      newPinnedRows = rows
+        .filter(row => favoriteCoins[exchangePlatform].includes(row.original.market))
+        .map(row => row.id);
     }
-  }, [favoriteCoins, exchangePlatform, exchangeMarketType, favoriteFunc, setFavoriteCoins]);
+
+    const currentTop = rowPinning.top ?? [];
+    if (newPinnedRows.length !== currentTop.length || !newPinnedRows.every(id => currentTop.includes(id))) {
+      console.log('Syncing rowPinning:', { top: newPinnedRows, bottom: [] });
+      setRowPinning({ top: newPinnedRows, bottom: [] });
+    }
+  }, [tickers, exchangeMarketType, exchangePlatform, favoriteCoins, favoriteFunc, table]);
 
   // 컬럼 가시성 토글
   useEffect(() => {
@@ -226,11 +235,13 @@ const App = () => {
                 setExchangePlatform={setExchangePlatform}
                 setIsLoading={setIsLoading}
                 setTickers={setTickers}
+                setRowPinning={setRowPinning}
               />
               <MarketTypeDropDown
                 exchangePlatform={exchangePlatform}
                 exchangeMarketType={exchangeMarketType}
                 setExchangeMarketType={setExchangeMarketType}
+                setRowPinning={setRowPinning}
               />
             </section>
           </div>
@@ -262,7 +273,7 @@ const App = () => {
                 </TableRow>
               ) : (
                 <>
-                  {table.getTopRows().map(row => (
+                  {table.getTopRows()?.map(row => (
                     <TableRow
                       className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-48"
                       key={row.id}
@@ -272,7 +283,7 @@ const App = () => {
                       ))}
                     </TableRow>
                   ))}
-                  {table.getCenterRows().map(row => (
+                  {table.getCenterRows()?.map(row => (
                     <TableRow
                       className="border-transparent"
                       key={row.id}
