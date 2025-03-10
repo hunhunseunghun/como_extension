@@ -36,7 +36,7 @@ export const MarketDropdown = ({
   setExchangePlatform,
   setIsLoading,
   setRowPinning,
-  // setTickers,
+  setTickers,
 }: MarketDropdownProps) => {
   const exchangeList = Object.values(platformData);
   const selectedPlatform = platformData[exchangePlatform] || platformData.upbit;
@@ -45,7 +45,7 @@ export const MarketDropdown = ({
   useEffect(() => {
     chrome.runtime.sendMessage({ action: 'changeExchange', exchange: exchangePlatform });
     setIsLoading(true);
-    // setTickers({});
+    setTickers({});
   }, [exchangePlatform]);
 
   const dropdownSeletedHandler = (key: ExchangePlatform) => {

@@ -13,7 +13,6 @@ export const getBithumbColumns = (
   favoriteCoins: { upbit: string[]; bithumb: string[] },
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
   favoriteFunc: boolean,
-  exchangePlatform: 'upbit' | 'bithumb',
 ): ColumnDef<Ticker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -31,23 +30,38 @@ export const getBithumbColumns = (
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
       const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' };
       const market = row.original.market;
-      const savedCoins = favoriteCoins?.[exchangePlatform].join(',');
+      const savedCoins = favoriteCoins?.bithumb?.join(',');
 
-      const setPinningCoins = () => {
-        if (savedCoins.includes(market)) {
-          setFavoriteCoins(prev => {
-            const pinedCoins = { ...prev };
-            pinedCoins.bithumb = pinedCoins.bithumb.filter(coin => coin !== market);
-            console.log('pinedCoins', pinedCoins);
-            return pinedCoins;
-          });
-        } else {
-          setFavoriteCoins(prev => {
-            const pinedCoins = { ...prev };
-            pinedCoins['bithumb'].push(market);
-            return pinedCoins;
-          });
-        }
+      // const setPinningCoins = () => {
+      //   if (savedCoins.includes(market)) {
+      //     setFavoriteCoins(prev => {
+      //       const pinedCoins = { ...prev };
+      //       pinedCoins.bithumb = pinedCoins.bithumb.filter(coin => coin !== market);
+      //       console.log('pinedCoins', pinedCoins);
+      //       return pinedCoins;
+      //     });
+      //   } else {
+      //     setFavoriteCoins(prev => {
+      //       const pinedCoins = { ...prev };
+      //       pinedCoins['bithumb'].push(market);
+      //       return pinedCoins;
+      //     });
+      //   }
+      // };
+
+      const toggleFavorite = () => {
+        if (!row.getCanPin()) return; // 고정 불가능 시 무시
+        setFavoriteCoins(prev => {
+          const updated = { ...prev };
+          if (savedCoins.includes(market)) {
+            updated.upbit = updated.upbit.filter(coin => coin !== market);
+            row.pin(false); // 고정 해제
+          } else {
+            updated.upbit = [...updated.upbit, market];
+            row.pin('top'); // 상단 고정
+          }
+          return updated;
+        });
       };
 
       // if (savedCoins.includes(market) && !row.getIsPinned()) {
@@ -64,7 +78,7 @@ export const getBithumbColumns = (
                     ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
                     : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
                 }
-                onClick={setPinningCoins}
+                onClick={toggleFavorite}
               />
             </div>
           )}

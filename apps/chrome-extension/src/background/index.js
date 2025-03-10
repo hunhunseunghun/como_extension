@@ -5,6 +5,20 @@ const CURRENT_DATE = new Date()
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
+// como extension  제거시 왈라 설문조사 다이렉션
+// chrome.runtime.onInstalled.addListener(details => {
+//   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+//     chrome.runtime.setUninstallURL('https://walla.my/survey/a6J0FV5gUKCyzupMaG71');
+//   }
+// });
+
+//chrome alarm background script 주기적 실행
+chrome.alarms.create('keepAlive', { periodInMinutes: 10 });
+
+chrome.alarms.onAlarm.addListener(alarm => {
+  return;
+});
+
 // Popup 토글 리스너
 chrome.runtime.onMessage.addListener(message => {
   if (message.action === 'openPopup') chrome.action.openPopup();
@@ -36,7 +50,6 @@ class ExchangeRateManager {
 
     const { [this.#storageKey]: storage } = await chrome.storage.local.get(this.#storageKey);
     const currentStorage = storage || this.#defaultStorage;
-    console.log('currentStorage : ', currentStorage);
 
     if (!currentStorage.exchangeRateUSD || currentStorage.updatedDate !== CURRENT_DATE) {
       await this.updateExchangeRate();
@@ -64,12 +77,8 @@ class ExchangeRateManager {
 
       if (Array.isArray(data) && data.length) {
         const usdRate = data.find(rate => rate.cur_unit === 'USD')?.deal_bas_r?.replace(/,/g, '');
-        console.log('fetchfromapi : ', usdRate);
-        console.log('exchagneClass port:::: ', this.port);
 
         if (usdRate) {
-          console.log('exchagneClass port ::  usdRate:: ', this.port);
-
           this.exchangeRateUSD = Number(usdRate);
           await this.saveExchangeRate(usdRate, searchDate);
           return;
@@ -106,9 +115,6 @@ class ExchangeRateManager {
   async saveExchangeRate(rate, date) {
     const storage = { ...this.#defaultStorage, exchangeRateUSD: rate, updatedDate: date };
     await chrome.storage.local.set({ [this.#storageKey]: storage });
-    console.log('saveExchangeRate : :  : ', storage);
-    console.log('exchagneClass saveExchangeRate port :: ', this.port);
-    console.log('exchagneClass saveExchangeRate rate :: ', rate, 'type ; ', typeof rate);
     if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: rate ? rate : storage.exchangeRateUSD });
   }
 }
@@ -139,8 +145,6 @@ class ExchangeData {
         if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
         return acc;
       }, {});
-      console.log(`${this.name} initial tickers fetched:`, this.tickers);
-      console.log('thisport thisactive fetchinit :', this.port, this.isActive);
       // 팝업이 이미 연결된 경우 즉시 전송
       if (this.port && this.isActive) {
         this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
@@ -158,25 +162,25 @@ class ExchangeData {
     this.port.onDisconnect.addListener(() => {
       console.log(`${this.name} popup disconnected`);
       this.port = null;
+      if (this.socket) this.socket.close();
+      return;
     });
     if (this.isActive && this.tickers) {
-      console.log('Sending tickers:', { type: `${this.name}Tickers`, data: this.tickers });
       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
     }
-
-    console.log(`${this.name} initial tickers fetched:`, this.tickers);
-    console.log(`Sending initial ${this.name} tickers to popup:`, this.tickers);
   }
 
   async connectWebSocket() {
     if (!this.isActive) return;
-    if (this.socket?.readyState === WebSocket.OPEN) return;
+    if (this.socket && this.socket?.readyState === WebSocket.OPEN) return;
 
-    if (this.socket) this.socket.close();
+    // if (this.socket) this.socket.close();
     this.socket = new WebSocket(this.wsUrl);
 
     this.socket.onopen = () => {
-      this.socket.send(JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }]));
+      if (this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }]));
+      }
     };
 
     this.socket.onmessage = async event => {
@@ -197,8 +201,9 @@ class ExchangeData {
       this.socket = null;
     };
 
-    this.socket.onclose = () => {
+    this.socket.onclose = event => {
       this.socket = null;
+      console.log('웹소켓 닫힌 이유 , 코드 : ', event.code, '이유', event.reason);
       if (this.isActive) setTimeout(() => this.connectWebSocket(), this.reconnectDelay);
     };
   }
@@ -263,7 +268,6 @@ class BithumbData extends ExchangeData {
         return acc;
       }, {});
 
-      console.log('bithubmdata marekt INfo : ', this.marketsInfo);
       return this.markets;
     } catch (error) {
       console.log('Bithumb fetchMarkets failed:', error.message);
@@ -327,33 +331,29 @@ async function initialize() {
     if (activeExchange === 'upbit' && upbit.tickers) {
       activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
     } else if (activeExchange === 'bithumb' && bithumb.tickers) {
-      console.log('bithumb.tickers', bithumb.tickers);
       activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
     }
   }
 }
 
 chrome.runtime.onConnect.addListener(port => {
-  console.log('Received port:', port);
   if (!port || port.name !== 'popup') {
     console.log('Invalid port received in onConnect');
     return;
   }
-  console.log('Popup connected successfully:', port.name);
   activePort = port;
   exchangeRateManager.port = port;
   //port open 시 환율 전송
   exchangeRateManager.saveExchangeRate(exchangeRateManager.exchangeRateUSD, exchangeRateManager.updatedDate);
 
-  console.log('active port : ', activePort);
   // 현재 활성화된 거래소에 연결
   if (activeExchange === 'upbit' && upbit.tickers) {
-    // activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
     upbit.connectPopup(activePort);
   } else if (activeExchange === 'bithumb' && bithumb.tickers) {
-    // activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
     bithumb.connectPopup(activePort);
   }
+
+  port;
 
   port.onDisconnect.addListener(() => {
     activePort = null;
@@ -363,5 +363,13 @@ chrome.runtime.onConnect.addListener(port => {
   port.postMessage({ type: 'activeExchange', data: activeExchange });
 });
 
-// 초기화 실행
+// 팝업 open시 initicker 강제 전송
+chrome.runtime.onMessage.addListener(message => {
+  if (message === 'popupOpened') {
+    initialize();
+    console.log('강제 initialize', message, ExchangeData.tickers);
+  }
+});
+
+// backgroundScript실행시 initialize
 initialize();
