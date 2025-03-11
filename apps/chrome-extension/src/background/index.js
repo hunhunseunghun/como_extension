@@ -469,16 +469,18 @@
 
 // initialize();
 
+// 전체 거래소 종목 정보
 const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
-const maxChangeRate = { exchange: null, market: null, rate: null };
-let updatedVersion = '';
+// 최고 changeRate 종목
+const maxChangeRate = { exchange: null, exchange: null, market: null, rate: null };
 
 const CURRENT_DATE = new Date()
   .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
   .replace(/\./g, '')
   .replace(/ /g, '');
 
-chrome.alarms.create('updateDate', { periodInMinutes: 30 }); // 하루(1440분)마다 실행
+// 30분마다 Date update, 환율 갱신목적
+chrome.alarms.create('updateDate', { periodInMinutes: 30 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'updateDate') {
     CURRENT_DATE = new Date()
@@ -488,8 +490,18 @@ chrome.alarms.onAlarm.addListener(alarm => {
   }
 });
 
+function calMaxChangeRateTicker(data) {
+  const allTickers = [];
+
+  if (typeof data === 'object') {
+    Object.keys(data).forEach(exchange => {});
+  }
+}
+
 const getDynamicUserAgent = () => navigator.userAgent;
 
+// 설치시 : 업데이트 버전, 제거시: 왈라설문조사
+let updatedVersion = '';
 chrome.runtime.onInstalled.addListener(details => {
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     chrome.runtime.setUninstallURL('https://walla.my/v/a6J0FV5gUKCyzupMaG71');
@@ -504,6 +516,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
   return;
 });
 
+//events listener
 chrome.runtime.onMessage.addListener(message => {
   if (message.action === 'openPopup') chrome.action.openPopup();
   if (message.action === 'changeExchange') handleExchangeChange(message.exchange);
@@ -631,6 +644,7 @@ class ExchangeData {
       this.tickers = tickersArray.reduce((acc, ticker) => {
         if (ticker.market) {
           allExchangesTickers[this.name][ticker.market] = {
+            exchange: this.name,
             market: ticker.market,
             currentPrice: ticker.trade_price || 0,
             change_rate: ticker.signed_change_rate || 0,
@@ -688,12 +702,14 @@ class ExchangeData {
         //allExchangesTickers update
         if (ticker.symbol && this.name === 'binance') {
           allExchangesTickers[this.name][ticker.symbol] = {
+            exchange: this.name,
             market: ticker.symbol,
             currentPrice: ticker.trade_price || 0,
             change_rate: ticker.signed_change_rate || 0,
           };
         } else if ((ticker.market && this.name === 'upbit') || (ticker.market && this.name === 'bithumb')) {
           allExchangesTickers[this.name][ticker.market] = {
+            exchange: this.name,
             market: ticker.symbol,
             currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
             change_rate: ticker.P ? Number(ticker.P) : 0,
@@ -724,10 +740,11 @@ class ExchangeData {
   }
 
   reconnectWebSocket() {
-    const delay = this.reconnectDelay + Math.random() * 5000; // 5~10초 랜덤
+    const delay = this.currentReconnectDelay;
     setTimeout(() => {
-      console.log(`${this.name} WebSocket 재연결 시도`);
+      console.log(`${this.name} WebSocket 재연결 시도`, currentReconnectDelay);
       this.connectWebSocket();
+      this.currentReconnectDelay = Math.min(this.currentReconnectDelay * this.backoffFactor, this.maxReconnectDelay);
     }, delay);
   }
 
@@ -824,6 +841,7 @@ class BinanceData extends ExchangeData {
       this.tickers = tickersArray.reduce((acc, ticker) => {
         if (ticker.symbol && Number(ticker.lastPrice) !== 0) {
           allExchangesTickers[this.name][ticker.symbol] = {
+            exchange: this.name,
             market: ticker.symbol,
             currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
             change_rate: ticker.priceChangePercent ? Number(ticker.priceChangePercent) : 0,
