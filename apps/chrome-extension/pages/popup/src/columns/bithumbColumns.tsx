@@ -65,7 +65,8 @@ export const getBithumbColumns = (
             <div className="flex gap-[2px]">
               <a
                 href={`https://www.bithumb.com/react/trade/order/${splitMarket.length && splitMarket[1] + '-' + splitMarket[0]}`}
-                target="_blank">
+                target="_blank"
+                className="hover:text-gray-400">
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
               {bithumbRow.market_warning !== 'NONE' && <WarningIcon />}

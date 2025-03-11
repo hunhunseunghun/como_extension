@@ -63,7 +63,10 @@ export const getUpbitColumns = (
           )}
           <div className="text-left break-word">
             <div className="flex gap-[2px]">
-              <a href={`https://upbit.com/exchange?code=CRIX.UPBIT.${row.original?.market}`} target="_blank">
+              <a
+                href={`https://upbit.com/exchange?code=CRIX.UPBIT.${row.original?.market}`}
+                target="_blank"
+                className="hover:text-gray-400">
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
               <div className="flex gap-[1px] items-center">
