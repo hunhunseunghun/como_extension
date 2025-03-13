@@ -230,6 +230,15 @@ export const getUpbitColumns = (
     ),
     cell: ({ getValue }) => {
       const value = Number(getValue() as number);
+      const formatCurrencyUS = (value: number) => {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          notation: 'compact', // K, M, B 단위로 축약
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(value);
+      };
       const formatCurrencyKR = (value: number) => {
         return new Intl.NumberFormat('ko-KR', {
           style: 'currency',
@@ -249,16 +258,14 @@ export const getUpbitColumns = (
           );
         case 'BTC':
           return (
-            <div className="flex justify-end font-medium">
-              <span>{String(value).replace(/\.?0+$/, '')}</span>
-              <span className="text-[10px] text-gray-500">{formatCurrencyKR(value)}</span>
+            <div className="flex flex-col items-end font-medium">
+              <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );
         case 'USDT':
           return (
-            <div className="flex justify-end font-medium">
-              <span>{String(value).replace(/\.?0+$/, '')}</span>
-              <span className="text-[10px] text-gray-500">{formatCurrencyKR(value)}</span>
+            <div className="flex flex-col items-end font-medium">
+              <span>{formatCurrencyUS(value)}</span>
             </div>
           );
       }

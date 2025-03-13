@@ -276,7 +276,7 @@ export const getBinanceColumns = (
     ),
     cell: ({ getValue }) => {
       const value = Number(getValue());
-      const formatCurrency = (value: number) => {
+      const formatCurrencyUS = (value: number) => {
         return new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD',
@@ -285,29 +285,18 @@ export const getBinanceColumns = (
           maximumFractionDigits: 2,
         }).format(value);
       };
-      const formatCurrencyKR = (value: number) => {
-        return new Intl.NumberFormat('ko-KR', {
-          style: 'currency',
-          currency: 'KRW',
-          notation: 'compact', // 자동으로 만, 억, 조 단위 적용
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }).format(value);
-      };
 
       switch (exchangeMarketType) {
         case 'USDT':
           return (
-            <div className="flex justify-end font-medium">
-              <span>{formatCurrency(value)}</span>
-              <span className="text-[10px] text-gray-500">{formatCurrencyKR(value)}</span>
+            <div className="flex flex-col items-end font-medium">
+              <span>{formatCurrencyUS(value)}</span>
             </div>
           );
         case 'BTC':
           return (
             <div className="flex justify-end font-medium">
-              <span>{String(value).replace(/\.?0+$/, '')}</span>
-              <span className="text-[10px] text-gray-500">{formatCurrencyKR(value)}</span>
+              <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );
       }

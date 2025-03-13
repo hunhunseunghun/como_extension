@@ -239,8 +239,7 @@ export const getBithumbColumns = (
         case 'BTC':
           return (
             <div className="flex justify-end font-medium">
-              <span>{String(value).replace(/\.?0+$/, '')}</span>
-              <span className="text-[10px] text-gray-500">{formatCurrencyKR(value)}</span>
+              <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );
       }
