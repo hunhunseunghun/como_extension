@@ -5,10 +5,14 @@ const CURRENT_DATE = new Date()
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
-// como extension  제거시 왈라 설문조사 다이렉션
 chrome.runtime.onInstalled.addListener(details => {
+  // como extension  제거시 왈라 설문조사 다이렉션
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     chrome.runtime.setUninstallURL('https://walla.my/v/a6J0FV5gUKCyzupMaG71');
+  }
+  // como extension 설치 or 업데이트시 update note icon 변경
+  if (details.reason === 'install' || details.reason === 'update') {
+    activePort.postMessage({ type: 'updatedVersion', data: detais?.previousVersion });
   }
 });
 
@@ -62,7 +66,6 @@ class ExchangeRateManager {
     try {
       await this.fetchFromAPI();
     } catch (error) {
-      console.log('API fetch failed:', error.message);
       await this.fetchFromNaver();
     }
   }
@@ -102,14 +105,13 @@ class ExchangeRateManager {
       const html = await response.text();
       const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
       const match = html.match(usdRegex);
-      console.log('fetchFromNaver : ', html);
+
       if (!match || !match[1]) throw new Error('Failed to parse USD rate from Naver');
 
       const exchangeRateUSD = Number(match[1].replace(/,/g, ''));
       this.exchangeRateUSD = exchangeRateUSD;
       await this.saveExchangeRate(exchangeRateUSD, CURRENT_DATE);
     } catch (error) {
-      console.log('Naver crawling failed:', error.message);
       this.exchangeRateUSD = null;
     }
   }
@@ -143,7 +145,6 @@ class ExchangeData {
       });
       const tickersArray = await response.json();
 
-      console.log('init api success : ', this.name);
       this.tickers = tickersArray.reduce((acc, ticker) => {
         if (ticker.market) acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
         return acc;
@@ -153,7 +154,7 @@ class ExchangeData {
         this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
       }
     } catch (error) {
-      console.log(`${this.name} fetchInitialTickers failed:`, error.message);
+      throw error;
     }
   }
 
@@ -163,7 +164,6 @@ class ExchangeData {
     }
     this.port = port;
     this.port.onDisconnect.addListener(() => {
-      console.log(`${this.name} popup disconnected`);
       this.port = null;
       // if (this.socket) this.socket.close();
       return;
@@ -174,7 +174,6 @@ class ExchangeData {
   }
 
   async connectWebSocket() {
-    console.log(this.name, 'connect websocket excute');
     if (!this.isActive) return;
     if (this.socket && this.socket?.readyState === WebSocket.OPEN) return;
 
@@ -202,21 +201,19 @@ class ExchangeData {
           this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: ticker });
         }
       } catch (error) {
-        console.log(`${this.name} WebSocket message parsing failed:`, error);
+        throw error;
       }
     };
 
     this.socket.onerror = error => {
-      console.log(`${this.name} WebSocket Error ! :`, error);
       this.socket = null;
     };
 
     this.socket.onclose = event => {
       this.socket = null;
-      console.log('웹소켓 닫힌 이유 , 코드 : ', event.code, '이유', event.reason);
+
       if (this.isActive)
         setTimeout(() => {
-          console.log(this.name, 'websocket 재연결 setTimeout');
           this.connectWebSocket();
         }, this.reconnectDelay);
     };
@@ -259,7 +256,6 @@ class UpbitData extends ExchangeData {
       }, {});
       return this.markets;
     } catch (error) {
-      console.log('Upbit fetchMarkets failed:', error.json());
       return (this.markets = ['KRW-BTC']);
     }
   }
@@ -285,7 +281,6 @@ class BithumbData extends ExchangeData {
 
       return this.markets;
     } catch (error) {
-      console.log('Bithumb fetchMarkets failed:', error.message);
       return (this.markets = ['KRW-BTC']);
     }
   }
@@ -354,7 +349,6 @@ async function initialize() {
 
 chrome.runtime.onConnect.addListener(port => {
   if (!port || port.name !== 'popup') {
-    console.log('Invalid port received in onConnect');
     return;
   }
   activePort = port;

@@ -1,13 +1,12 @@
 import { NotebookText } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 
-export const UpdateNoteToggle = () => {
+export const UpdateNoteToggle = ({ updateNotification }: { updateNotification: boolean }) => {
   const openNewPopup = () => {
     // const url = 'https://trusted-surf-f62.notion.site/COMO-15f29bb357f98026be3dd2c062a18257';
     // window.open(url, '_blank', 'noopener,noreferrer');
 
     chrome.tabs.create({ url: 'https://trusted-surf-f62.notion.site/COMO-15f29bb357f98026be3dd2c062a18257' });
-    console.log('update note open');
   };
   return (
     <Toggle
@@ -15,7 +14,8 @@ export const UpdateNoteToggle = () => {
       variant="outline"
       onClick={openNewPopup}>
       <NotebookText size={14} strokeWidth={2} />
-      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity">
+      <span
+        className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity ${updateNotification && 'text-red-500'}`}>
         Update note
       </span>
     </Toggle>

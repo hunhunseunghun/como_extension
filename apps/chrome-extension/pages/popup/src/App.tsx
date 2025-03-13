@@ -40,6 +40,7 @@ const usePort = (
   setExchangePlatform: React.Dispatch<React.SetStateAction<ExchangePlatform>>,
   setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
+  setUpdateNotification: React.Dishpatch<React.SetStateAction<boolean>>,
 ) => {
   useEffect(() => {
     const port = chrome.runtime.connect({ name: 'popup' });
@@ -53,7 +54,6 @@ const usePort = (
           break;
         case 'upbitTickers':
         case 'bithumbTickers':
-          console.log(`Received ${type}:`, data);
           setTickers({});
           setTickers(data);
           setIsLoading(false);
@@ -67,12 +67,14 @@ const usePort = (
             isInitialLoad = false;
           }
           break;
+        case 'updatedVersion':
+          setUpdateNotification(true);
+          break;
       }
     });
 
     port.onDisconnect.addListener(() => {
       setIsLoading(true);
-      console.warn('WebSocket disconnected, reconnecting...');
       setTickers({});
       setTimeout(() => chrome.runtime.connect({ name: 'popup' }), 500);
     });
@@ -108,8 +110,6 @@ const useWideSize = () => {
   useEffect(() => {
     chrome.storage.local.get('wideSize', result => {
       const stored = result?.wideSize || false;
-
-      console.log('STORED :', stored);
       setWideSize(stored);
     });
   }, []);
@@ -134,6 +134,7 @@ const App = () => {
   const [exchangePlatform, setExchangePlatform] = useState<ExchangePlatform>('upbit');
   const [isLoading, setIsLoading] = useState(true);
   const [favoriteFunc, setFavoriteFunc] = useState(true);
+  const [updateNotification, setUpdateNotification] = useState<boolean>(false);
 
   const [favoriteCoins, setFavoriteCoins] = useFavorites();
 
@@ -141,7 +142,7 @@ const App = () => {
     chrome.runtime.sendMessage('popupOpened');
   }, []);
 
-  usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading);
+  usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading, setUpdateNotification);
 
   const tableData = useMemo(() => {
     if (!Object.values(tickers).length) return fallbackData;
@@ -226,7 +227,7 @@ const App = () => {
                   {'한국수출입은행 고시 환율'}
                 </span>
               </div>
-              <UpdateNoteToggle />
+              <UpdateNoteToggle updateNotification={updateNotification} />
               <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
               <ModeToggle />
               <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
