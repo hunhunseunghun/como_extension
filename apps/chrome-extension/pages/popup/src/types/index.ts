@@ -84,4 +84,45 @@ export type BithumbTicker = {
   korean_name?: string;
   english_name?: string;
 };
+
+export type BainanceTicker = {
+  symbol: string; // 업비트: "market": "KRW-BTC"
+  priceChange: string; // 업비트: "change_price": -50000.0
+  priceChangePercent: string; // 업비트: "change_rate": -0.00077
+  weightedAvgPrice: string; // 업비트: 없음 (24시간 가중평균가 제공 안 함)
+  openPrice: string; // 업비트: "opening_price": 64500000.0
+  highPrice: string; // 업비트: "high_price": 65000000.0
+  lowPrice: string; // 업비트: "low_price": 64000000.0
+  lastPrice: string; // 업비트: "trade_price": 64750000.0
+  volume: string; // 업비트: "acc_trade_volume_24h": 34.5678 (24시간 거래량)
+  quoteVolume: string; // 업비트: "acc_trade_price_24h": 1234567890.0 (24시간 거래 대금)
+  openTime: number; // 업비트: 없음 (시작 시간 제공 안 함)
+  closeTime: number; // 업비트: "timestamp": 1710410096000
+  firstId: number; // 업비트: 없음 (거래 ID 제공 안 함)
+  lastId: number; // 업비트: 없음 (거래 ID 제공 안 함)
+  e?: string; // 이벤트 유형 (업비트에는 해당 필드 없음)
+  E?: number; // 이벤트 발생 시간 (업비트에는 해당 필드 없음)
+  s?: string; // 심볼 → 업비트: "market"
+  p?: string; // 24시간 가격 변동 → 업비트: "change_price"
+  P?: string; // 24시간 변동률 (%) → 업비트: "change_rate"
+  w?: string; // 가중 평균 가격 → 업비트: "average_price"
+  x?: string; // 24시간 전 가격 → 업비트: "opening_price"
+  c?: string; // 현재 가격 (lastPrice) → 업비트: "trade_price"
+  Q?: string; // 현재 가격에서의 거래량 (업비트에는 해당 필드 없음)
+  b?: string; // 매수 호가 → 업비트: "bid_price"
+  B?: string; // 매수 호가 수량 → 업비트: "bid_size"
+  a?: string; // 매도 호가 → 업비트: "ask_price"
+  A?: string; // 매도 호가 수량 → 업비트: "ask_size"
+  o?: string; // 24시간 전 가격 (openPrice) → 업비트: "opening_price"
+  h?: string; // 최고가 (highPrice) → 업비트: "high_price"
+  l?: string; // 최저가 (lowPrice) → 업비트: "low_price"
+  v?: string; // 거래량 (base asset) → 업비트: "acc_trade_volume"
+  q?: string; // 거래대금 (quote asset) → 업비트: "acc_trade_price"
+  O?: number; // 24시간 기준 시간 (openTime) → 업비트: "timestamp"
+  C?: number; // 현재 시간 (closeTime) (업비트에는 해당 필드 없음)
+  F?: number; // 첫 번째 거래 ID (업비트에는 해당 필드 없음)
+  L?: number; // 마지막 거래 ID (업비트에는 해당 필드 없음)
+  n?: number; // 거래 횟수 → 업비트: "trade_count"
+};
+
 export type Ticker = UpbitTicker | BithumbTicker;

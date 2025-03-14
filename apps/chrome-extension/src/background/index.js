@@ -225,6 +225,7 @@ class ExchangeData {
 
   async start() {
     this.markets = await this.fetchMarkets();
+
     if (this.markets.length) {
       await this.fetchInitialTickers();
       if (this.isActive) this.connectWebSocket();
@@ -289,6 +290,81 @@ class BithumbData extends ExchangeData {
     }
   }
 }
+// Binance 클래스
+class Binance extends ExchangeData {
+  constructor() {
+    super('binance', ' https://api.binance.com/api/v3/ticker/24hr', 'wss://stream.binance.com:9443/ws/!ticker@arr');
+  }
+
+  async fetchInitialTickers() {
+    try {
+      const response = await fetch(`${this.apiUrl}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const tickersArray = await response.json();
+
+      this.tickers = tickersArray.reduce((acc, ticker) => {
+        if (ticker.symbol) acc[ticker.symbol] = { ...ticker };
+        return acc;
+      }, {});
+      // 팝업이 이미 연결된 경우 즉시 전송
+      if (this.port && this.isActive) {
+        this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async connectWebSocket() {
+    if (!this.isActive) return;
+    if (this.socket && this.socket?.readyState === WebSocket.OPEN) return;
+
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
+    this.socket = new WebSocket(this.wsUrl);
+
+    this.socket.onopen = () => {
+      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+        console.warn(`${this.name} WebSocket opened but socket is invalid or not open`);
+        return;
+      }
+    };
+
+    this.socket.onmessage = async event => {
+      try {
+        let data = event.data;
+        if (data instanceof Blob) data = await data.text();
+        const ticker = JSON.parse(data);
+        if (this.isActive && this.port) {
+          this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: ticker });
+        }
+      } catch (error) {
+        throw error;
+      }
+    };
+
+    this.socket.onerror = error => {
+      this.socket = null;
+    };
+
+    this.socket.onclose = event => {
+      this.socket = null;
+
+      if (this.isActive)
+        setTimeout(() => {
+          this.connectWebSocket();
+        }, this.reconnectDelay);
+    };
+  }
+
+  async start() {
+    await this.fetchInitialTickers();
+    if (this.isActive) this.connectWebSocket();
+  }
+}
 
 // 상태 저장 및 관리
 const STORAGE_KEY = 'activeExchangePlatform';
@@ -309,6 +385,7 @@ async function handleExchangeChange(exchange) {
 
   if (activeExchange === 'upbit') upbit.setActive(false);
   if (activeExchange === 'bithumb') bithumb.setActive(false);
+  if (activeExchange === 'binance') binance.setActive(false);
 
   if (exchange === 'upbit') {
     upbit.setActive(true);
@@ -316,6 +393,8 @@ async function handleExchangeChange(exchange) {
   } else if (exchange === 'bithumb') {
     bithumb.setActive(true);
     if (activePort) bithumb.connectPopup(activePort);
+  } else if (exchange === 'binance') {
+    if (activePort) binance.connectPopup(activePort);
   }
 
   await saveActiveExchange(exchange);
@@ -325,6 +404,7 @@ async function handleExchangeChange(exchange) {
 const exchangeRateManager = new ExchangeRateManager();
 const upbit = new UpbitData();
 const bithumb = new BithumbData();
+const binance = new BinanceData();
 
 let activePort = null;
 
@@ -335,6 +415,7 @@ async function initialize() {
   // 초기 활성화 설정
   if (activeExchange === 'upbit') upbit.setActive(true);
   else if (activeExchange === 'bithumb') bithumb.setActive(true);
+  else if (activeExchange === 'binance') binance.setActive(true);
 
   // 데이터 초기화 및 시작
   await exchangeRateManager.initialize();
@@ -347,6 +428,8 @@ async function initialize() {
       activePort.postMessage({ type: 'upbitTickers', data: upbit.tickers });
     } else if (activeExchange === 'bithumb' && bithumb.tickers) {
       activePort.postMessage({ type: 'bithumbTickers', data: bithumb.tickers });
+    } else if (activeExchange === 'binance' && binance.tickers) {
+      activePort.postMessage({ type: 'binanceTickers', data: binance.tickers });
     }
   }
 }
@@ -365,6 +448,8 @@ chrome.runtime.onConnect.addListener(port => {
     upbit.connectPopup(activePort);
   } else if (activeExchange === 'bithumb' && bithumb.tickers) {
     bithumb.connectPopup(activePort);
+  } else if (activeExchange === 'binance' && binance.tickers) {
+    binance.connectPopup(activePort);
   }
 
   //updated version post

@@ -28,7 +28,7 @@ export function MarketTypeDropDown({
   setRowPinning,
 }: MarketTypeDropDownProps) {
   const filteredMarketTypes: readonly ExchangeMarketType[] =
-    exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : marketTypes;
+    exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : exchangePlatform === 'binance' ? ['USDT', 'BTC'] : marketTypes;
 
   const dropdownSeletedHandler = (type: ExchangeMarketType) => {
     const initRowPinning: RowPinningState = { top: [], bottom: [] };
@@ -37,6 +37,10 @@ export function MarketTypeDropDown({
   };
 
   useEffect(() => {
+    if (exchangePlatform === 'binance') {
+      setExchangeMarketType('USDT');
+      return;
+    }
     setExchangeMarketType('KRW');
   }, [exchangePlatform]);
 

@@ -54,6 +54,8 @@ const usePort = (
           break;
         case 'upbitTickers':
         case 'bithumbTickers':
+        case 'binanceTickers':
+          console.log('Tickers pop : ', data);
           setTickers({});
           setTickers(data);
           setIsLoading(false);
