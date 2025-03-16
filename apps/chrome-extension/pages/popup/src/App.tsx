@@ -411,8 +411,8 @@ const App = () => {
               <Table className="table-fixed text-xs w-full">
                 <TableBody>
                   {isLoading || !Object.keys(tickers).length ? (
-                    <div className={`${wideSize ? 'h-[796]' : 'h-[420px]'} grid place-content-center`}>
-                      <Loader2 size={24} />
+                    <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
+                      <Loader2 className={'w-5 h-5 animate-spin text-gray-500 hover:bg-transparent'} />
                     </div>
                   ) : (
                     <>
