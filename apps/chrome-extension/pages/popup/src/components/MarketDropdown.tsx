@@ -23,10 +23,10 @@ const platformData = {
   binance: { key: 'binance', label: '바이낸스', logo: BinanceLogo },
 } as const;
 
-type TickerTypes = UpbitTicker[] | BithumbTicker[] | BinanceTicker[];
+type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 
 interface MarketDropdownProps {
-  exchangePlatform: 'upbit' | 'bithumb' | 'binance'; // 'upbit' | 'bithumb' | 'coinone' | 'binance'
+  exchangePlatform: 'upbit' | 'bithumb' | 'binance';
   setExchangePlatform: (platform: keyof typeof platformData) => void;
   setIsLoading: (loading: boolean) => void;
   setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>;

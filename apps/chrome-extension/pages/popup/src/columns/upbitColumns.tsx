@@ -10,8 +10,8 @@ export const getUpbitColumns = (
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
-  favoriteCoins: { upbit: string[]; bithumb: string[] },
-  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[] }>>,
+  favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
+  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
 ): ColumnDef<UpbitTicker>[] => [
   {

@@ -30,8 +30,8 @@ import { Search } from 'lucide-react';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 타입 정의
-type TickerTypes = UpbitTicker[] | BithumbTicker[] | BinanceTicker[];
-const fallbackData: TickerTypes = [];
+type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
+const fallbackData: TickerTypes[] = [];
 
 const usePort = (
   setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>,
@@ -155,7 +155,7 @@ const App = () => {
 
   usePort(setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading, updatedVersionHandler);
 
-  const tableData = useMemo<TickerTypes>(() => {
+  const tableData = useMemo<TickerTypes[]>(() => {
     if (!Object.values(tickers).length) return fallbackData;
 
     switch (exchangePlatform) {
@@ -177,35 +177,46 @@ const App = () => {
     }
   }, [tickers, exchangePlatform, exchangeMarketType]);
 
-  const columns = useMemo(() => {
-    const columnArgs = [
-      coinNameKR,
-      setCoinNameKR,
-      exchangeRateUSD,
-      exchangeMarketType,
-      favoriteCoins,
-      setFavoriteCoins,
-      favoriteFunc,
-    ] as const;
+  const specificMarketType = useMemo(() => {
+    if (exchangePlatform === 'binance') {
+      return exchangeMarketType === 'KRW' ? 'USDT' : exchangeMarketType;
+    }
+    return exchangeMarketType;
+  }, [exchangePlatform, exchangeMarketType]);
 
+  const columns = useMemo<ColumnDef<TickerTypes>[]>(() => {
     switch (exchangePlatform) {
       case 'upbit':
-        return getUpbitColumns(...columnArgs) as ColumnDef<UpbitTicker>[];
-      case 'bithumb':
-        return getBithumbColumns(...columnArgs) as ColumnDef<BithumbTicker>[];
-      case 'binance':
-        return getBinanceColumns(
+        return getUpbitColumns(
+          coinNameKR,
+          setCoinNameKR,
+          exchangeRateUSD,
           exchangeMarketType,
           favoriteCoins,
           setFavoriteCoins,
           favoriteFunc,
-        ) as ColumnDef<BinanceTicker>[];
-      default:
-        return;
+        ) as ColumnDef<TickerTypes>[];
+      case 'bithumb':
+        return getBithumbColumns(
+          coinNameKR,
+          setCoinNameKR,
+          exchangeRateUSD,
+          exchangeMarketType,
+          favoriteCoins,
+          setFavoriteCoins,
+          favoriteFunc,
+        ) as ColumnDef<TickerTypes>[];
+      case 'binance':
+        return getBinanceColumns(
+          specificMarketType,
+          favoriteCoins,
+          setFavoriteCoins,
+          favoriteFunc,
+        ) as ColumnDef<TickerTypes>[];
     }
   }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc]);
 
-  const table = useReactTable<UpbitTicker | BithumbTicker | BinanceTicker>({
+  const table = useReactTable<TickerTypes>({
     data: tableData,
     columns: columns ?? [],
     getCoreRowModel: getCoreRowModel(),

@@ -4,7 +4,7 @@ import { Star, ArrowDownUp, ChevronsUpDown } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
 
 export const getBinanceColumns = (
-  exchangeMarketType: 'USDT' | 'BTC',
+  exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
   favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
