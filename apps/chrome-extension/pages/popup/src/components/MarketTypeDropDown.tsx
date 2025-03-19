@@ -52,13 +52,13 @@ export function MarketTypeDropDown({
           <ChevronDown className="size-2.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-20">
+      <DropdownMenuContent className="w-[60px]">
         <DropdownMenuGroup>
           {filteredMarketTypes.map(type => (
             <DropdownMenuItem
               key={type}
               onClick={() => dropdownSeletedHandler(type)}
-              className="gap-1 px-1 py-1 text-xs">
+              className="gap-1 px-1 py-1 text-xs hover:cursor-pointer">
               {type}
             </DropdownMenuItem>
           ))}

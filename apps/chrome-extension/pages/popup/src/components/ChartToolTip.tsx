@@ -210,8 +210,8 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const { chartData, loading, error, fetchData } = useChartData(symbol, exchange);
 
-  const TOOLTIP_WIDTH = 250;
-  const TOOLTIP_HEIGHT = 150;
+  const TOOLTIP_WIDTH = 270;
+  const TOOLTIP_HEIGHT = 170;
 
   const updatePosition = useCallback(() => {
     const container = containerRef.current;
@@ -313,7 +313,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
     () =>
       isHovered && (
         <div
-          className="tooltip absolute bg-black/80 shadow-lg rounded-lg z-[9999] w-[250px] h-[150px] pointer-events-none p-1"
+          className="tooltip absolute bg-black/80 shadow-lg rounded-lg z-[9999] w-[270px] h-[170px] pointer-events-none p-1"
           style={position ? { left: `${position.left}px`, top: `${position.top}px` } : { display: 'none' }}>
           <div
             className="chart-container w-full h-full"

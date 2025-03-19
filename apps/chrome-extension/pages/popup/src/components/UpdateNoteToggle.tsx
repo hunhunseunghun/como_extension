@@ -17,7 +17,7 @@ export const UpdateNoteToggle = ({ updatedVersion }: { updatedVersion: string })
       onClick={updateNoteHandler}>
       <NotebookText size={14} strokeWidth={2} className={`${updatedVersion?.length && 'text-yellow-500'}`} />
       <span
-        className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white ${updatedVersion?.length ? 'bg-yellow-500' : 'bg-black'} rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity`}>
+        className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white ${updatedVersion?.length ? 'bg-yellow-500' : 'bg-black'} rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-49`}>
         {updatedVersion?.length ? `Check ver.${updatedVersion}` : 'Update note'}
       </span>
     </Toggle>

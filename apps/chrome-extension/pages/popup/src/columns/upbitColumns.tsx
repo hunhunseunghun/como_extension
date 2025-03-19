@@ -5,7 +5,7 @@ import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
-import ChartCell from '@/components/ChartCell';
+// import ChartCell from '@/components/ChartCell';
 
 export const getUpbitColumns = (
   coinNameKR: boolean,
@@ -267,16 +267,16 @@ export const getUpbitColumns = (
     },
     enableHiding: false,
   },
-  {
-    accessorKey: 'candlestic_chart_30d',
-    id: 'candlestic_chart_30d',
-    header: () => (
-      <div className="flex justify-end font-bold">
-        <span>차트(30일/일봉)</span>
-      </div>
-    ),
-    cell: ({ row }) => {
-      return <ChartCell symbol={row.original.market} exchange="upbit" />;
-    },
-  },
+  // {
+  //   accessorKey: 'candlestic_chart_30d',
+  //   id: 'candlestic_chart_30d',
+  //   header: () => (
+  //     <div className="flex justify-end font-bold">
+  //       <span>차트(30일/일봉)</span>
+  //     </div>
+  //   ),
+  //   cell: ({ row }) => {
+  //     return <ChartCell symbol={row.original.market} exchange="upbit" />;
+  //   },
+  // },
 ];

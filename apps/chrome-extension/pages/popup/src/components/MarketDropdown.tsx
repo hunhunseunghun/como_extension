@@ -73,12 +73,12 @@ export const MarketDropdown = ({
           <ChevronDown className="size-2.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="min-w-[100px]">
+      <DropdownMenuContent className="relative left-1 w-[90px] data-[side=bottom]:slide-in-from-top-2">
         <DropdownMenuGroup>
           {exchangeList.map(({ key, label, logo }) => (
             <DropdownMenuItem
               key={key}
-              className="gap-1 px-1 py-1 items-left text-xs"
+              className="gap-1 px-1 py-1 items-left text-xs hover:cursor-pointer"
               onClick={() => dropdownSeletedHandler(key)}>
               <img src={logo} className="size-4" />
               <span>{label}</span>

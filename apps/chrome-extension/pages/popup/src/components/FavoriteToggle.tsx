@@ -19,7 +19,7 @@ export const FavoriteToggle = ({ favoriteFunc, setFavoriteFunc }: FavoriteToggle
       ) : (
         <StarOff size={14} strokeWidth={2} className="absolute size-3.5" />
       )}
-      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity">
+      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-49">
         {!favoriteFunc ? 'Favorite On' : 'Favorite Off'}
       </span>
     </Toggle>
