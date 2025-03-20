@@ -873,13 +873,7 @@ const App = () => {
               <Table className="table-fixed text-xs w-full">
                 <TableBody>
                   {isLoading || !Object.keys(tickers).length ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={table.getAllColumns().filter(col => col.getIsVisible()).length || 1}
-                        className="h-full text-center hover:bg-transparent">
-                        <LoadingSpinner />
-                      </TableCell>
-                    </TableRow>
+                    <LoadingSpinner className={`${wideSize ? 'h-[796]' : 'h-[420px]'}`} />
                   ) : (
                     <>
                       {table.getTopRows()?.map(row => (

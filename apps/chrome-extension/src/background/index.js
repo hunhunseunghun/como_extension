@@ -470,16 +470,25 @@
 // initialize();
 
 const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
-const highestChangeRate = { exchange: null, market: null, rate: null };
+const maxChangeRate = { exchange: null, market: null, rate: null };
+let updatedVersion = '';
 
 const CURRENT_DATE = new Date()
   .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
   .replace(/\./g, '')
   .replace(/ /g, '');
 
-const getDynamicUserAgent = () => navigator.userAgent;
+chrome.alarms.create('updateDate', { periodInMinutes: 30 }); // 하루(1440분)마다 실행
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'updateDate') {
+    CURRENT_DATE = new Date()
+      .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+      .replace(/\./g, '')
+      .replace(/ /g, '');
+  }
+});
 
-let updatedVersion = '';
+const getDynamicUserAgent = () => navigator.userAgent;
 
 chrome.runtime.onInstalled.addListener(details => {
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
@@ -627,8 +636,8 @@ class ExchangeData {
             change_rate: ticker.signed_change_rate || 0,
           };
           acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
-          return acc;
         }
+        return acc;
       }, {});
       if (this.port && this.isPopupActive) {
         this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
@@ -784,7 +793,6 @@ class BithumbData extends ExchangeData {
     }
   }
 }
-
 // BinanceData 클래스
 class BinanceData extends ExchangeData {
   constructor() {
@@ -821,8 +829,8 @@ class BinanceData extends ExchangeData {
             change_rate: ticker.priceChangePercent ? Number(ticker.priceChangePercent) : 0,
           };
           acc[ticker.symbol] = { ...ticker, market: ticker.symbol };
-          return acc;
         }
+        return acc;
       }, {});
       if (this.port && this.isPopupActive) {
         this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
