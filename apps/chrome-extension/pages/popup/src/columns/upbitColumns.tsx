@@ -32,7 +32,7 @@ export const getUpbitColumns = (
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
       const upbitRow = row.original as { market_event?: { warning: boolean; caution: boolean } }; // Upbit 전용 필드 접근
       const market = row.original.market;
-      const savedCoins = favoriteCoins?.upbit?.join(',');
+      const savedCoins = favoriteCoins?.upbit?.join(',') || '';
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
@@ -93,6 +93,7 @@ export const getUpbitColumns = (
       return fullTextMatch || chosungRegex.test(koreanName);
     },
     enableHiding: false,
+    size: 103,
   },
   {
     accessorKey: 'candlestick_chart',
@@ -114,7 +115,6 @@ export const getUpbitColumns = (
       );
     },
     enableHiding: false,
-    size: 60,
   },
   {
     accessorKey: 'trade_price',
@@ -229,6 +229,7 @@ export const getUpbitColumns = (
         </div>
       );
     },
+    enableResizing: false,
   },
   {
     accessorKey: 'acc_trade_price_24h',
@@ -263,19 +264,19 @@ export const getUpbitColumns = (
       switch (exchangeMarketType) {
         case 'KRW':
           return (
-            <div className="flex justify-end font-medium">
+            <div className="flex justify-end font-medium p-2">
               <span>{formatCurrencyKR(value)}</span>
             </div>
           );
         case 'BTC':
           return (
-            <div className="flex flex-col items-end font-medium">
+            <div className="flex flex-col items-end font-medium p-2">
               <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );
         case 'USDT':
           return (
-            <div className="flex flex-col items-end font-medium">
+            <div className="flex flex-col items-end font-medium p-2">
               <span>{formatCurrencyUS(value)}</span>
             </div>
           );

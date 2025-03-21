@@ -35,7 +35,7 @@ export const getBinanceColumns = (
           : row.original.symbol;
 
       const binanceTradeURL = `https://www.binance.com/en/trade/${symbol}?type=spot`;
-      const savedCoins = favoriteCoins?.binance?.join(',');
+      const savedCoins = favoriteCoins?.binance?.join(',') || '';
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
@@ -90,6 +90,7 @@ export const getBinanceColumns = (
       return fullTextMatch;
     },
     enableHiding: false,
+    size: 103,
   },
   {
     accessorKey: 'candlestick_chart',
@@ -267,13 +268,13 @@ export const getBinanceColumns = (
       switch (exchangeMarketType) {
         case 'USDT':
           return (
-            <div className="flex flex-col items-end font-medium">
+            <div className="flex flex-col items-end font-medium p-2">
               <span>{formatCurrencyUS(value)}</span>
             </div>
           );
         case 'BTC':
           return (
-            <div className="flex justify-end font-medium">
+            <div className="flex justify-end font-medium p-2">
               <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );

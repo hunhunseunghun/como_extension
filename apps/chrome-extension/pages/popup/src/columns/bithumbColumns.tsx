@@ -30,7 +30,7 @@ export const getBithumbColumns = (
       const splitMarket = row.original.market?.split('-');
       const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' };
       const market = row.original.market;
-      const savedCoins = favoriteCoins?.bithumb?.join(',');
+      const savedCoins = favoriteCoins?.binance?.join(',') || '';
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
@@ -91,6 +91,7 @@ export const getBithumbColumns = (
       return fullTextMatch || chosungRegex.test(koreanName);
     },
     enableHiding: false,
+    size: 103,
   },
   {
     accessorKey: 'candlestick_chart',
@@ -229,7 +230,7 @@ export const getBithumbColumns = (
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래금(일))</span>
+        <span>거래금(일)</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -248,13 +249,13 @@ export const getBithumbColumns = (
       switch (exchangeMarketType) {
         case 'KRW':
           return (
-            <div className="flex justify-end font-medium">
+            <div className="flex justify-end font-medium p-2">
               <span>{formatCurrencyKR(value)}</span>
             </div>
           );
         case 'BTC':
           return (
-            <div className="flex justify-end font-medium">
+            <div className="flex justify-end font-medium p-2">
               <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );
