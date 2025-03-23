@@ -66,7 +66,7 @@ export const getBinanceColumns = (
               />
             </div>
           )}
-          <div className="text-left break-word">
+          <div className="text-left">
             <div className="flex gap-[2px]">
               <a href={binanceTradeURL} target="_blank" className="hover:text-gray-400">
                 {removeMarket}

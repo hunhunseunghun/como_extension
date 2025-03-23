@@ -62,7 +62,7 @@ export const getBithumbColumns = (
             </div>
           )}
 
-          <div className="text-left break-word">
+          <div className="text-left">
             <div className="flex gap-[2px]">
               <a
                 href={`https://www.bithumb.com/react/trade/order/${splitMarket.length && splitMarket[1] + '-' + splitMarket[0]}`}

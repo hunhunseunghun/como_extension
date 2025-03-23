@@ -519,6 +519,7 @@ const usePort = (
         case 'upbitWebsocketTicker':
         case 'bithumbWebsocketTicker':
           setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
+          setIsLoading(false);
           break;
         case 'binanceWebsocketTicker':
           setTickers(prev => {
@@ -530,6 +531,7 @@ const usePort = (
             });
             return updateTickers;
           });
+          setIsLoading(false);
           break;
         case 'upbitTickers':
         case 'bithumbTickers':
@@ -576,8 +578,14 @@ const useFavorites = () => {
   }, []);
 
   useEffect(() => {
+    const deduplicatedFavoriteCoins = {
+      upbit: [...new Set(favoriteCoins.upbit)],
+      bithumb: [...new Set(favoriteCoins.bithumb)],
+      binance: [...new Set(favoriteCoins.binance)],
+    };
+
     chrome.storage.local.set({
-      favoriteCoins: favoriteCoins,
+      favoriteCoins: deduplicatedFavoriteCoins,
     });
   }, [favoriteCoins]);
 
@@ -868,7 +876,7 @@ const App = () => {
                     <TableRow>
                       <TableCell
                         colSpan={table.getAllColumns().filter(col => col.getIsVisible()).length || 1}
-                        className="h-48 text-center">
+                        className="h-full text-center hover:bg-transparent">
                         <LoadingSpinner />
                       </TableCell>
                     </TableRow>
@@ -889,10 +897,8 @@ const App = () => {
                                   width: adjustedWidth,
                                   minWidth: adjustedWidth,
                                   maxWidth: adjustedWidth,
-                                  height: '48px', // 행 높이 고정
                                   overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
+                                  wordBreak: 'break-all', // 단어 단위 줄바꿈
                                 }}>
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                               </TableCell>
@@ -921,10 +927,8 @@ const App = () => {
                                     width: adjustedWidth,
                                     minWidth: adjustedWidth,
                                     maxWidth: adjustedWidth,
-                                    height: '48px', // 셀 높이 고정
                                     overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
+                                    wordBreak: 'break-all',
                                   }}>
                                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                 </TableCell>

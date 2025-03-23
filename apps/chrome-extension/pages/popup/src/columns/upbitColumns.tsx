@@ -63,7 +63,7 @@ export const getUpbitColumns = (
               />
             </div>
           )}
-          <div className="text-left break-word">
+          <div className="text-left">
             <div className="flex gap-[2px]">
               <a
                 href={`https://upbit.com/exchange?code=CRIX.UPBIT.${row.original?.market}`}

@@ -52,7 +52,6 @@ const ChartCell: React.FC<ChartCellProps> = ({ symbol, exchange }) => {
         }
 
         const data = await response.json();
-        console.log('Upbit Raw Data:', data);
 
         if (!Array.isArray(data) || data.length === 0) {
           throw new Error(`Invalid or empty response for ${symbol}`);
@@ -78,7 +77,6 @@ const ChartCell: React.FC<ChartCellProps> = ({ symbol, exchange }) => {
         };
 
         const chartData = formatData(data);
-        console.log(`${symbol} Formatted Data:`, chartData);
 
         if (chartData.length === 0) {
           throw new Error(`No valid data points for ${symbol}`);
