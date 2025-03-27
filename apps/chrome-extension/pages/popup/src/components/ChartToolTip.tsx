@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { createChart, IChartApi, ISeriesApi, CandlestickSeries } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, CandlestickSeries, IRange, Time } from 'lightweight-charts';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 interface ChartDataPoint {
   time: string;
@@ -18,6 +25,8 @@ interface ChartTooltipProps {
   symbol?: string;
   exchange?: 'binance' | 'upbit' | 'bithumb';
   wideSize: boolean;
+  timeframe?: string;
+  setTimeframe: (value: string) => void;
 }
 
 type Exchange = 'binance' | 'upbit' | 'bithumb';
@@ -53,7 +62,17 @@ interface BithumbCandle {
   trade_price: string;
 }
 
-const formatDateToString = (timestamp: number): string => new Date(timestamp * 1000).toISOString().split('T')[0];
+const formatDateToString = (timestamp: number, timeframe: string = '1d'): string => {
+  const date = new Date(timestamp * 1000);
+
+  // 분봉/시간봉의 경우 시간까지 포함
+  if (timeframe.includes('m') || timeframe.includes('h')) {
+    return date.toISOString().slice(0, 19).replace('T', ' ');
+  }
+
+  // 일봉/주봉/월봉의 경우 날짜만
+  return date.toISOString().split('T')[0];
+};
 
 const isValidNumeric = (value: number) => Number.isFinite(value);
 
@@ -74,7 +93,7 @@ const formatPrice = (price: number): string => {
   return numberFormatter.format(price);
 };
 
-const useChartData = (symbol?: string, exchange: Exchange = 'binance') => {
+const useChartData = (symbol?: string, exchange: Exchange = 'binance', timeframe: string = '1d') => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +105,7 @@ const useChartData = (symbol?: string, exchange: Exchange = 'binance') => {
       return;
     }
 
-    const cacheKey = `${exchange}-${symbol}`;
+    const cacheKey = `${exchange}-${symbol}-${timeframe}`;
     if (cacheRef.current[cacheKey]) {
       setChartData(cacheRef.current[cacheKey]);
       return;
@@ -95,8 +114,8 @@ const useChartData = (symbol?: string, exchange: Exchange = 'binance') => {
     setLoading(true);
     try {
       const currentTime = Math.floor(Date.now() / 1000);
-      const { data } = await fetchChartData(symbol, exchange);
-      const formattedData = formatChartData(data, exchange, currentTime);
+      const { data } = await fetchChartData(symbol, exchange, timeframe);
+      const formattedData = formatChartData(data, exchange, currentTime, timeframe);
 
       if (!formattedData.length) {
         throw new Error(`No valid data points for ${symbol}`);
@@ -113,25 +132,80 @@ const useChartData = (symbol?: string, exchange: Exchange = 'binance') => {
     } finally {
       setLoading(false);
     }
-  }, [symbol, exchange]);
+  }, [symbol, exchange, timeframe]);
 
   return { chartData, loading, error, fetchData };
 };
 
-const fetchChartData = (symbol: string, exchange: Exchange) => {
+const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = '1d') => {
+  const getUpbitInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': 'minutes/1',
+      '3m': 'minutes/3',
+      '5m': 'minutes/5',
+      '10m': 'minutes/10',
+      '15m': 'minutes/15',
+      '30m': 'minutes/30',
+      '60m': 'minutes/60',
+      '240m': 'minutes/240',
+      '1d': 'days',
+      '1w': 'weeks',
+      '1M': 'months',
+    };
+    return intervals[tf] || 'days';
+  };
+
+  const getBinanceInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1m',
+      '3m': '3m',
+      '5m': '5m',
+      '15m': '15m',
+      '30m': '30m',
+      '60m': '1h',
+      '240m': '4h',
+      '1d': '1d',
+      '1w': '1w',
+      '1M': '1M',
+    };
+    return intervals[tf] || '1d';
+  };
+
+  const getBithumbInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1m',
+      '3m': '3m',
+      '5m': '5m',
+      '10m': '10m',
+      '30m': '30m',
+      '60m': '1h',
+      '240m': '4h',
+      '1d': '24h',
+      '1w': '1w',
+      '1M': '1M',
+    };
+    return intervals[tf] || '24h';
+  };
+
   const configs: Record<
     Exchange,
     { url: string; params?: Record<string, string | number>; headers?: Record<string, string> }
   > = {
     binance: {
       url: 'https://api.binance.com/api/v3/klines',
-      params: { symbol: symbol.replace('/', ''), interval: '1d', limit: 200 },
+      params: {
+        symbol: symbol.replace('/', ''),
+        interval: getBinanceInterval(timeframe),
+        limit: 200,
+      },
     },
     upbit: {
-      url: `https://api.upbit.com/v1/candles/days?market=${symbol}&count=200`,
+      url: `https://api.upbit.com/v1/candles/${getUpbitInterval(timeframe)}`,
+      params: { market: symbol, count: 200 },
     },
     bithumb: {
-      url: `https://api.bithumb.com/v1/candles/days?market=${symbol.toUpperCase()}&count=200`,
+      url: `https://api.bithumb.com/v1/candles/${getBithumbInterval(timeframe)}`,
+      params: { market: symbol.toUpperCase(), count: 200 },
       headers: { accept: 'application/json' },
     },
   };
@@ -146,6 +220,7 @@ const formatChartData = (
   data: BinanceKline[] | UpbitCandle[] | BithumbCandle[],
   exchange: Exchange,
   currentTime: number,
+  timeframe: string = '1d',
 ): ChartDataPoint[] => {
   if (!Array.isArray(data) || !data.length) {
     throw new Error(`Invalid response from ${exchange}`);
@@ -197,23 +272,31 @@ const formatChartData = (
         isValidNumeric(low) &&
         isValidNumeric(close)
       ) {
-        acc.push({ time: formatDateToString(timeNum), open, high, low, close });
+        acc.push({ time: formatDateToString(timeNum, timeframe), open, high, low, close });
       }
       return acc;
     }, [])
     .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 };
 
-const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol, exchange = 'binance', wideSize }) => {
+const ChartToolTip: React.FC<ChartTooltipProps> = ({
+  children,
+  className,
+  symbol,
+  exchange = 'binance',
+  wideSize,
+  timeframe = '1d',
+  setTimeframe,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
-  const { chartData, loading, error, fetchData } = useChartData(symbol, exchange);
+  const { chartData, loading, error, fetchData } = useChartData(symbol, exchange, timeframe);
 
-  const TOOLTIP_WIDTH = wideSize ? 350 : 270;
-  const TOOLTIP_HEIGHT = wideSize ? 200 : 170;
+  const TOOLTIP_WIDTH = wideSize ? 500 : 290;
+  const TOOLTIP_HEIGHT = wideSize ? 300 : 170;
 
   const updatePosition = useCallback(() => {
     const container = containerRef.current;
@@ -246,7 +329,18 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
           fontSize: wideSize ? 9 : 8,
           attributionLogo: false,
         },
-        grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+        grid: {
+          vertLines: {
+            visible: true,
+            style: 2,
+            color: 'rgba(255, 255, 255, 0.2)',
+          },
+          horzLines: {
+            visible: true,
+            style: 2,
+            color: 'rgba(255, 255, 255, 0.2)',
+          },
+        },
         rightPriceScale: {
           visible: true,
           borderVisible: false,
@@ -255,10 +349,10 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
         localization: {
           priceFormatter: formatPrice,
         },
-        timeScale: { visible: true, borderVisible: false, timeVisible: true, secondsVisible: false },
+        timeScale: { visible: true, borderVisible: true, timeVisible: true, secondsVisible: true },
         crosshair: { mode: 0 },
-        handleScroll: false,
-        handleScale: false,
+        handleScroll: true,
+        handleScale: true,
       });
       seriesRef.current = chartRef.current.addSeries(CandlestickSeries, {
         upColor: '#ef4444',
@@ -277,58 +371,295 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
     const container = containerRef.current;
     if (!container) return;
 
-    const handleMouseEnter = () => {
-      setIsHovered(true);
-      fetchData();
-      updatePosition();
-    };
-    const handleMouseLeave = () => {
-      setIsHovered(false);
-      chartRef.current?.remove();
-      chartRef.current = null;
-      seriesRef.current = null;
-      setPosition(null);
+    const handleClick = () => {
+      setIsClicked(prev => !prev);
+      if (!isClicked) {
+        fetchData();
+        updatePosition();
+      } else {
+        chartRef.current?.remove();
+        chartRef.current = null;
+        seriesRef.current = null;
+        setPosition(null);
+      }
     };
 
-    container.addEventListener('mouseenter', handleMouseEnter);
-    container.addEventListener('mouseleave', handleMouseLeave);
-    return () => {
-      container.removeEventListener('mouseenter', handleMouseEnter);
-      container.removeEventListener('mouseleave', handleMouseLeave);
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        target.closest('.dropdown-menu') ||
+        target.closest('.dropdown-content') ||
+        target.closest('[role="menu"]') ||
+        target.closest('[data-radix-popper-content-wrapper]')
+      ) {
+        return;
+      }
+      if (container && !container.contains(target)) {
+        setIsClicked(false);
+        chartRef.current?.remove();
+        chartRef.current = null;
+        seriesRef.current = null;
+        setPosition(null);
+      }
     };
-  }, [fetchData, updatePosition]);
+
+    const handleChartClick = (event: Event) => {
+      event.stopPropagation();
+    };
+
+    container.addEventListener('click', handleClick);
+    document.addEventListener('click', handleClickOutside);
+
+    const chartContainer = document.querySelector('.chart-container');
+    if (chartContainer) {
+      chartContainer.addEventListener('click', handleChartClick as EventListener);
+    }
+
+    return () => {
+      container.removeEventListener('click', handleClick);
+      document.removeEventListener('click', handleClickOutside);
+      if (chartContainer) {
+        chartContainer.removeEventListener('click', handleChartClick as EventListener);
+      }
+    };
+  }, [fetchData, updatePosition, isClicked]);
 
   useEffect(() => {
-    if (!isHovered) return;
+    if (!isClicked) return;
 
     const handleEvents = () => updatePosition();
     window.addEventListener('scroll', handleEvents);
     window.addEventListener('resize', handleEvents);
+
+    const handleWheel = (event: Event) => {
+      if (chartRef.current) {
+        const timeScale = chartRef.current.timeScale();
+        const wheelEvent = event as WheelEvent;
+        const delta = wheelEvent.deltaY;
+        const currentRange = timeScale.getVisibleRange();
+        if (currentRange) {
+          const currentSpan = Number(currentRange.to) - Number(currentRange.from);
+          const zoomFactor = delta > 0 ? 1.1 : 0.9;
+          const newSpan = currentSpan * zoomFactor;
+
+          const minSpan = currentSpan * 0.1;
+          const maxSpan = currentSpan * 2;
+
+          if (newSpan >= minSpan && newSpan <= maxSpan) {
+            const center = (Number(currentRange.from) + Number(currentRange.to)) / 2;
+            const newRange = {
+              from: center - newSpan / 2,
+              to: center + newSpan / 2,
+            } as IRange<Time>;
+            timeScale.setVisibleRange(newRange);
+          }
+        }
+      }
+    };
+
+    const chartContainer = document.querySelector('.chart-container');
+    if (chartContainer) {
+      chartContainer.addEventListener('wheel', handleWheel as EventListener);
+    }
+
     return () => {
       window.removeEventListener('scroll', handleEvents);
       window.removeEventListener('resize', handleEvents);
+      if (chartContainer) {
+        chartContainer.removeEventListener('wheel', handleWheel as EventListener);
+      }
     };
-  }, [isHovered, updatePosition]);
+  }, [isClicked, updatePosition]);
 
   useEffect(() => {
-    if (isHovered && chartData.length && !loading && !error) {
+    if (isClicked && chartData.length && !loading && !error) {
       renderChart();
     }
-  }, [isHovered, chartData, loading, error, renderChart]);
+  }, [isClicked, chartData, loading, error, renderChart]);
 
   const tooltipContent = useMemo(
     () =>
-      isHovered && (
+      isClicked && (
         <div
           className={cn(
-            'tooltip absolute bg-black/80 shadow-lg rounded-lg z-[9999] pointer-events-none p-1',
-            wideSize ? 'w-[350px] h-[200px]' : 'w-[270px] h-[170px]',
+            'tooltip absolute bg-black/80 shadow-lg rounded-lg z-[9999] p-1',
+            wideSize ? 'w-[510px] h-[300px]' : 'w-[305px] h-[170px]',
           )}
           style={position ? { left: `${position.left}px`, top: `${position.top}px` } : { display: 'none' }}>
-          <div
-            className="chart-container w-full h-full"
-            style={{ display: chartData.length && !loading && !error ? 'block' : 'none' }}
-          />
+          <div className="relative w-full h-full">
+            <div
+              className="chart-container w-full h-full"
+              style={{ display: chartData.length && !loading && !error ? 'block' : 'none' }}
+            />
+            {chartData.length && !loading && !error && (
+              <div className="absolute top-2 left-2 z-10 flex gap-2">
+                {wideSize && (
+                  <>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (chartRef.current) {
+                          const timeScale = chartRef.current.timeScale();
+                          const currentRange = timeScale.getVisibleLogicalRange();
+                          if (currentRange) {
+                            const newRange = {
+                              from: currentRange.from,
+                              to: currentRange.from + (currentRange.to - currentRange.from) * 0.7,
+                            };
+                            timeScale.setVisibleLogicalRange(newRange);
+                          }
+                        }
+                      }}
+                      className="w-6 h-6 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-md transition-colors text-sm">
+                      +
+                    </button>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        if (chartRef.current) {
+                          const timeScale = chartRef.current.timeScale();
+                          const currentRange = timeScale.getVisibleLogicalRange();
+                          if (currentRange) {
+                            const newRange = {
+                              from: currentRange.from,
+                              to: currentRange.from + (currentRange.to - currentRange.from) * 1.3,
+                            };
+                            timeScale.setVisibleLogicalRange(newRange);
+                          }
+                        }
+                      }}
+                      className="w-6 h-6 flex items-center justify-center bg-black/50 hover:bg-black/70 text-white rounded-md transition-colors text-sm">
+                      -
+                    </button>
+                  </>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="flex items-center gap-1 px-2 py-1 text-[11px] text-white bg-black/50 hover:bg-black/70 rounded-md transition-colors dropdown-menu"
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}>
+                    <span>
+                      {timeframe === '1d'
+                        ? '일봉'
+                        : timeframe === '1w'
+                          ? '주봉'
+                          : timeframe === '1M'
+                            ? '월봉'
+                            : timeframe.includes('m')
+                              ? `${timeframe.replace('m', '')}분`
+                              : timeframe.includes('h')
+                                ? `${timeframe.replace('h', '')}시간`
+                                : ''}
+                    </span>
+                    <ChevronDown size={12} strokeWidth={3} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    className="dropdown-content z-[10000] min-w-[80px] p-1"
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    onPointerDownOutside={e => {
+                      e.preventDefault();
+                    }}
+                    onInteractOutside={e => {
+                      e.preventDefault();
+                    }}>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('1m');
+                      }}>
+                      1분
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('3m');
+                      }}>
+                      3분
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('5m');
+                      }}>
+                      5분
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('10m');
+                      }}>
+                      10분
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('15m');
+                      }}>
+                      15분
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('30m');
+                      }}>
+                      30분
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('60m');
+                      }}>
+                      1시간
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('240m');
+                      }}>
+                      4시간
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('1d');
+                      }}>
+                      일봉
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('1w');
+                      }}>
+                      주봉
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-[10px] py-1 px-2"
+                      onSelect={e => {
+                        e.preventDefault();
+                        setTimeframe('1M');
+                      }}>
+                      월봉
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
           {(loading || error || !chartData.length) && (
             <div className="w-full h-full flex items-center justify-center text-gray-300">
               {loading && (
@@ -355,7 +686,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
           )}
         </div>
       ),
-    [isHovered, position, chartData, loading, error, fetchData, wideSize],
+    [isClicked, position, chartData, loading, error, fetchData, wideSize, timeframe, setTimeframe],
   );
 
   return (

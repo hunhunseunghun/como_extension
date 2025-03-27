@@ -170,6 +170,7 @@ const App = () => {
   const [favoriteFunc, setFavoriteFunc] = useState<boolean>(true);
   const [updatedVersion, setUpdatedVersion] = useState<string>('');
   const [favoriteCoins, setFavoriteCoins] = useFavorites();
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>('1d');
   const [maxChangeRateCoin, setMaxChangeRateCoin] = useState<maxChagneRateCoin>({
     exchange: '',
     market: '',
@@ -239,6 +240,8 @@ const App = () => {
           setFavoriteCoins,
           favoriteFunc,
           wideSize,
+          selectedTimeframe,
+          setSelectedTimeframe,
         ) as ColumnDef<TickerTypes>[];
       case 'bithumb':
         return getBithumbColumns(
@@ -250,6 +253,8 @@ const App = () => {
           setFavoriteCoins,
           favoriteFunc,
           wideSize,
+          selectedTimeframe,
+          setSelectedTimeframe,
         ) as ColumnDef<TickerTypes>[];
       case 'binance':
         return getBinanceColumns(
@@ -259,9 +264,20 @@ const App = () => {
           favoriteFunc,
           setSorting,
           wideSize,
+          selectedTimeframe,
+          setSelectedTimeframe,
         ) as ColumnDef<TickerTypes>[];
     }
-  }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc, wideSize]);
+  }, [
+    coinNameKR,
+    exchangeRateUSD,
+    exchangeMarketType,
+    favoriteCoins,
+    exchangePlatform,
+    favoriteFunc,
+    wideSize,
+    selectedTimeframe,
+  ]);
 
   const table = useReactTable<TickerTypes>({
     data: tableData,

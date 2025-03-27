@@ -11,6 +11,8 @@ export const getBinanceColumns = (
   favoriteFunc: boolean,
   setSorting: React.Dispatch<React.SetStateAction<SortingState>>,
   wideSize: boolean,
+  selectedTimeframe: string,
+  setSelectedTimeframe: (value: string) => void,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -95,19 +97,23 @@ export const getBinanceColumns = (
   },
   {
     accessorKey: 'candlestick_chart',
-    header: ({ column }) => (
-      <div className="flex justify-center" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-[10px] font-bold underline-offset-2">차트</span>
+    header: () => (
+      <div className="flex justify-center items-center gap-1">
+        <div className="flex items-center text-[11px] font-bold">
+          <span>차트</span>
+        </div>
       </div>
     ),
     cell: ({ row }) => {
       return (
         <div className="flex justify-center items-center">
           <ChartToolTip
-            className="flex justify-center items-center hover:text-red-500"
+            className="flex justify-center items-center text-gray-600 hover:text-gray-900 active:text-gray-950"
             symbol={row.original.symbol}
             exchange="binance"
-            wideSize={wideSize}>
+            wideSize={wideSize}
+            timeframe={selectedTimeframe}
+            setTimeframe={setSelectedTimeframe}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>

@@ -15,6 +15,8 @@ export const getBithumbColumns = (
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
   wideSize: boolean,
+  selectedTimeframe: string,
+  setSelectedTimeframe: (value: string) => void,
 ): ColumnDef<BithumbTicker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -96,19 +98,21 @@ export const getBithumbColumns = (
   },
   {
     accessorKey: 'candlestick_chart',
-    header: ({ column }) => (
-      <div className="flex justify-center" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-[10px] font-bold underline-offset-2">차트</span>
+    header: () => (
+      <div className="flex items-center gap-1">
+        <span className="text-[11px] font-bold">차트</span>
       </div>
     ),
     cell: ({ row }) => {
       return (
         <div className="flex justify-center items-center">
           <ChartToolTip
-            className="flex justify-center items-center hover:text-red-500"
+            className="flex justify-center items-center text-gray-600 hover:text-gray-900 active:text-gray-950"
             symbol={row.original.market}
             exchange="bithumb"
-            wideSize={wideSize}>
+            wideSize={wideSize}
+            timeframe={selectedTimeframe}
+            setTimeframe={setSelectedTimeframe}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>
