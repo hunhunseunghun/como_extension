@@ -556,101 +556,118 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
                     <ChevronDown size={12} strokeWidth={3} />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
-                    className="dropdown-content z-[10000] min-w-[80px] p-1"
+                    className="dropdown-content z-[10000] min-w-[60px] p-1"
                     onClick={e => {
                       e.stopPropagation();
                       e.preventDefault();
                     }}
                     onPointerDownOutside={e => {
                       e.preventDefault();
+                      e.stopPropagation();
                     }}
                     onInteractOutside={e => {
                       e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onCloseAutoFocus={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
                     }}>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('1m');
                       }}>
                       1분
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('3m');
                       }}>
                       3분
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('5m');
                       }}>
                       5분
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('10m');
                       }}>
                       10분
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('15m');
                       }}>
                       15분
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('30m');
                       }}>
                       30분
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('60m');
                       }}>
                       1시간
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('240m');
                       }}>
                       4시간
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('1d');
                       }}>
                       일봉
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('1w');
                       }}>
                       주봉
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-[10px] py-1 px-2"
+                      className="text-[10px] py-1 px-2 cursor-pointer"
                       onSelect={e => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setTimeframe('1M');
                       }}>
                       월봉
