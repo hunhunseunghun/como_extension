@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { createChart, IChartApi, ISeriesApi, CandlestickSeries } from 'lightweight-charts';
 import { createPortal } from 'react-dom';
+import { cn } from '@/lib/utils';
 
 interface ChartDataPoint {
   time: string;
@@ -16,6 +17,7 @@ interface ChartTooltipProps {
   className: string;
   symbol?: string;
   exchange?: 'binance' | 'upbit' | 'bithumb';
+  wideSize: boolean;
 }
 
 type Exchange = 'binance' | 'upbit' | 'bithumb';
@@ -123,13 +125,13 @@ const fetchChartData = (symbol: string, exchange: Exchange) => {
   > = {
     binance: {
       url: 'https://api.binance.com/api/v3/klines',
-      params: { symbol: symbol.replace('/', ''), interval: '1d', limit: 30 },
+      params: { symbol: symbol.replace('/', ''), interval: '1d', limit: 200 },
     },
     upbit: {
-      url: `https://api.upbit.com/v1/candles/days?market=${symbol}&count=30`,
+      url: `https://api.upbit.com/v1/candles/days?market=${symbol}&count=200`,
     },
     bithumb: {
-      url: `https://api.bithumb.com/v1/candles/days?market=${symbol.toUpperCase()}&count=30`,
+      url: `https://api.bithumb.com/v1/candles/days?market=${symbol.toUpperCase()}&count=200`,
       headers: { accept: 'application/json' },
     },
   };
@@ -202,7 +204,7 @@ const formatChartData = (
     .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 };
 
-const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol, exchange = 'binance' }) => {
+const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol, exchange = 'binance', wideSize }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -210,8 +212,8 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const { chartData, loading, error, fetchData } = useChartData(symbol, exchange);
 
-  const TOOLTIP_WIDTH = 270;
-  const TOOLTIP_HEIGHT = 170;
+  const TOOLTIP_WIDTH = wideSize ? 350 : 270;
+  const TOOLTIP_HEIGHT = wideSize ? 200 : 170;
 
   const updatePosition = useCallback(() => {
     const container = containerRef.current;
@@ -238,7 +240,12 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
       chartRef.current = createChart(chartContainer, {
         width: TOOLTIP_WIDTH,
         height: TOOLTIP_HEIGHT,
-        layout: { background: { color: 'transparent' }, textColor: '#d1d4dc', fontSize: 8, attributionLogo: false },
+        layout: {
+          background: { color: 'transparent' },
+          textColor: '#d1d4dc',
+          fontSize: wideSize ? 9 : 8,
+          attributionLogo: false,
+        },
         grid: { vertLines: { visible: false }, horzLines: { visible: false } },
         rightPriceScale: {
           visible: true,
@@ -313,7 +320,10 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
     () =>
       isHovered && (
         <div
-          className="tooltip absolute bg-black/80 shadow-lg rounded-lg z-[9999] w-[270px] h-[170px] pointer-events-none p-1"
+          className={cn(
+            'tooltip absolute bg-black/80 shadow-lg rounded-lg z-[9999] pointer-events-none p-1',
+            wideSize ? 'w-[350px] h-[200px]' : 'w-[270px] h-[170px]',
+          )}
           style={position ? { left: `${position.left}px`, top: `${position.top}px` } : { display: 'none' }}>
           <div
             className="chart-container w-full h-full"
@@ -345,7 +355,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({ children, className, symbol
           )}
         </div>
       ),
-    [isHovered, position, chartData, loading, error, fetchData],
+    [isHovered, position, chartData, loading, error, fetchData, wideSize],
   );
 
   return (

@@ -238,6 +238,7 @@ const App = () => {
           favoriteCoins,
           setFavoriteCoins,
           favoriteFunc,
+          wideSize,
         ) as ColumnDef<TickerTypes>[];
       case 'bithumb':
         return getBithumbColumns(
@@ -248,6 +249,7 @@ const App = () => {
           favoriteCoins,
           setFavoriteCoins,
           favoriteFunc,
+          wideSize,
         ) as ColumnDef<TickerTypes>[];
       case 'binance':
         return getBinanceColumns(
@@ -256,9 +258,10 @@ const App = () => {
           setFavoriteCoins,
           favoriteFunc,
           setSorting,
+          wideSize,
         ) as ColumnDef<TickerTypes>[];
     }
-  }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc]);
+  }, [coinNameKR, exchangeRateUSD, exchangeMarketType, favoriteCoins, exchangePlatform, favoriteFunc, wideSize]);
 
   const table = useReactTable<TickerTypes>({
     data: tableData,

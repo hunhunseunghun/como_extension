@@ -14,6 +14,7 @@ export const getBithumbColumns = (
   favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
+  wideSize: boolean,
 ): ColumnDef<BithumbTicker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -106,7 +107,8 @@ export const getBithumbColumns = (
           <ChartToolTip
             className="flex justify-center items-center hover:text-red-500"
             symbol={row.original.market}
-            exchange="bithumb">
+            exchange="bithumb"
+            wideSize={wideSize}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>

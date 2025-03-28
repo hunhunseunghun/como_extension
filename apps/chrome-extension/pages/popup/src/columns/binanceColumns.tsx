@@ -10,6 +10,7 @@ export const getBinanceColumns = (
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
   setSorting: React.Dispatch<React.SetStateAction<SortingState>>,
+  wideSize: boolean,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -105,7 +106,8 @@ export const getBinanceColumns = (
           <ChartToolTip
             className="flex justify-center items-center hover:text-red-500"
             symbol={row.original.symbol}
-            exchange="binance">
+            exchange="binance"
+            wideSize={wideSize}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>

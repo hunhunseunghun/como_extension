@@ -15,6 +15,7 @@ export const getUpbitColumns = (
   favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
   setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
   favoriteFunc: boolean,
+  wideSize: boolean,
 ): ColumnDef<UpbitTicker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -108,7 +109,8 @@ export const getUpbitColumns = (
           <ChartToolTip
             className="flex justify-center items-center hover:text-red-500"
             symbol={row.original.market}
-            exchange="upbit">
+            exchange="upbit"
+            wideSize={wideSize}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>
