@@ -3,6 +3,30 @@ import { BinanceTicker } from '@/types';
 import { Star, ArrowDownUp, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+
+import { ChevronDown } from 'lucide-react';
+
+const timeframes = [
+  { value: '1m', label: '1분' },
+  { value: '3m', label: '3분' },
+  { value: '5m', label: '5분' },
+  { value: '10m', label: '10분' },
+  { value: '15m', label: '15분' },
+  { value: '30m', label: '30분' },
+  { value: '60m', label: '1시간' },
+  { value: '240m', label: '4시간' },
+  { value: '1d', label: '1일' },
+  { value: '1w', label: '1주' },
+  { value: '1M', label: '1월' },
+];
 
 export const getBinanceColumns = (
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
@@ -11,8 +35,8 @@ export const getBinanceColumns = (
   favoriteFunc: boolean,
   setSorting: React.Dispatch<React.SetStateAction<SortingState>>,
   wideSize: boolean,
-  selectedTimeframe: string,
-  setSelectedTimeframe: (value: string) => void,
+  timeframe: string,
+  setTimeframe: (value: string) => void,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -98,22 +122,38 @@ export const getBinanceColumns = (
   {
     accessorKey: 'candlestick_chart',
     header: () => (
-      <div className="flex justify-center items-center gap-1">
-        <div className="flex items-center text-[11px] font-bold">
-          <span>차트</span>
-        </div>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="h-5 w-12 text-[10px] font-semibold gap-1 hover:cursor-pointer">
+            <span>{timeframes.find(tf => tf.value === timeframe)?.label}</span>
+            <ChevronDown className="size-2" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="relative left-1 w-13 data-[side=bottom]:slide-in-from-top-2">
+          <DropdownMenuGroup>
+            {timeframes.map(({ value, label }) => (
+              <DropdownMenuItem
+                key={value}
+                textValue={label}
+                className="gap-1 px-1 py-1  items-left text-xs hover:cursor-pointer"
+                onSelect={() => setTimeframe(value)}>
+                <span>{label}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     ),
     cell: ({ row }) => {
       return (
         <div className="flex justify-center items-center">
           <ChartToolTip
-            className="flex justify-center items-center text-gray-600 hover:text-gray-900 active:text-gray-950"
+            className="flex justify-center items-center hover:text-red-500"
             symbol={row.original.symbol}
             exchange="binance"
             wideSize={wideSize}
-            timeframe={selectedTimeframe}
-            setTimeframe={setSelectedTimeframe}>
+            timeframe={timeframe}
+            setTimeframe={setTimeframe}>
             <ChartCandlestick size={16} />
           </ChartToolTip>
         </div>
