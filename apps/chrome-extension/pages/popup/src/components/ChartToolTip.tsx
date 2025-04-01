@@ -32,7 +32,7 @@ const formatPrice = (price: number): string => {
   }
 };
 
-// 전역 상태 관리를 위한 Context 생성
+// 전역 상태 관리를 위한 Context
 const ChartContext = React.createContext<{
   activeChart: string | null;
   setActiveChart: (symbol: string | null) => void;
@@ -286,7 +286,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     () => (
       <div
         className={cn(
-          'tooltip absolute bg-black/80 shadow-lg rounded-lg z-49 p-1',
+          'tooltip absolute bg-black/80 shadow-lg rounded-lg z-51 p-1',
           wideSize ? 'w-[505px] h-[300px]' : 'w-[300px] h-[170px]',
         )}
         style={position ? { left: `${position.left}px`, top: `${position.top}px` } : { display: 'none' }}>

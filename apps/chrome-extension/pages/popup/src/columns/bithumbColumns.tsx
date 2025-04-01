@@ -130,7 +130,7 @@ export const getBithumbColumns = (
             <ChevronDown className="size-2" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="relative left-1 w-13 data-[side=bottom]:slide-in-from-top-2">
+        <DropdownMenuContent className="relative left-1 w-13 data-[side=bottom]:slide-in-from-top-2 z-52">
           <DropdownMenuGroup>
             {timeframes.map(({ value, label }) => (
               <DropdownMenuItem

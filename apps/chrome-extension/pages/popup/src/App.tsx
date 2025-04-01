@@ -311,7 +311,7 @@ const App = () => {
 
   // 열 너비 계산
   const viewportWidth = wideSize ? 800 : 420; // 뷰포트 너비
-  const chartColumnWidth = wideSize ? 68 : 48; // 차트 열 고정 너비
+  const chartColumnWidth = wideSize ? 62 : 48; // 차트 열 고정 너비
   const remainingWidth = viewportWidth - chartColumnWidth; // 나머지 열이 사용할 너비
   const nonChartColumns = table.getAllColumns().filter(col => col.id !== 'candlestick_chart');
   const equalColumnWidth = Math.floor(remainingWidth / nonChartColumns.length); // 나머지 열의 균등 너비
