@@ -81,7 +81,7 @@ export const useChartData = (symbol?: string, exchange: Exchange = 'binance', ti
       const { data } = await fetchChartData(symbol, exchange, timeframe);
       const formattedData = formatChartData(data, exchange, currentTime);
 
-      console.log(symbol, timeframe, data);
+
 
       if (!formattedData.length) {
         throw new Error(`No valid data points for ${symbol}`);

@@ -234,7 +234,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     chartRef.current.timeScale().fitContent();
   }, [chartData]);
 
-  console.log('chartData : ', chartData);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
