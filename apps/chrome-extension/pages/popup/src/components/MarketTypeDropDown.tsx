@@ -8,16 +8,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ExchangePlatform } from '@/types';
+import { ExchangePlatform, MarketType } from '@/types';
 import { ChevronDown } from 'lucide-react';
 
-const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
-type ExchangeMarketType = (typeof marketTypes)[number];
+const marketTypes: MarketType[] = ['KRW', 'BTC', 'USDT', 'USD', 'EUR', 'GBP'];
 
 interface MarketTypeDropDownProps {
-  exchangeMarketType: ExchangeMarketType;
+  exchangeMarketType: MarketType;
   exchangePlatform: ExchangePlatform;
-  setExchangeMarketType: (type: ExchangeMarketType) => void;
+  setExchangeMarketType: (type: MarketType) => void;
   setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
 }
 
@@ -27,22 +26,41 @@ export function MarketTypeDropDown({
   setExchangeMarketType,
   setRowPinning,
 }: MarketTypeDropDownProps) {
-  const filteredMarketTypes: readonly ExchangeMarketType[] =
-    exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : exchangePlatform === 'binance' ? ['USDT', 'BTC'] : marketTypes;
+  const getFilteredMarketTypes = (): MarketType[] => {
+    switch (exchangePlatform) {
+      case 'upbit':
+        return ['KRW', 'BTC', 'USDT'];
+      case 'bithumb':
+        return ['KRW', 'BTC'];
+      case 'binance':
+        return ['USDT', 'BTC'];
+      case 'coinbase':
+        return ['USD', 'USDT', 'EUR', 'GBP'];
+      default:
+        return marketTypes;
+    }
+  };
 
-  const dropdownSeletedHandler = (type: ExchangeMarketType) => {
+  const filteredMarketTypes = getFilteredMarketTypes();
+
+  const dropdownSeletedHandler = (type: MarketType) => {
     const initRowPinning: RowPinningState = { top: [], bottom: [] };
     setExchangeMarketType(type);
     setRowPinning(initRowPinning);
   };
 
   useEffect(() => {
-    if (exchangePlatform === 'binance') {
-      setExchangeMarketType('USDT');
-      return;
+    switch (exchangePlatform) {
+      case 'binance':
+        setExchangeMarketType('USDT');
+        break;
+      case 'coinbase':
+        setExchangeMarketType('USD');
+        break;
+      default:
+        setExchangeMarketType('KRW');
     }
-    setExchangeMarketType('KRW');
-  }, [exchangePlatform]);
+  }, [exchangePlatform, setExchangeMarketType]);
 
   return (
     <DropdownMenu>

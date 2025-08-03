@@ -10,7 +10,7 @@ export interface ChartDataPoint {
   close: number;
 }
 
-type Exchange = 'binance' | 'upbit' | 'bithumb';
+type Exchange = 'binance' | 'upbit' | 'bithumb' | 'coinbase';
 
 interface BinanceKline {
   0: number; // Kline open time (timestamp in milliseconds)
@@ -55,6 +55,15 @@ interface BithumbCandle {
   unit?: number;
 }
 
+interface CoinbaseCandle {
+  0: number; // Start time (timestamp in seconds)
+  1: number; // Low price
+  2: number; // High price
+  3: number; // Open price
+  4: number; // Close price
+  5: number; // Volume
+}
+
 const isValidNumeric = (value: number) => Number.isFinite(value);
 
 export const useChartData = (symbol?: string, exchange: Exchange = 'binance', timeframe: string = '1d') => {
@@ -80,8 +89,6 @@ export const useChartData = (symbol?: string, exchange: Exchange = 'binance', ti
       const currentTime = Math.floor(Date.now());
       const { data } = await fetchChartData(symbol, exchange, timeframe);
       const formattedData = formatChartData(data, exchange, currentTime);
-
-
 
       if (!formattedData.length) {
         throw new Error(`No valid data points for ${symbol}`);
@@ -154,6 +161,23 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
     return intervals[tf] || '24h';
   };
 
+  const getCoinbaseInterval = (tf: string) => {
+    const intervals: Record<string, number> = {
+      '1m': 60,
+      '3m': 180,
+      '5m': 300,
+      '10m': 600,
+      '15m': 900,
+      '30m': 1800,
+      '60m': 3600,
+      '240m': 14400,
+      '1d': 86400,
+      '1w': 604800,
+      '1M': 2592000,
+    };
+    return intervals[tf] || 86400;
+  };
+
   const configs: Record<
     Exchange,
     { url: string; params?: Record<string, string | number>; headers?: Record<string, string> }
@@ -175,16 +199,26 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
       params: { market: symbol.toUpperCase(), count: 200 },
       headers: { accept: 'application/json' },
     },
+    coinbase: {
+      url: `https://api.exchange.coinbase.com/products/${symbol}/candles`,
+      params: { granularity: getCoinbaseInterval(timeframe) },
+    },
   };
 
   const config = configs[exchange];
   return axios.get<
-    Exchange extends 'binance' ? BinanceKline[] : Exchange extends 'upbit' ? UpbitCandle[] : BithumbCandle[]
+    Exchange extends 'binance'
+      ? BinanceKline[]
+      : Exchange extends 'upbit'
+        ? UpbitCandle[]
+        : Exchange extends 'bithumb'
+          ? BithumbCandle[]
+          : CoinbaseCandle[]
   >(config.url, { params: config.params, headers: config.headers });
 };
 
 const formatChartData = (
-  data: BinanceKline[] | UpbitCandle[] | BithumbCandle[],
+  data: BinanceKline[] | UpbitCandle[] | BithumbCandle[] | CoinbaseCandle[],
   exchange: Exchange,
   currentTime: number,
 ): ChartDataPoint[] => {
@@ -194,7 +228,7 @@ const formatChartData = (
 
   const formatters: Record<
     Exchange,
-    (item: BinanceKline | UpbitCandle | BithumbCandle) => {
+    (item: BinanceKline | UpbitCandle | BithumbCandle | CoinbaseCandle) => {
       timeNum: number;
       open: number;
       high: number;
@@ -223,11 +257,18 @@ const formatChartData = (
       low: (item as BithumbCandle).low_price,
       close: (item as BithumbCandle).trade_price,
     }),
+    coinbase: item => ({
+      timeNum: (item as CoinbaseCandle)[0],
+      open: (item as CoinbaseCandle)[3],
+      high: (item as CoinbaseCandle)[2],
+      low: (item as CoinbaseCandle)[1],
+      close: (item as CoinbaseCandle)[4],
+    }),
   } as const;
 
   const formatter = formatters[exchange];
   return data
-    .reduce((acc: ChartDataPoint[], item: BinanceKline | UpbitCandle | BithumbCandle) => {
+    .reduce((acc: ChartDataPoint[], item: BinanceKline | UpbitCandle | BithumbCandle | CoinbaseCandle) => {
       const { timeNum, open, high, low, close } = formatter(item);
       if (
         isValidNumeric(timeNum) &&

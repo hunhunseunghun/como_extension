@@ -12,8 +12,10 @@
     "update-version": "bash update_version.sh"
   },
   "dependencies": {
+    "node-fetch": "^3.3.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.300",

@@ -1,5 +1,5 @@
 // 초기 설정 및 전역 변수
-const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
+const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {}, coinbase: {} };
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
 let CURRENT_DATE = new Date()
@@ -325,7 +325,9 @@ class ExchangeData {
     this.port.onDisconnect.addListener(() => {
       this.port = null;
     });
-    if (this.isPopupActive && this.tickers) {
+    // 초기 데이터가 완전히 로드된 후에만 전송
+    if (this.isPopupActive && this.tickers && Object.keys(this.tickers).length > 0) {
+      console.log(`[${this.name}] connectPopup: 초기 데이터 전송, 개수:`, Object.keys(this.tickers).length);
       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
     }
   }
@@ -406,7 +408,7 @@ class ExchangeData {
 
     setTimeout(() => {
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        this.isReconnecting = false;
+        this.isReconㅔㅞㅡㅡnecting = false;
         this.currentReconnectDelay = this.initialReconnectDelay;
         return;
       }
@@ -427,7 +429,9 @@ class ExchangeData {
 
   setPopupActive(active) {
     this.isPopupActive = active;
-    if (this.port && this.isPopupActive && this.tickers) {
+    // 초기 데이터가 완전히 로드된 후에만 전송
+    if (this.port && this.isPopupActive && this.tickers && Object.keys(this.tickers).length > 0) {
+      console.log(`[${this.name}] setPopupActive: 초기 데이터 전송, 개수:`, Object.keys(this.tickers).length);
       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
     }
   }
@@ -527,6 +531,193 @@ class BinanceData extends ExchangeData {
   }
 }
 
+class CoinbaseData extends ExchangeData {
+  constructor() {
+    super('coinbase', 'https://api.exchange.coinbase.com', 'wss://ws-feed.exchange.coinbase.com');
+  }
+
+  async fetchMarkets() {
+    try {
+      const response = await fetch(`${this.apiUrl}/products`);
+      const data = await response.json();
+      // USD, USDT, EUR, GBP 페어 필터링
+      const supportedQuoteCurrencies = ['USD', 'USDT', 'EUR', 'GBP'];
+      this.markets = data
+        .filter(product => product.status === 'online' && supportedQuoteCurrencies.includes(product.quote_currency))
+        .map(product => product.id);
+      this.marketsInfo = data.reduce((acc, product) => {
+        acc[product.id] = { ...product };
+        return acc;
+      }, {});
+      console.log('Coinbase markets fetched:', this.markets);
+      return this.markets;
+    } catch (error) {
+      console.warn(error);
+      return (this.markets = ['BTC-USD', 'ETH-USD', 'BTC-USDT']);
+    }
+  }
+
+  async fetchInitialTickers() {
+    console.log('[Coinbase] fetchInitialTickers 진입');
+    try {
+      // Coinbase Advanced Trade API를 사용하여 24시간 티커 데이터 조회
+      const response = await fetch(`${this.apiUrl}/products/stats`, {
+        headers: { Accept: 'application/json' },
+      });
+      const tickersArray = await response.json();
+
+      console.log('[Coinbase] API 응답 tickersArray 개수:', Object.keys(tickersArray).length);
+      console.log('[Coinbase] this.markets 개수:', this.markets.length);
+      console.log('[Coinbase] this.markets 샘플:', this.markets.slice(0, 5));
+
+      // API 응답 구조 확인
+      const firstSymbol = Object.keys(tickersArray)[0];
+      const firstTicker = tickersArray[firstSymbol];
+      console.log('[Coinbase] 첫 번째 ticker 구조:', firstTicker);
+      console.log('[Coinbase] 첫 번째 ticker 키들:', Object.keys(firstTicker));
+
+      // stats_24hour 구조 확인
+      if (firstTicker.stats_24hour) {
+        console.log('[Coinbase] stats_24hour 구조:', firstTicker.stats_24hour);
+        console.log('[Coinbase] stats_24hour 키들:', Object.keys(firstTicker.stats_24hour));
+      }
+
+      this.tickers = {};
+      let processedCount = 0;
+      let skippedCount = 0;
+
+      for (const [symbol, ticker] of Object.entries(tickersArray)) {
+        const hasMarket = this.markets.includes(symbol);
+        const hasLast = ticker.stats_24hour?.last; // stats_24hour에서 last 확인
+
+        if (hasMarket && hasLast) {
+          const price = Number(ticker.stats_24hour.last);
+          const open24h = Number(ticker.stats_24hour.open);
+          const changeRate = open24h > 0 ? ((price - open24h) / open24h) * 100 : 0;
+
+          allExchangesTickers[this.name][symbol] = {
+            exchange: this.name,
+            market: symbol,
+            currentPrice: price,
+            changeRate: changeRate,
+          };
+          this.tickers[symbol] = {
+            ...ticker,
+            market: symbol,
+            symbol: symbol,
+            price: ticker.stats_24hour.last,
+            product_id: symbol,
+            exchange: this.name,
+            // stats_24hour 데이터를 상위로 이동
+            last: ticker.stats_24hour.last,
+            open_24h: ticker.stats_24hour.open,
+            high_24h: ticker.stats_24hour.high,
+            low_24h: ticker.stats_24hour.low,
+            volume_24h: ticker.stats_24hour.volume_24h,
+          };
+          processedCount++;
+        } else {
+          skippedCount++;
+          if (skippedCount <= 5) {
+            console.log(`[Coinbase] 스킵된 symbol: ${symbol}, hasMarket: ${hasMarket}, hasLast: ${hasLast}`);
+          }
+        }
+      }
+
+      console.log('[Coinbase] 처리된 tickers 개수:', processedCount);
+      console.log('[Coinbase] 스킵된 tickers 개수:', skippedCount);
+      console.log('[Coinbase] 초기 tickers 세팅:', this.tickers);
+      console.log('[Coinbase] 초기 tickers 개수:', Object.keys(this.tickers).length);
+
+      // 초기 데이터가 완전히 로드된 후에만 전송 (순차적 로딩 방지)
+      if (this.port && this.isPopupActive && Object.keys(this.tickers).length > 0) {
+        console.log('[Coinbase] 초기 tickers popup에 전송 (완전 로드 후):', this.tickers);
+        this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+      }
+    } catch (error) {
+      console.warn(error);
+    }
+  }
+
+  connectWebSocket() {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
+    if (this.socket) this.socket.close();
+
+    this.socket = new WebSocket(this.wsUrl);
+
+    this.socket.onopen = () => {
+      this.isReconnecting = false;
+      this.currentReconnectDelay = this.initialReconnectDelay;
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        // Coinbase WebSocket 구독 메시지
+        const subscription = {
+          type: 'subscribe',
+          product_ids: this.markets,
+          channels: ['ticker'],
+        };
+        this.socket.send(JSON.stringify(subscription));
+      }
+    };
+
+    this.socket.onmessage = async event => {
+      try {
+        let data = event.data;
+        if (data instanceof Blob) data = await data.text();
+        const message = JSON.parse(data);
+
+        // Coinbase ticker 메시지 처리
+        if (message.type === 'ticker' && message.product_id) {
+          const price = Number(message.price);
+          const open24h = Number(message.open_24h);
+          const changeRate = open24h > 0 ? ((price - open24h) / open24h) * 100 : 0;
+
+          // 초기 데이터가 있는 경우에만 업데이트 (새로운 종목 추가 방지)
+          if (this.tickers && this.tickers[message.product_id]) {
+            allExchangesTickers[this.name][message.product_id] = {
+              ...allExchangesTickers[this.name][message.product_id],
+              exchange: this.name,
+              market: message.product_id,
+              currentPrice: price,
+              changeRate: changeRate,
+            };
+
+            // this.tickers 업데이트
+            this.tickers[message.product_id] = {
+              ...this.tickers[message.product_id],
+              ...message,
+              price: message.price,
+              market: message.product_id,
+              symbol: message.product_id,
+              product_id: message.product_id,
+              exchange: this.name,
+            };
+
+            checkPriceAlerts(this.name, message.product_id, price);
+          }
+        }
+
+        // 초기 데이터가 완전히 로드된 후에만 WebSocket 메시지 전송
+        if (this.isPopupActive && this.port && this.tickers && this.tickers[message.product_id]) {
+          console.log('Coinbase WebSocket data sent:', message);
+          this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: message });
+        }
+      } catch (error) {
+        console.warn(error);
+      }
+    };
+
+    this.socket.onerror = () => {
+      this.socket = null;
+      this.reconnectWebSocket();
+    };
+
+    this.socket.onclose = () => {
+      this.socket = null;
+      this.reconnectWebSocket();
+    };
+  }
+}
+
 // 9. 활성 거래소 관리
 const STORAGE_KEY = 'activeExchangePlatform';
 let activeExchange = null;
@@ -547,6 +738,7 @@ async function handleExchangeChange(exchange) {
   if (activeExchange === 'upbit') upbit.setPopupActive(false);
   if (activeExchange === 'bithumb') bithumb.setPopupActive(false);
   if (activeExchange === 'binance') binance.setPopupActive(false);
+  if (activeExchange === 'coinbase') coinbase.setPopupActive(false);
 
   if (exchange === 'upbit') {
     upbit.setPopupActive(true);
@@ -557,6 +749,9 @@ async function handleExchangeChange(exchange) {
   } else if (exchange === 'binance') {
     binance.setPopupActive(true);
     if (activePort) binance.connectPopup(activePort);
+  } else if (exchange === 'coinbase') {
+    coinbase.setPopupActive(true);
+    if (activePort) coinbase.connectPopup(activePort);
   }
 
   await saveActiveExchange(exchange);
@@ -567,6 +762,7 @@ const exchangeRateManager = new ExchangeRateManager();
 const upbit = new UpbitData();
 const bithumb = new BithumbData();
 const binance = new BinanceData();
+const coinbase = new CoinbaseData();
 
 let activePort = null;
 
@@ -576,10 +772,12 @@ async function initialize() {
   await upbit.start();
   await bithumb.start();
   await binance.start();
+  await coinbase.start();
 
   if (activeExchange === 'upbit') upbit.setPopupActive(true);
   else if (activeExchange === 'bithumb') bithumb.setPopupActive(true);
   else if (activeExchange === 'binance') binance.setPopupActive(true);
+  else if (activeExchange === 'coinbase') coinbase.setPopupActive(true);
 
   await exchangeRateManager.initialize();
 }
@@ -595,6 +793,7 @@ chrome.runtime.onConnect.addListener(port => {
   if (activeExchange === 'upbit') upbit.connectPopup(activePort);
   else if (activeExchange === 'bithumb') bithumb.connectPopup(activePort);
   else if (activeExchange === 'binance') binance.connectPopup(activePort);
+  else if (activeExchange === 'coinbase') coinbase.connectPopup(activePort);
 
   if (activePort) {
     activePort.postMessage({ type: 'updatedVersion', data: updatedVersion });

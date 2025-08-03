@@ -9,7 +9,7 @@ interface ChartTooltipProps {
   children: React.ReactNode;
   className: string;
   symbol?: string;
-  exchange?: 'binance' | 'upbit' | 'bithumb';
+  exchange?: 'binance' | 'upbit' | 'bithumb' | 'coinbase';
   wideSize: boolean;
   timeframe: string;
 }
@@ -233,7 +233,6 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     });
     chartRef.current.timeScale().fitContent();
   }, [chartData]);
-
 
   useEffect(() => {
     const container = containerRef.current;

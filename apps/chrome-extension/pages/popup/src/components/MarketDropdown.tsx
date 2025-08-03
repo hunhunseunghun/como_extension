@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { UpbitTicker, BithumbTicker, BinanceTicker } from '@/types';
+import { useTranslation } from 'react-i18next';
+import { UpbitTicker, BithumbTicker, BinanceTicker, CoinbaseTicker } from '@/types';
 import { RowPinningState } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,31 +12,35 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { ChevronDown } from 'lucide-react';
-
-const exchangesData = {
-  upbit: {
-    key: 'upbit',
+import CoinbaseLogo from '../assets/icons/coinbase.png';
+const exchanges = [
+  {
+    value: 'upbit',
     label: '업비트',
     logo: 'https://coin-images.coingecko.com/markets/images/117/large/upbit.png?1706864294',
   },
-  bithumb: {
-    key: 'bithumb',
+  {
+    value: 'bithumb',
     label: '빗썸',
     logo: 'https://coin-images.coingecko.com/markets/images/6/large/bithumb_BI.png?1706864248',
   },
-  // coinone: { key: 'coinone', label: '코인원', logo: CoinOneLogo },
-  binance: {
-    key: 'binance',
+  {
+    value: 'binance',
     label: '바이낸스',
     logo: 'https://coin-images.coingecko.com/markets/images/469/large/Binance.png?1706864454',
   },
-} as const;
+  {
+    value: 'coinbase',
+    label: '코인베이스',
+    logo: CoinbaseLogo,
+  },
+] as const;
 
-type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
+type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker | CoinbaseTicker;
 
 interface MarketDropdownProps {
-  exchangePlatform: 'upbit' | 'bithumb' | 'binance';
-  setExchangePlatform: (platform: keyof typeof exchangesData) => void;
+  exchangePlatform: 'upbit' | 'bithumb' | 'binance' | 'coinbase';
+  setExchangePlatform: (platform: 'upbit' | 'bithumb' | 'binance' | 'coinbase') => void;
   setIsLoading: (loading: boolean) => void;
   setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>;
   setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
@@ -48,9 +53,9 @@ export const MarketDropdown = ({
   setRowPinning,
   setTickers,
 }: MarketDropdownProps) => {
-  const exchangeList = Object.values(exchangesData);
-  const selectedPlatform = exchangesData[exchangePlatform] || exchangesData.upbit;
-  type ExchangePlatform = keyof typeof exchangesData;
+  const { t } = useTranslation();
+  const exchangeList = exchanges;
+  const selectedPlatform = exchanges.find(exchange => exchange.value === exchangePlatform) || exchanges[0];
 
   useEffect(() => {
     chrome.runtime.sendMessage({ action: 'changeExchange', exchange: exchangePlatform });
@@ -58,10 +63,12 @@ export const MarketDropdown = ({
     setTickers({});
   }, [exchangePlatform]);
 
-  const dropdownSeletedHandler = (key: ExchangePlatform) => {
-    const initRowPinning: RowPinningState = { top: [], bottom: [] };
-    setExchangePlatform(key);
-    setRowPinning(initRowPinning);
+  const dropdownSeletedHandler = (platform: 'upbit' | 'bithumb' | 'binance' | 'coinbase') => {
+    setIsLoading(true);
+    setTickers({});
+    setRowPinning({ top: [], bottom: [] });
+    setExchangePlatform(platform);
+    chrome.runtime.sendMessage({ action: 'changeExchange', exchange: platform });
   };
 
   return (
@@ -69,19 +76,19 @@ export const MarketDropdown = ({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="h-6 w-20 text-[10px] font-semibold gap-1 hover:cursor-pointer">
           <img src={selectedPlatform.logo} className="size-3" />
-          <span>{selectedPlatform.label}</span>
+          <span>{t(selectedPlatform.value)}</span>
           <ChevronDown className="size-2.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="relative left-1 w-[90px] data-[side=bottom]:slide-in-from-top-2">
         <DropdownMenuGroup>
-          {exchangeList.map(({ key, label, logo }) => (
+          {exchangeList.map(({ value, logo }) => (
             <DropdownMenuItem
-              key={key}
+              key={value}
               className="gap-1 px-1 py-1 items-left text-xs hover:cursor-pointer"
-              onClick={() => dropdownSeletedHandler(key)}>
+              onClick={() => dropdownSeletedHandler(value)}>
               <img src={logo} className="size-4" />
-              <span>{label}</span>
+              <span>{t(value)}</span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>

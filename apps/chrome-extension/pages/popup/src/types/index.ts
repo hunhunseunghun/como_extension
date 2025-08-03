@@ -1,6 +1,6 @@
-export type ExchangePlatform = 'upbit' | 'bithumb' | 'binance';
-export type MarketType = 'KRW' | 'BTC' | 'USDT';
-export type FavoriteCoins = { upbit: string[]; bithumb: string[]; binance: string[] };
+export type ExchangePlatform = 'upbit' | 'bithumb' | 'binance' | 'coinbase';
+export type MarketType = 'KRW' | 'BTC' | 'USDT' | 'USD' | 'EUR' | 'GBP';
+export type FavoriteCoins = { upbit: string[]; bithumb: string[]; binance: string[]; coinbase: string[] };
 export type maxChagneRateCoin = { exchange: string; market: string; changeRate: number };
 export type UpbitTicker = {
   market: string;
@@ -153,4 +153,40 @@ export type BinanceWebsocketTicker = {
   v: string; // Total traded base asset volume
   w: string; // Weighted average price
   x: string; // Last price 24 hours ago
+};
+
+export type CoinbaseTicker = {
+  market: string;
+  symbol: string;
+  product_id: string;
+  price: string;
+  open_24h: string;
+  volume_24h: string;
+  low_24h: string;
+  high_24h: string;
+  volume_30d: string;
+  best_bid: string;
+  best_ask: string;
+  side: string;
+  time: string;
+  trade_id: number;
+  last_size: string;
+};
+
+export type CoinbaseWebsocketTicker = {
+  type: string;
+  sequence: number;
+  product_id: string;
+  price: string;
+  open_24h: string;
+  volume_24h: string;
+  low_24h: string;
+  high_24h: string;
+  volume_30d: string;
+  best_bid: string;
+  best_ask: string;
+  side: string;
+  time: string;
+  trade_id: number;
+  last_size: string;
 };

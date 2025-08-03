@@ -1,4 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table';
+import { useTranslation } from 'react-i18next';
 import { BithumbTicker } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
@@ -30,13 +31,53 @@ const timeframes = [
   { value: '1M', label: '1월' },
 ];
 
+// 테이블 헤더를 위한 React 컴포넌트들
+const TranslatedRightHeader = ({
+  translationKey,
+  onClick,
+  children,
+}: {
+  translationKey: string;
+  onClick?: () => void;
+  children?: React.ReactNode;
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex justify-end font-bold" onClick={onClick}>
+      <span>{t(translationKey)}</span>
+      {children}
+    </div>
+  );
+};
+
+const KoreanNameHeader = ({
+  coinNameKR,
+  onClick,
+  children,
+}: {
+  coinNameKR: boolean;
+  onClick?: () => void;
+  children?: React.ReactNode;
+}) => {
+  return (
+    <div className="flex" onClick={onClick}>
+      <a href="#" className="mr-[2px] font-bold">
+        {coinNameKR ? '한글명' : '영문명'}
+      </a>
+      {children}
+    </div>
+  );
+};
+
 export const getBithumbColumns = (
   coinNameKR: boolean,
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
-  exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
-  favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
-  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
+  exchangeMarketType: 'KRW' | 'BTC' | 'USDT' | 'USD' | 'EUR' | 'GBP',
+  favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[]; coinbase: string[] },
+  setFavoriteCoins: React.Dispatch<
+    React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[]; coinbase: string[] }>
+  >,
   favoriteFunc: boolean,
   wideSize: boolean,
   timeframe: string,
@@ -46,12 +87,9 @@ export const getBithumbColumns = (
     accessorFn: row => `${row.korean_name} ${row.market}`,
     id: 'market',
     header: () => (
-      <div className="flex" onClick={() => setCoinNameKR(!coinNameKR)}>
-        <a href="#" className="mr-[2px] font-bold">
-          {coinNameKR ? '한글명' : '영문명'}
-        </a>
+      <KoreanNameHeader coinNameKR={coinNameKR} onClick={() => setCoinNameKR(!coinNameKR)}>
         <ArrowRightLeft size={10} strokeWidth={3} className="mt-[2px]" />
-      </div>
+      </KoreanNameHeader>
     ),
     cell: ({ row }) => {
       const splitMarket = row.original.market?.split('-');
@@ -118,7 +156,8 @@ export const getBithumbColumns = (
       return fullTextMatch || chosungRegex.test(koreanName);
     },
     enableHiding: false,
-    size: 103,
+    size: 110,
+    minSize: 110, // 최소 너비 110px 보장
   },
   {
     accessorKey: 'candlestick_chart',
@@ -160,15 +199,15 @@ export const getBithumbColumns = (
       );
     },
     enableHiding: false,
-    size: 60,
   },
   {
     accessorKey: 'trade_price',
     header: ({ column }) => (
-      <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-[10px] font-bold underline-offset-2">현재가</span>
+      <TranslatedRightHeader
+        translationKey="current_price"
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      </TranslatedRightHeader>
     ),
     cell: ({ getValue, row, cell }) => {
       const valueKRW = getValue() as number;
@@ -202,10 +241,11 @@ export const getBithumbColumns = (
     accessorFn: row => (row.signed_change_rate * 100).toFixed(2),
     id: 'signed_change_rate',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>전일대비</p>
+      <TranslatedRightHeader
+        translationKey="change_rate"
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      </TranslatedRightHeader>
     ),
     cell: ({ row, getValue }) => {
       const value = String(getValue() as number);
@@ -224,62 +264,80 @@ export const getBithumbColumns = (
     },
     enableHiding: false,
   },
+
   {
-    accessorFn: row => (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
+    accessorFn: row => {
+      const price = Number(row.trade_price);
+      const highPrice = Number(row.highest_52_week_price);
+      return highPrice > 0 ? ((price - highPrice) / highPrice) * 100 : 0;
+    },
     id: 'highest_52_week_diff',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>고가대비(52주)</span>
+      <TranslatedRightHeader
+        translationKey="high_price_diff"
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      </TranslatedRightHeader>
     ),
-    cell: ({ getValue, row }) => {
-      const value = String(getValue());
-      const highestPrice = row.original.highest_52_week_price?.toLocaleString();
+    cell: ({ row }) => {
+      const price = Number(row.original.trade_price);
+      const highPrice = Number(row.original.highest_52_week_price);
+      const changeRate = highPrice > 0 ? ((price - highPrice) / highPrice) * 100 : 0;
+
       return (
         <div className="flex flex-col items-end text-blue-500 font-medium">
-          <span>-{value}%</span>
+          <span>-{Math.abs(changeRate).toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
-            <span className="text-[10px] text-gray-500">{highestPrice}</span>
+            <span className="text-[10px] text-gray-500">{highPrice?.toLocaleString()}</span>
           ) : (
-            <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
+            <span className="text-[10px] text-gray-500">{highPrice?.toFixed(8)}</span>
           )}
         </div>
       );
     },
+    enableHiding: !wideSize,
   },
   {
-    accessorFn: row => (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
+    accessorFn: row => {
+      const price = Number(row.trade_price);
+      const lowPrice = Number(row.lowest_52_week_price);
+      return lowPrice > 0 ? ((price - lowPrice) / lowPrice) * 100 : 0;
+    },
     id: 'lowest_52_week_diff',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>저가대비(52주)</p>
+      <TranslatedRightHeader
+        translationKey="low_price_diff"
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      </TranslatedRightHeader>
     ),
-    cell: ({ getValue, row }) => {
-      const value = String(getValue());
-      const lowestPrice = row.original.lowest_52_week_price;
+    cell: ({ row }) => {
+      const price = Number(row.original.trade_price);
+      const lowPrice = Number(row.original.lowest_52_week_price);
+      const changeRate = lowPrice > 0 ? ((price - lowPrice) / lowPrice) * 100 : 0;
+
       return (
         <div className="flex flex-col items-end text-red-500 font-medium">
-          <span>+{value}%</span>
+          <span>+{changeRate.toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
-            <span className="text-[10px] text-gray-500">{lowestPrice?.toLocaleString()}</span>
+            <span className="text-[10px] text-gray-500">{lowPrice?.toLocaleString()}</span>
           ) : (
-            <span className="text-[10px] text-gray-500">{lowestPrice?.toFixed(8)}</span>
+            <span className="text-[10px] text-gray-500">{lowPrice?.toFixed(8)}</span>
           )}
         </div>
       );
     },
+    enableHiding: !wideSize,
   },
   {
     accessorKey: 'acc_trade_price_24h',
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래금(일)</span>
+      <TranslatedRightHeader
+        translationKey="trade_volume"
+        onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      </TranslatedRightHeader>
     ),
     cell: ({ getValue }) => {
       const value = Number(getValue() as number);

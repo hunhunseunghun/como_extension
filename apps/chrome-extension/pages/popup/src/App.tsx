@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import '@/styles/App.css';
 import {
   UpbitTicker,
   BithumbTicker,
   BinanceTicker,
   BinanceWebsocketTicker,
+  CoinbaseTicker,
   ExchangePlatform,
   MarketType,
   FavoriteCoins,
@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getUpbitColumns } from '@/columns/upbitColumns';
 import { getBithumbColumns } from '@/columns/bithumbColumns';
 import { getBinanceColumns } from '@/columns/binanceColumns';
+import { getCoinbaseColumns } from '@/columns/coinbaseColumns';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { Input } from '@/components/ui/input';
 import { ModeToggle } from '@/components/ModeToggle';
@@ -38,12 +39,15 @@ import { FavoriteToggle } from '@/components/FavoriteToggle';
 import { PriceNotiPopover } from '@/components/PriceNotiPopover';
 import { Search, Loader2 } from 'lucide-react';
 import { ChartProvider } from './components/ChartToolTip';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '@/components/LanguageSelector';
+import { RTLProvider } from '@/components/RTLProvider';
 
 import fireLogo from '@/assets/icons/fire.svg';
 import comoLogo from '@/assets/icons/como-logo.png';
 
 // 타입 정의
-type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
+type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker | CoinbaseTicker;
 const fallbackData: TickerTypes[] = [];
 
 const usePort = (
@@ -62,7 +66,12 @@ const usePort = (
       switch (type) {
         case 'upbitWebsocketTicker':
         case 'bithumbWebsocketTicker':
-          setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
+        case 'coinbaseWebsocketTicker':
+          console.log('Coinbase WebSocket data received:', data);
+          setTickers(prev => ({
+            ...prev,
+            [data?.code || data?.product_id]: { ...prev[data?.code || data?.product_id], ...data },
+          }));
           setIsLoading(false);
           break;
         case 'binanceWebsocketTicker':
@@ -80,8 +89,14 @@ const usePort = (
         case 'upbitTickers':
         case 'bithumbTickers':
         case 'binanceTickers':
-          setTickers({});
-          setTickers(data);
+        case 'coinbaseTickers':
+          console.log('Coinbase initial tickers received:', data);
+          if (data && typeof data === 'object') {
+            Object.entries(data).forEach(([k, v]) => {
+              console.log('코인베이스 ticker key:', k, 'value:', v);
+            });
+          }
+          setTickers(data || {});
           setIsLoading(false);
           break;
         case 'activeExchange':
@@ -115,11 +130,16 @@ const usePort = (
 };
 
 const useFavorites = () => {
-  const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({ upbit: [], bithumb: [], binance: [] });
+  const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({
+    upbit: [],
+    bithumb: [],
+    binance: [],
+    coinbase: [],
+  });
 
   useEffect(() => {
     chrome.storage.local.get('favoriteCoins', result => {
-      const stored = result?.favoriteCoins || { upbit: [], bithumb: [], binance: [] };
+      const stored = result?.favoriteCoins || { upbit: [], bithumb: [], binance: [], coinbase: [] };
       setFavoriteCoins(stored);
     });
   }, []);
@@ -129,6 +149,7 @@ const useFavorites = () => {
       upbit: [...new Set(favoriteCoins.upbit)],
       bithumb: [...new Set(favoriteCoins.bithumb)],
       binance: [...new Set(favoriteCoins.binance)],
+      coinbase: [...new Set(favoriteCoins.coinbase)],
     };
 
     chrome.storage.local.set({
@@ -157,6 +178,7 @@ const useWideSize = () => {
 };
 
 const App = () => {
+  const { t } = useTranslation(); // 번역 훅 추가
   const [tickers, setTickers] = useState<{ [key: string]: TickerTypes }>({});
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -203,6 +225,10 @@ const App = () => {
   const tableData = useMemo<TickerTypes[]>(() => {
     if (!Object.values(tickers).length) return fallbackData;
 
+    console.log('Current tickers:', tickers);
+    console.log('Current exchangePlatform:', exchangePlatform);
+    console.log('Current exchangeMarketType:', exchangeMarketType);
+
     switch (exchangePlatform) {
       case 'upbit':
         return Object.values(tickers).filter(
@@ -217,6 +243,16 @@ const App = () => {
         return Object.values(tickers).filter(
           (ticker): ticker is BinanceTicker => 'symbol' in ticker && ticker.symbol?.endsWith(`${exchangeMarketType}`),
         );
+      case 'coinbase':
+        const coinbaseData = Object.values(tickers).filter(
+          (ticker): ticker is CoinbaseTicker =>
+            'product_id' in ticker && ticker.product_id?.endsWith(`-${exchangeMarketType}`),
+        );
+        console.log('Filtered Coinbase data:', coinbaseData);
+        console.log('All tickers keys:', Object.keys(tickers));
+        console.log('Exchange market type:', exchangeMarketType);
+        console.log('All tickers values:', Object.values(tickers));
+        return coinbaseData;
       default:
         return fallbackData;
     }
@@ -225,6 +261,9 @@ const App = () => {
   const specificMarketType = useMemo(() => {
     if (exchangePlatform === 'binance') {
       return exchangeMarketType === 'KRW' ? 'USDT' : exchangeMarketType;
+    }
+    if (exchangePlatform === 'coinbase') {
+      return exchangeMarketType;
     }
     return exchangeMarketType;
   }, [exchangePlatform, exchangeMarketType]);
@@ -268,6 +307,19 @@ const App = () => {
           timeFrame,
           setTimeFrame,
         ) as ColumnDef<TickerTypes>[];
+      case 'coinbase':
+        return getCoinbaseColumns(
+          coinNameKR,
+          setCoinNameKR,
+          exchangeRateUSD,
+          exchangeMarketType,
+          favoriteCoins,
+          setFavoriteCoins,
+          favoriteFunc,
+          wideSize,
+          timeFrame,
+          setTimeFrame,
+        ) as ColumnDef<TickerTypes>[];
     }
   }, [
     coinNameKR,
@@ -280,6 +332,27 @@ const App = () => {
     timeFrame,
   ]);
 
+  // wideSize에 따라 컬럼 가시성 강제 설정
+  useEffect(() => {
+    const visibility: VisibilityState = {};
+
+    // 미니 사이즈일 때는 고가대비, 저가대비 컬럼 숨기기
+    if (!wideSize) {
+      visibility['highest_52_week_diff'] = false;
+      visibility['lowest_52_week_diff'] = false;
+      visibility['highest_24h_diff'] = false;
+      visibility['lowest_24h_diff'] = false;
+    } else {
+      // 와이드 사이즈일 때는 모든 컬럼 표시
+      visibility['highest_52_week_diff'] = true;
+      visibility['lowest_52_week_diff'] = true;
+      visibility['highest_24h_diff'] = true;
+      visibility['lowest_24h_diff'] = true;
+    }
+
+    setColumnVisibility(visibility);
+  }, [wideSize]);
+
   const table = useReactTable<TickerTypes>({
     data: tableData,
     columns: columns,
@@ -291,7 +364,14 @@ const App = () => {
     onColumnVisibilityChange: setColumnVisibility,
     onRowPinningChange: setRowPinning,
     state: { sorting, columnFilters, columnVisibility, rowPinning },
-    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
+    initialState: {
+      sorting: [
+        {
+          id: exchangePlatform === 'coinbase' ? 'price' : 'trade_price',
+          desc: true,
+        },
+      ],
+    },
     enableRowPinning: favoriteFunc,
     keepPinnedRows: true,
     debugRows: true,
@@ -352,9 +432,16 @@ const App = () => {
     });
   }, [isLoading, exchangeMarketType, exchangePlatform, favoriteCoins, favoriteFunc, table]);
 
+  // 이 코드는 enableHiding 설정과 충돌하므로 제거
+  // useEffect(() => {
+  //   table.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
+  // }, [wideSize, exchangePlatform]);
+
+  // 거래소 변경 시 현재가 기준 내림차순 정렬 적용
   useEffect(() => {
-    table.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
-  }, [wideSize, exchangePlatform]);
+    const priceColumnId = exchangePlatform === 'coinbase' ? 'price' : 'trade_price';
+    setSorting([{ id: priceColumnId, desc: true }]);
+  }, [exchangePlatform]);
 
   const maxChangeRateCoinhandleLogo = (exchange: string) => {
     switch (exchange) {
@@ -370,176 +457,148 @@ const App = () => {
   };
 
   return (
-    <ChartProvider>
-      <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
-        <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
-          <nav className="flex-shrink-0 p-1">
-            <div className="flex justify-between items-end mx-auto w-full">
-              <section>
-                <img src={comoLogo} className="size-4 m-1 ml-0" />
-              </section>
-              <section>
-                {maxChangeRateCoin.market && !wideSize && (
-                  <div className="relative flex justify-center items-end h-6 text-[10px] font-semibold gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
-                    <img src={fireLogo} className="h-4 w-4" />
-                    <div className="flex items-center gap-0.5">
-                      <span>{maxChangeRateCoin.market}</span>
-                      <img className="h-2.5 w-2.5" src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
-                    </div>
-                    <span className={maxChangeRateCoin.changeRate > 0 ? 'text-red-500' : 'text-blue-500'}>
-                      {maxChangeRateCoin.changeRate > 0 ? '+' : ''}
-                      {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
-                    </span>
-
-                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                      {'상위 상승 종목'}
-                    </span>
-                  </div>
-                )}
-              </section>
-              <section className="flex gap-1">
-                <UpdateNoteToggle updatedVersion={updatedVersion} />
-                <PriceNotiPopover />
-                <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
-                <ModeToggle />
-                <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
-              </section>
-            </div>
-            <div className="flex justify-between mx-auto w-full px-1 py-1">
-              <section className="flex gap-1">
-                <MarketDropdown
-                  exchangePlatform={exchangePlatform}
-                  setExchangePlatform={setExchangePlatform}
-                  setIsLoading={setIsLoading}
-                  setTickers={setTickers}
-                  setRowPinning={setRowPinning}
-                />
-                <MarketTypeDropDown
-                  exchangePlatform={exchangePlatform}
-                  exchangeMarketType={exchangeMarketType}
-                  setExchangeMarketType={setExchangeMarketType}
-                  setRowPinning={setRowPinning}
-                />
-                <div className="relative flex justify-center items-center h-6 w-15 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
-                  <span>Total</span>
-                  <span className="w-[17px]">{table.getRowModel().rows.length}</span>
-                  <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                    {'현재 거래소 종목수'}
-                  </span>
-                </div>
-                <div className="relative flex justify-center items-center h-6 w-16 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
-                  <span>
-                    {exchangeRateUSD}
-                    <span className="text-neutral-400"> KRW</span>
-                  </span>
-                  <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                    {'한국수출입은행 고시 환율'}
-                  </span>
-                </div>
-                {maxChangeRateCoin.market && wideSize && (
-                  <div className="relative flex justify-center items-center h-6  ml-[2px] text-[10px] font-semibold gap-0.5 border-transparent border-1 rounded-md group hover:cursor-default">
-                    <img src={fireLogo} className="h-4 w-4" />
-                    <div className="flex items-center gap-0.5">
-                      <span>{maxChangeRateCoin.market}</span>
-                      <img className="h-2.5 w-2.5" src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
-                    </div>
-                    <span className={maxChangeRateCoin.changeRate > 0 ? 'text-red-500' : 'text-blue-500'}>
-                      {maxChangeRateCoin.changeRate > 0 ? '+' : ''}
-                      {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
-                    </span>
-
-                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                      {'상위 상승 종목'}
-                    </span>
-                  </div>
-                )}
-              </section>
-              <section className="relative items-center flex">
-                <Input
-                  className="h-6 w-30 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
-                  placeholder=" BTC , 비트"
-                  value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
-                  onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
-                />
-                <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
-              </section>
-            </div>
-          </nav>
-          <main className={`relative ${wideSize ? 'h-[535px]' : 'h-[365px]'}`}>
-            {/* TableHeader */}
-            <div ref={headerRef} className="sticky top-0 z-50 bg-zinc-200 dark:bg-zinc-800 overflow-x-hidden">
-              <Table className="table-fixed text-xs w-full">
-                <TableHeader className="h-7.5 text-[10px] font-extrabold">
-                  {table.getHeaderGroups().map(headerGroup => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map(header => {
-                        const adjustedWidth = adjustedColumnWidths.find(col => col.id === header.id)?.width || 100;
-                        return (
-                          <TableHead
-                            key={header.id}
-                            style={{
-                              width: adjustedWidth,
-                              minWidth: adjustedWidth,
-                              maxWidth: adjustedWidth,
-                            }}
-                            className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer">
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(header.column.columnDef.header, header.getContext())}
-                          </TableHead>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-              </Table>
-            </div>
-            {/* TableBody with Virtualized Scrolling */}
-            <div
-              ref={parentRef}
-              className={`overflow-y-scroll overflow-x-hidden light-scrollbar dark-scrollbar ${wideSize ? 'h-[500px]' : 'h-[330px]'}`}>
-              <div style={{ height: `${virtualizer.getTotalSize()}px` }}>
-                <Table className="table-fixed text-xs w-full">
-                  <TableBody>
-                    {isLoading || !Object.keys(tickers).length ? (
-                      <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
-                        <Loader2 className={'w-5 h-5 animate-spin text-gray-500 hover:bg-transparent'} />
+    <RTLProvider>
+      <ChartProvider>
+        <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
+          <div className={`flex-col ${wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
+            <nav className="flex-shrink-0 p-1">
+              <div className="flex justify-between items-end mx-auto w-full">
+                <section>
+                  <img src={comoLogo} className="size-4 m-1 ml-0" />
+                </section>
+                <section>
+                  {maxChangeRateCoin.market && !wideSize && (
+                    <div className="relative flex justify-center items-end h-6 text-[10px] font-semibold gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                      <img src={fireLogo} className="h-4 w-4" />
+                      <div className="flex items-center gap-0.5">
+                        <span>{maxChangeRateCoin.market}</span>
+                        <img className="h-2.5 w-2.5" src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
                       </div>
-                    ) : (
-                      <>
-                        {table.getTopRows()?.map(row => (
-                          <TableRow
-                            className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-48"
-                            key={row.id}
-                            data-state={row.getIsSelected() && 'selected'}>
-                            {row.getVisibleCells().map(cell => {
-                              const adjustedWidth =
-                                adjustedColumnWidths.find(col => col.id === cell.column.id)?.width || 100;
-                              return (
-                                <TableCell
-                                  key={cell.id}
-                                  style={{
-                                    width: adjustedWidth,
-                                    minWidth: adjustedWidth,
-                                    maxWidth: adjustedWidth,
-                                    overflow: 'hidden',
-                                    wordBreak: 'break-all', // 단어 단위 줄바꿈
-                                  }}>
-                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        ))}
-                        {virtualizer.getVirtualItems()?.map((virtualRow, index) => {
-                          const row = centerRows[virtualRow.index];
+                      <span className={maxChangeRateCoin.changeRate > 0 ? 'text-red-500' : 'text-blue-500'}>
+                        {maxChangeRateCoin.changeRate > 0 ? '+' : ''}
+                        {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
+                      </span>
+
+                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                        {t('topRisingItem')}
+                      </span>
+                    </div>
+                  )}
+                </section>
+                <section className="flex gap-1">
+                  <LanguageSelector />
+                  <UpdateNoteToggle updatedVersion={updatedVersion} />
+                  <PriceNotiPopover />
+                  <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
+                  <ModeToggle />
+                  <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
+                </section>
+              </div>
+              <div className="flex justify-between mx-auto w-full px-1 py-1">
+                <section className="flex gap-1">
+                  <MarketDropdown
+                    exchangePlatform={exchangePlatform}
+                    setExchangePlatform={setExchangePlatform}
+                    setIsLoading={setIsLoading}
+                    setTickers={setTickers}
+                    setRowPinning={setRowPinning}
+                  />
+                  <MarketTypeDropDown
+                    exchangePlatform={exchangePlatform}
+                    exchangeMarketType={exchangeMarketType}
+                    setExchangeMarketType={setExchangeMarketType}
+                    setRowPinning={setRowPinning}
+                  />
+                  <div className="relative flex justify-center items-center h-6 w-15 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                    <span>{t('total')}</span>
+                    <span className="w-[17px]">{table.getRowModel().rows.length}</span>
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                      {t('currentExchangeItems')}
+                    </span>
+                  </div>
+                  <div className="relative flex justify-center items-center h-6 w-16 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                    <span>
+                      {exchangeRateUSD}
+                      <span className="text-neutral-400"> KRW</span>
+                    </span>
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                      {'한국수출입은행 고시 환율'}
+                    </span>
+                  </div>
+                  {maxChangeRateCoin.market && wideSize && (
+                    <div className="relative flex justify-center items-center h-6  ml-[2px] text-[10px] font-semibold gap-0.5 border-transparent border-1 rounded-md group hover:cursor-default">
+                      <img src={fireLogo} className="h-4 w-4" />
+                      <div className="flex items-center gap-0.5">
+                        <span>{maxChangeRateCoin.market}</span>
+                        <img className="h-2.5 w-2.5" src={maxChangeRateCoinhandleLogo(maxChangeRateCoin.exchange)} />
+                      </div>
+                      <span className={maxChangeRateCoin.changeRate > 0 ? 'text-red-500' : 'text-blue-500'}>
+                        {maxChangeRateCoin.changeRate > 0 ? '+' : ''}
+                        {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
+                      </span>
+
+                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                        {t('topRisingItem')}
+                      </span>
+                    </div>
+                  )}
+                </section>
+                <section className="relative items-center flex">
+                  <Input
+                    className="h-6 w-30 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
+                    placeholder={t('searchPlaceholder')}
+                    value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
+                    onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
+                  />
+                  <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
+                </section>
+              </div>
+            </nav>
+            <main className={`relative ${wideSize ? 'h-[535px]' : 'h-[365px]'}`}>
+              {/* TableHeader */}
+              <div ref={headerRef} className="sticky top-0 z-50 bg-zinc-200 dark:bg-zinc-800 overflow-x-hidden">
+                <Table className="table-fixed text-xs w-full">
+                  <TableHeader className="h-7.5 text-[10px] font-extrabold">
+                    {table.getHeaderGroups().map(headerGroup => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map(header => {
+                          const adjustedWidth = adjustedColumnWidths.find(col => col.id === header.id)?.width || 100;
                           return (
-                            <TableRow
+                            <TableHead
+                              key={header.id}
                               style={{
-                                height: '48px', // 행 높이 고정
-                                transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
+                                width: adjustedWidth,
+                                minWidth: adjustedWidth,
+                                maxWidth: adjustedWidth,
                               }}
-                              className="border-transparent"
+                              className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer">
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(header.column.columnDef.header, header.getContext())}
+                            </TableHead>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableHeader>
+                </Table>
+              </div>
+              {/* TableBody with Virtualized Scrolling */}
+              <div
+                ref={parentRef}
+                className={`overflow-y-scroll overflow-x-hidden light-scrollbar dark-scrollbar ${wideSize ? 'h-[500px]' : 'h-[330px]'}`}>
+                <div style={{ height: `${virtualizer.getTotalSize()}px` }}>
+                  <Table className="table-fixed text-xs w-full">
+                    <TableBody>
+                      {isLoading || tableData.length === 0 ? (
+                        <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
+                          <Loader2 className={'w-5 h-5 animate-spin text-gray-500 hover:bg-transparent'} />
+                        </div>
+                      ) : (
+                        <>
+                          {table.getTopRows()?.map(row => (
+                            <TableRow
+                              className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-48"
                               key={row.id}
                               data-state={row.getIsSelected() && 'selected'}>
                               {row.getVisibleCells().map(cell => {
@@ -553,25 +612,56 @@ const App = () => {
                                       minWidth: adjustedWidth,
                                       maxWidth: adjustedWidth,
                                       overflow: 'hidden',
-                                      wordBreak: 'break-all',
+                                      wordBreak: 'break-all', // 단어 단위 줄바꿈
                                     }}>
                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                   </TableCell>
                                 );
                               })}
                             </TableRow>
-                          );
-                        })}
-                      </>
-                    )}
-                  </TableBody>
-                </Table>
+                          ))}
+                          {virtualizer.getVirtualItems()?.map((virtualRow, index) => {
+                            const row = centerRows[virtualRow.index];
+                            return (
+                              <TableRow
+                                style={{
+                                  height: '48px', // 행 높이 고정
+                                  transform: `translateY(${virtualRow.start - index * virtualRow.size}px)`,
+                                }}
+                                className="border-transparent"
+                                key={row.id}
+                                data-state={row.getIsSelected() && 'selected'}>
+                                {row.getVisibleCells().map(cell => {
+                                  const adjustedWidth =
+                                    adjustedColumnWidths.find(col => col.id === cell.column.id)?.width || 100;
+                                  return (
+                                    <TableCell
+                                      key={cell.id}
+                                      style={{
+                                        width: adjustedWidth,
+                                        minWidth: adjustedWidth,
+                                        maxWidth: adjustedWidth,
+                                        overflow: 'hidden',
+                                        wordBreak: 'break-all',
+                                      }}>
+                                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </TableCell>
+                                  );
+                                })}
+                              </TableRow>
+                            );
+                          })}
+                        </>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-            </div>
-          </main>
-        </div>
-      </ThemeProvider>
-    </ChartProvider>
+            </main>
+          </div>
+        </ThemeProvider>
+      </ChartProvider>
+    </RTLProvider>
   );
 };
 
