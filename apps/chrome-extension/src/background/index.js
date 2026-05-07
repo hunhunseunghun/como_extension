@@ -21,6 +21,11 @@ const getDynamicUserAgent = () => navigator.userAgent;
 
 // 지정가 알림 관련 함수
 function checkPriceAlerts(exchange, ticker, currentPrice) {
+  // 알림 미설정 ticker도 lastPrice 추적: 첫 알림 등록 후 즉시 크로싱 검출 가능하도록.
+  const lastPrice = allExchangesTickers[exchange][ticker]?.lastPrice ?? null;
+  allExchangesTickers[exchange][ticker] = allExchangesTickers[exchange][ticker] || {};
+  allExchangesTickers[exchange][ticker].lastPrice = currentPrice;
+
   chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
     const alerts = result.priceAlerts || {};
     let triggered = result.triggeredPrices || {};
@@ -28,7 +33,6 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
 
     if (!alerts[exchange] || !alerts[exchange][ticker]) return;
 
-    const lastPrice = allExchangesTickers[exchange][ticker]?.lastPrice ?? null;
     const alertPrices = alerts[exchange][ticker];
     triggered[exchange] = triggered[exchange] || {};
     triggered[exchange][ticker] = triggered[exchange][ticker] || {};
@@ -41,7 +45,7 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
           const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
           const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
           if (crossedUp || crossedDown) {
-            sendNotification(exchange, ticker, currentPrice, alertPrice, deadband);
+            sendNotification(exchange, ticker, currentPrice, alertPrice);
           }
         } else {
           const deadbandValue = alertPrice * deadband;
@@ -52,7 +56,7 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
             const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
             const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
             if (crossedUp || crossedDown) {
-              sendNotification(exchange, ticker, currentPrice, alertPrice, deadband);
+              sendNotification(exchange, ticker, currentPrice, alertPrice);
               triggered[exchange][ticker][alertPrice] = true;
             }
           } else {
@@ -64,16 +68,15 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
       }
     });
 
-    allExchangesTickers[exchange][ticker] = allExchangesTickers[exchange][ticker] || {};
-    allExchangesTickers[exchange][ticker].lastPrice = currentPrice;
     if (Object.keys(triggered[exchange][ticker]).length > 0) {
       chrome.storage.local.set({ triggeredPrices: triggered }, () => {});
     }
   });
 }
 
-function sendNotification(exchange, ticker, currentPrice, alertPrice, deadband) {
-  chrome.notifications.create({
+function sendNotification(exchange, ticker, currentPrice, alertPrice) {
+  const notificationId = `${exchange}:${ticker}:${alertPrice}`;
+  chrome.notifications.create(notificationId, {
     type: 'basic',
     iconUrl: 'como-logo.png',
     title: `${alertPrice > 10 ? alertPrice.toLocaleString('en-US') : alertPrice} ${ticker} ${exchange.toUpperCase()}`,
@@ -133,10 +136,7 @@ function deletePriceAlert(exchange, ticker, priceToDelete, response) {
     }
 
     chrome.storage.local.set({ priceAlerts: alerts, deadbandSettings }, () => {
-      console.log(
-        `${exchange} ${ticker}에서 지정가 ${priceToDelete} 삭제 - 남은 지정가: ${JSON.stringify(updatedPairs)}`,
-      );
-      response({ success: true, prices: updatedPairs }); // PriceDeadbandPair[] 반환
+      response({ success: true, prices: updatedPairs });
     });
   });
 }
@@ -266,8 +266,13 @@ class ExchangeRateManager {
   }
 
   async saveExchangeRate(rate, date) {
-    await chrome.storage.local.set({ exchangeRateUSD: rate, currentDate: date });
-    if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: rate || this.storages.exchangeRateUSD });
+    this.storages.exchangeRateUSD = rate ?? this.storages.exchangeRateUSD;
+    this.storages.updatedDate = date ?? this.storages.updatedDate;
+    await chrome.storage.local.set({
+      exchangeRateUSD: this.storages.exchangeRateUSD,
+      updatedDate: this.storages.updatedDate,
+    });
+    if (this.port) this.port.postMessage({ type: 'exchangeRateUSD', data: this.storages.exchangeRateUSD });
   }
 }
 
@@ -541,22 +546,29 @@ async function loadActiveExchange() {
   return state || 'upbit';
 }
 
+function getExchangeInstance(name) {
+  switch (name) {
+    case 'upbit':
+      return upbit;
+    case 'bithumb':
+      return bithumb;
+    case 'binance':
+      return binance;
+    default:
+      return null;
+  }
+}
+
 async function handleExchangeChange(exchange) {
   if (activeExchange === exchange) return;
 
-  if (activeExchange === 'upbit') upbit.setPopupActive(false);
-  if (activeExchange === 'bithumb') bithumb.setPopupActive(false);
-  if (activeExchange === 'binance') binance.setPopupActive(false);
+  const prev = getExchangeInstance(activeExchange);
+  if (prev) prev.setPopupActive(false);
 
-  if (exchange === 'upbit') {
-    upbit.setPopupActive(true);
-    if (activePort) upbit.connectPopup(activePort);
-  } else if (exchange === 'bithumb') {
-    bithumb.setPopupActive(true);
-    if (activePort) bithumb.connectPopup(activePort);
-  } else if (exchange === 'binance') {
-    binance.setPopupActive(true);
-    if (activePort) binance.connectPopup(activePort);
+  const next = getExchangeInstance(exchange);
+  if (next) {
+    next.setPopupActive(true);
+    if (activePort) next.connectPopup(activePort);
   }
 
   await saveActiveExchange(exchange);
@@ -569,6 +581,7 @@ const bithumb = new BithumbData();
 const binance = new BinanceData();
 
 let activePort = null;
+let maxChangeRateIntervalId = null;
 
 async function initialize() {
   activeExchange = await loadActiveExchange();
@@ -577,9 +590,8 @@ async function initialize() {
   await bithumb.start();
   await binance.start();
 
-  if (activeExchange === 'upbit') upbit.setPopupActive(true);
-  else if (activeExchange === 'bithumb') bithumb.setPopupActive(true);
-  else if (activeExchange === 'binance') binance.setPopupActive(true);
+  const initial = getExchangeInstance(activeExchange);
+  if (initial) initial.setPopupActive(true);
 
   await exchangeRateManager.initialize();
 }
@@ -590,11 +602,12 @@ chrome.runtime.onConnect.addListener(port => {
   activePort = port;
   exchangeRateManager.port = port;
 
-  exchangeRateManager.saveExchangeRate(exchangeRateManager.exchangeRateUSD, exchangeRateManager.updatedDate);
+  if (exchangeRateManager.exchangeRateUSD) {
+    port.postMessage({ type: 'exchangeRateUSD', data: exchangeRateManager.exchangeRateUSD });
+  }
 
-  if (activeExchange === 'upbit') upbit.connectPopup(activePort);
-  else if (activeExchange === 'bithumb') bithumb.connectPopup(activePort);
-  else if (activeExchange === 'binance') binance.connectPopup(activePort);
+  const active = getExchangeInstance(activeExchange);
+  if (active) active.connectPopup(activePort);
 
   if (activePort) {
     activePort.postMessage({ type: 'updatedVersion', data: updatedVersion });
@@ -602,11 +615,18 @@ chrome.runtime.onConnect.addListener(port => {
 
   port.onDisconnect.addListener(() => {
     activePort = null;
+    if (maxChangeRateIntervalId !== null) {
+      clearInterval(maxChangeRateIntervalId);
+      maxChangeRateIntervalId = null;
+    }
   });
 
   port.postMessage({ type: 'activeExchange', data: activeExchange });
 
-  setInterval(() => {
+  if (maxChangeRateIntervalId !== null) {
+    clearInterval(maxChangeRateIntervalId);
+  }
+  maxChangeRateIntervalId = setInterval(() => {
     let maxRate = -Infinity;
     let maxTicker = { exchange: '', market: '', changeRate: 0 };
 
@@ -628,11 +648,45 @@ chrome.runtime.onConnect.addListener(port => {
     if (activePort) {
       try {
         activePort.postMessage({ type: 'maxChangeRate', data: maxChangeRate });
+        activePort.postMessage({ type: 'kimchiPremium', data: computeKimchiPremium() });
       } catch (error) {
         console.warn(error);
       }
     }
   }, 2000);
 });
+
+// 김치 프리미엄: KRW 마켓 가격 vs (Binance USDT 가격 × USD/KRW 환율).
+// USDT≈USD 가정. 두 페어가 모두 살아있고 환율이 있을 때만 산출.
+function computeKimchiPremium() {
+  const usdRate = exchangeRateManager.exchangeRateUSD;
+  if (!usdRate) return { rate: usdRate, items: {} };
+
+  const items = {};
+  for (const krwExchange of ['upbit', 'bithumb']) {
+    const krwTickers = allExchangesTickers[krwExchange];
+    if (!krwTickers) continue;
+    for (const market in krwTickers) {
+      if (!market.startsWith('KRW-')) continue;
+      const coin = market.slice(4);
+      if (coin === 'USDT' || coin === 'USDC') continue;
+      const krwPrice = krwTickers[market]?.currentPrice;
+      const binTicker = allExchangesTickers.binance?.[`${coin}USDT`];
+      const usdtPrice = binTicker?.currentPrice;
+      if (!krwPrice || !usdtPrice) continue;
+
+      const premium = (krwPrice / (usdtPrice * usdRate) - 1) * 100;
+      items[`${krwExchange}:${market}`] = {
+        exchange: krwExchange,
+        market,
+        coin,
+        premium,
+        krwPrice,
+        usdtPrice,
+      };
+    }
+  }
+  return { rate: usdRate, items };
+}
 
 initialize();

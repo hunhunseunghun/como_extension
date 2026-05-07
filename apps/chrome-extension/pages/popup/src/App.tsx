@@ -4,12 +4,14 @@ import {
   UpbitTicker,
   BithumbTicker,
   BinanceTicker,
-  BinanceWebsocketTicker,
   ExchangePlatform,
   MarketType,
-  FavoriteCoins,
   maxChagneRateCoin,
+  KimchiPremium,
 } from '@/types';
+import { useFavorites } from '@/hooks/useFavorites';
+import { useWideSize } from '@/hooks/useWideSize';
+import { usePort } from '@/hooks/usePort';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -36,125 +38,15 @@ import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { FavoriteToggle } from '@/components/FavoriteToggle';
 import { PriceNotiPopover } from '@/components/PriceNotiPopover';
+import { KimchiPremiumBadge } from '@/components/KimchiPremiumBadge';
 import { Search, Loader2 } from 'lucide-react';
 import { ChartProvider } from './components/ChartToolTip';
 
 import fireLogo from '@/assets/icons/fire.svg';
 import comoLogo from '@/assets/icons/como-logo.png';
 
-// 타입 정의
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 const fallbackData: TickerTypes[] = [];
-
-const usePort = (
-  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>,
-  setExchangePlatform: React.Dispatch<React.SetStateAction<ExchangePlatform>>,
-  setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  updatedVersionHandler: (data: string) => void,
-  setMaxChangeRateCoin: React.Dispatch<React.SetStateAction<maxChagneRateCoin>>,
-) => {
-  useEffect(() => {
-    const port = chrome.runtime.connect({ name: 'popup' });
-    let isInitialLoad = true;
-
-    port.onMessage.addListener(({ type, data }) => {
-      switch (type) {
-        case 'upbitWebsocketTicker':
-        case 'bithumbWebsocketTicker':
-          setTickers(prev => ({ ...prev, [data?.code]: { ...prev[data?.code], ...data } }));
-          setIsLoading(false);
-          break;
-        case 'binanceWebsocketTicker':
-          setTickers(prev => {
-            const updateTickers = { ...prev };
-            data.forEach((ticker: { s: string } & BinanceWebsocketTicker) => {
-              if (ticker.s) {
-                updateTickers[ticker.s] = { ...updateTickers[ticker.s], ...ticker };
-              }
-            });
-            return updateTickers;
-          });
-          setIsLoading(false);
-          break;
-        case 'upbitTickers':
-        case 'bithumbTickers':
-        case 'binanceTickers':
-          setTickers({});
-          setTickers(data);
-          setIsLoading(false);
-          break;
-        case 'activeExchange':
-          setExchangePlatform(data);
-          setIsLoading(false);
-          break;
-        case 'exchangeRateUSD':
-          if (isInitialLoad) {
-            setExchangeRateUSD(data);
-            isInitialLoad = false;
-          }
-          break;
-        case 'updatedVersion':
-          updatedVersionHandler(data);
-          break;
-        case 'maxChangeRate':
-          setMaxChangeRateCoin(data);
-      }
-    });
-
-    port.onDisconnect.addListener(() => {
-      setIsLoading(true);
-      setTickers({});
-      setTimeout(() => chrome.runtime.connect({ name: 'popup' }), 500);
-    });
-
-    chrome.runtime.sendMessage({ action: 'getActiveExchange' });
-
-    return () => port.disconnect();
-  }, [setTickers, setExchangePlatform, setExchangeRateUSD, setIsLoading]);
-};
-
-const useFavorites = () => {
-  const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>({ upbit: [], bithumb: [], binance: [] });
-
-  useEffect(() => {
-    chrome.storage.local.get('favoriteCoins', result => {
-      const stored = result?.favoriteCoins || { upbit: [], bithumb: [], binance: [] };
-      setFavoriteCoins(stored);
-    });
-  }, []);
-
-  useEffect(() => {
-    const deduplicatedFavoriteCoins = {
-      upbit: [...new Set(favoriteCoins.upbit)],
-      bithumb: [...new Set(favoriteCoins.bithumb)],
-      binance: [...new Set(favoriteCoins.binance)],
-    };
-
-    chrome.storage.local.set({
-      favoriteCoins: deduplicatedFavoriteCoins,
-    });
-  }, [favoriteCoins]);
-
-  return [favoriteCoins, setFavoriteCoins] as const;
-};
-
-const useWideSize = () => {
-  const [wideSize, setWideSize] = useState<boolean>(false);
-
-  useEffect(() => {
-    chrome.storage.local.get('wideSize', result => {
-      const stored = result?.wideSize || false;
-      setWideSize(stored);
-    });
-  }, []);
-
-  useEffect(() => {
-    chrome.storage.local.set({ wideSize: wideSize });
-  }, [wideSize]);
-
-  return [wideSize, setWideSize] as const;
-};
 
 const App = () => {
   const [tickers, setTickers] = useState<{ [key: string]: TickerTypes }>({});
@@ -177,6 +69,7 @@ const App = () => {
     changeRate: 0,
   });
   const [timeFrame, setTimeFrame] = useState<string>('1d');
+  const [kimchiPremium, setKimchiPremium] = useState<KimchiPremium>({ rate: null, items: {} });
 
   const updatedVersionHandler = (newVersion: string) => {
     chrome.storage.local.get('updatedVersion', result => {
@@ -198,6 +91,7 @@ const App = () => {
     setIsLoading,
     updatedVersionHandler,
     setMaxChangeRateCoin,
+    setKimchiPremium,
   );
 
   const tableData = useMemo<TickerTypes[]>(() => {
@@ -452,6 +346,9 @@ const App = () => {
                       {'상위 상승 종목'}
                     </span>
                   </div>
+                )}
+                {wideSize && exchangePlatform !== 'binance' && (
+                  <KimchiPremiumBadge kimchiPremium={kimchiPremium} exchangePlatform={exchangePlatform} />
                 )}
               </section>
               <section className="relative items-center flex">

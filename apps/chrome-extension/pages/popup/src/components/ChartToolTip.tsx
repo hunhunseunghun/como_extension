@@ -302,7 +302,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
             {error && (
               <div className="flex items-center">
                 <span className="text-red-400">{error}</span>
-                <button className="ml-2 text-gray-300 underline hover:text-gray-100" onClick={fetchData}>
+                <button className="ml-2 text-gray-300 underline hover:text-gray-100" onClick={() => fetchData()}>
                   Retry
                 </button>
               </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Time } from 'lightweight-charts';
 
@@ -57,48 +57,73 @@ interface BithumbCandle {
 
 const isValidNumeric = (value: number) => Number.isFinite(value);
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+
 export const useChartData = (symbol?: string, exchange: Exchange = 'binance', timeframe: string = '1d') => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cacheRef = useRef<Record<string, ChartDataPoint[]>>({});
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
 
-  const fetchData = useCallback(async () => {
-    if (!symbol) {
-      setError('No symbol provided');
-      return;
-    }
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (retryTimerRef.current !== null) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+  }, []);
 
-    const cacheKey = `${exchange}-${symbol}-${timeframe}`;
-    if (cacheRef.current[cacheKey]) {
-      setChartData(cacheRef.current[cacheKey]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const currentTime = Math.floor(Date.now());
-      const { data } = await fetchChartData(symbol, exchange, timeframe);
-      const formattedData = formatChartData(data, exchange, currentTime);
-
-
-
-      if (!formattedData.length) {
-        throw new Error(`No valid data points for ${symbol}`);
+  const fetchData = useCallback(
+    async (attempt: number = 0) => {
+      if (!symbol) {
+        setError('No symbol provided');
+        return;
       }
 
-      if (Object.keys(cacheRef.current).length >= 10) {
-        delete cacheRef.current[Object.keys(cacheRef.current)[0]];
+      const cacheKey = `${exchange}-${symbol}-${timeframe}`;
+      if (cacheRef.current[cacheKey]) {
+        setChartData(cacheRef.current[cacheKey]);
+        setError(null);
+        return;
       }
-      cacheRef.current[cacheKey] = formattedData;
-      setChartData(formattedData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setTimeout(fetchData, 2000);
-    } finally {
-      setLoading(false);
-    }
-  }, [symbol, exchange, timeframe]);
+
+      setLoading(true);
+      try {
+        const currentTime = Math.floor(Date.now());
+        const { data } = await fetchChartData(symbol, exchange, timeframe);
+        const formattedData = formatChartData(data, exchange, currentTime);
+
+        if (!formattedData.length) {
+          throw new Error(`No valid data points for ${symbol}`);
+        }
+
+        if (Object.keys(cacheRef.current).length >= 10) {
+          delete cacheRef.current[Object.keys(cacheRef.current)[0]];
+        }
+        cacheRef.current[cacheKey] = formattedData;
+        if (!isMountedRef.current) return;
+        setChartData(formattedData);
+        setError(null);
+      } catch (err) {
+        if (!isMountedRef.current) return;
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        if (attempt < MAX_RETRIES - 1) {
+          retryTimerRef.current = setTimeout(() => {
+            if (isMountedRef.current) fetchData(attempt + 1);
+          }, RETRY_DELAY_MS);
+        }
+      } finally {
+        if (isMountedRef.current) setLoading(false);
+      }
+    },
+    [symbol, exchange, timeframe],
+  );
 
   return { chartData, loading, error, fetchData };
 };
@@ -203,21 +228,21 @@ const formatChartData = (
     }
   > = {
     binance: item => ({
-      timeNum: Math.floor(Number((item as BinanceKline)[0] + 9 * 60 * 60 * 1000) / 1000),
+      timeNum: Math.floor((item as BinanceKline)[0] / 1000),
       open: parseFloat((item as BinanceKline)[1]),
       high: parseFloat((item as BinanceKline)[2]),
       low: parseFloat((item as BinanceKline)[3]),
       close: parseFloat((item as BinanceKline)[4]),
     }),
     upbit: item => ({
-      timeNum: Math.floor(Number((item as UpbitCandle).timestamp + 9 * 60 * 60 * 1000) / 1000),
+      timeNum: Math.floor((item as UpbitCandle).timestamp / 1000),
       open: (item as UpbitCandle).opening_price,
       high: (item as UpbitCandle).high_price,
       low: (item as UpbitCandle).low_price,
       close: (item as UpbitCandle).trade_price,
     }),
     bithumb: item => ({
-      timeNum: Math.floor(Number((item as BithumbCandle).timestamp + 9 * 60 * 60 * 1000) / 1000),
+      timeNum: Math.floor((item as BithumbCandle).timestamp / 1000),
       open: (item as BithumbCandle).opening_price,
       high: (item as BithumbCandle).high_price,
       low: (item as BithumbCandle).low_price,

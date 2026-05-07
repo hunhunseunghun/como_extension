@@ -154,3 +154,17 @@ export type BinanceWebsocketTicker = {
   w: string; // Weighted average price
   x: string; // Last price 24 hours ago
 };
+
+export type KimchiPremiumItem = {
+  exchange: 'upbit' | 'bithumb';
+  market: string;
+  coin: string;
+  premium: number;
+  krwPrice: number;
+  usdtPrice: number;
+};
+
+export type KimchiPremium = {
+  rate: number | null;
+  items: Record<string, KimchiPremiumItem>;
+};

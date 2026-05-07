@@ -3,12 +3,14 @@
 # FORMAT IS <0.0.0>
 
 if [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  find . -name 'package.json' -not -path '*/node_modules/*' -exec bash -c '
-    # Parse the version from package.json
+  find . \( -name 'package.json' -o -name 'manifest.json' \) -not -path '*/node_modules/*' -not -path '*/dist/*' -exec bash -c '
+    # Parse the version from the file
     current_version=$(grep -o "\"version\": \"[^\"]*" "$0" | cut -d"\"" -f4)
 
-    # Update the version
-    perl -i -pe"s/$current_version/'$1'/" "$0"
+    if [ -n "$current_version" ]; then
+      # Update the version
+      perl -i -pe"s/\"version\": \"$current_version\"/\"version\": \"'$1'\"/" "$0"
+    fi
   '  {} \;
 
   echo "Updated versions to $1";
