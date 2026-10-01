@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Time } from 'lightweight-charts';
+import type { Time } from 'lightweight-charts';
 
 export interface ChartDataPoint {
   time: Time;

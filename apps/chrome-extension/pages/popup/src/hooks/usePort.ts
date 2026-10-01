@@ -28,7 +28,6 @@ export const usePort = (
   useEffect(() => {
     let port: chrome.runtime.Port | null = null;
     let isUnmounted = false;
-    let isInitialLoad = true;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     // 웹소켓 틱을 모아 프레임당 한 번만 setState 한다.
@@ -86,10 +85,7 @@ export const usePort = (
             setIsLoading(false);
             break;
           case 'exchangeRateUSD':
-            if (isInitialLoad) {
-              setExchangeRateUSD(data);
-              isInitialLoad = false;
-            }
+            setExchangeRateUSD(Number(data) || 0);
             break;
           case 'updatedVersion':
             updatedVersionHandlerRef.current(data);

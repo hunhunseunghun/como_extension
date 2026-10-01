@@ -21,8 +21,6 @@ chrome.alarms.onAlarm.addListener(alarm => {
   }
 });
 
-const getDynamicUserAgent = () => navigator.userAgent;
-
 // 지정가 알림 관련 함수
 // 웹소켓 틱마다 storage를 읽지 않도록 알림 설정을 메모리에 캐시하고 storage 변경 시 동기화한다.
 const alertCache = { priceAlerts: {}, triggeredPrices: {}, deadbandSettings: {} };
@@ -214,6 +212,7 @@ class ExchangeRateManager {
       this.storages[keys[index]] = result[keys[index]];
     });
 
+    if (this.storages.exchangeRateUSD) this.exchangeRateUSD = Number(this.storages.exchangeRateUSD);
     if (!this.storages.exchangeRateUSD || this.storages.updatedDate !== CURRENT_DATE) {
       await this.updateExchangeRate();
     }
@@ -255,20 +254,19 @@ class ExchangeRateManager {
   }
 
   async fetchFromNaver() {
-    const url = 'https://finance.naver.com/marketindex/';
+    // finance.naver.com HTML 구조가 바뀌어 파싱이 깨졌으므로 JSON API를 사용한다.
+    const url = 'https://m.stock.naver.com/front-api/marketIndex/productDetail?category=exchange&reutersCode=FX_USDKRW';
     try {
-      const response = await fetch(url, { headers: { 'User-Agent': getDynamicUserAgent() } });
-      const html = await response.text();
-      const usdRegex = /<li class="on">[\s\S]*?<span class="value">([\d,]+\.\d+)<\/span>/i;
-      const match = html.match(usdRegex);
+      const response = await fetch(url, { headers: { Accept: 'application/json' } });
+      const json = await response.json();
+      const exchangeRateUSD = Number(json?.result?.calcPrice ?? String(json?.result?.closePrice ?? '').replace(/,/g, ''));
+      if (!Number.isFinite(exchangeRateUSD) || exchangeRateUSD <= 0) throw new Error('Failed to parse USD rate from Naver');
 
-      if (!match || !match[1]) throw new Error('Failed to parse USD rate from Naver');
-
-      const exchangeRateUSD = Number(match[1].replace(/,/g, ''));
       this.exchangeRateUSD = exchangeRateUSD;
       await this.saveExchangeRate(exchangeRateUSD, CURRENT_DATE);
     } catch {
-      this.exchangeRateUSD = null;
+      // 조회 실패 시 마지막으로 저장된 환율을 계속 사용한다.
+      this.exchangeRateUSD = Number(this.storages.exchangeRateUSD) || null;
     }
   }
 

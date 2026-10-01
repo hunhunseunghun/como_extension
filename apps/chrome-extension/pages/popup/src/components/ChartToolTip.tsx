@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { createChart, IChartApi, ISeriesApi, CandlestickSeries } from 'lightweight-charts';
+import type { IChartApi, ISeriesApi } from 'lightweight-charts';
+
+// 차트 라이브러리는 차트를 처음 열 때만 불러와 팝업 초기 번들을 줄인다.
+let chartLibPromise: Promise<typeof import('lightweight-charts')> | null = null;
+const loadChartLib = () => (chartLibPromise ??= import('lightweight-charts'));
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import React from 'react';
@@ -124,6 +128,8 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const isOpenRef = useRef(false);
+  isOpenRef.current = isOpen;
   const { chartData, loading, error, fetchData } = useChartData(symbol, exchange, timeframe);
   const { activeChart, setActiveChart } = React.useContext(ChartContext);
 
@@ -171,9 +177,12 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     );
   }, []);
 
-  const renderChart = useCallback(() => {
+  const renderChart = useCallback(async () => {
+    if (!chartData.length) return;
+    const { createChart, CandlestickSeries } = await loadChartLib();
     const chartContainer = document.querySelector('.chart-container') as HTMLDivElement;
-    if (!chartContainer || !chartData.length) return;
+    // 라이브러리를 불러오는 사이 툴팁이 닫혔으면 차트를 만들지 않는다.
+    if (!isOpenRef.current || !chartContainer) return;
 
     if (!chartRef.current) {
       chartRef.current = createChart(chartContainer, {

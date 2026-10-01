@@ -9,7 +9,7 @@
     "https://api.bithumb.com/*",
     "https://api.binance.com/*",
     "https://www.koreaexim.go.kr/*",
-    "https://finance.naver.com/*"
+    "https://m.stock.naver.com/*"
   ],
   "background": {
     "service_worker": "background.iife.js",
