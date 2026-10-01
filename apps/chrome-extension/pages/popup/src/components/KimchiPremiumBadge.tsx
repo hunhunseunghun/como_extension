@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { ExchangePlatform, KimchiPremium } from '@/types';
+import { useI18n } from '@/i18n';
 
 interface Props {
   kimchiPremium: KimchiPremium;
@@ -10,6 +11,7 @@ type Display = { coin: string; premium: number };
 const TARGET_COINS: string[] = ['BTC', 'ETH'];
 
 export const KimchiPremiumBadge = ({ kimchiPremium, exchangePlatform }: Props) => {
+  const { t } = useI18n();
   const displays = useMemo<Display[]>(() => {
     const exch: 'upbit' | 'bithumb' = exchangePlatform === 'bithumb' ? 'bithumb' : 'upbit';
     const out: Display[] = [];
@@ -24,7 +26,7 @@ export const KimchiPremiumBadge = ({ kimchiPremium, exchangePlatform }: Props) =
 
   return (
     <div className="relative flex justify-center items-center h-6 text-[10px] font-semibold gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
-      <span className="text-neutral-500">김프</span>
+      <span className="text-neutral-500">{t('kimchiShort')}</span>
       {displays.map(({ coin, premium }) => (
         <span key={coin} className="flex items-center gap-0.5">
           <span className="text-neutral-400">{coin}</span>
@@ -35,7 +37,7 @@ export const KimchiPremiumBadge = ({ kimchiPremium, exchangePlatform }: Props) =
         </span>
       ))}
       <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-        {'김치 프리미엄 (vs Binance USDT)'}
+        {t('kimchiTooltip')}
       </span>
     </div>
   );

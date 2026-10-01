@@ -1,4 +1,5 @@
 import { ColumnDef, SortingState } from '@tanstack/react-table';
+import { getTimeframes, Translate } from '@/i18n';
 import { BinanceTicker } from '@/types';
 import { Star, ArrowDownUp, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
@@ -14,20 +15,6 @@ import { Button } from '@/components/ui/button';
 
 import { ChevronDown } from 'lucide-react';
 
-const timeframes = [
-  { value: '1m', label: '1분' },
-  { value: '3m', label: '3분' },
-  { value: '5m', label: '5분' },
-  { value: '10m', label: '10분' },
-  { value: '15m', label: '15분' },
-  { value: '30m', label: '30분' },
-  { value: '60m', label: '1시간' },
-  { value: '240m', label: '4시간' },
-  { value: '1d', label: '1일' },
-  { value: '1w', label: '1주' },
-  { value: '1M', label: '1월' },
-];
-
 export const getBinanceColumns = (
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
   favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
@@ -37,6 +24,7 @@ export const getBinanceColumns = (
   wideSize: boolean,
   timeframe: string,
   setTimeframe: (value: string) => void,
+  t: Translate,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -48,7 +36,7 @@ export const getBinanceColumns = (
           setSorting((prev: SortingState) => [{ id: 'market', desc: prev[0]?.desc ? false : true }]);
         }}>
         <a href="#" className="mr-[2px] font-bold">
-          이름
+          {t('name')}
         </a>
         <ArrowDownUp size={10} strokeWidth={3} className="mt-[2px]" />
       </div>
@@ -125,13 +113,13 @@ export const getBinanceColumns = (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="h-5 w-12 text-[10px] font-semibold gap-1 hover:cursor-pointer">
-            <span>{timeframes.find(tf => tf.value === timeframe)?.label}</span>
+            <span>{getTimeframes(t).find(tf => tf.value === timeframe)?.label}</span>
             <ChevronDown className="size-2" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="relative left-1 w-13 data-[side=bottom]:slide-in-from-top-2 z-52">
           <DropdownMenuGroup>
-            {timeframes.map(({ value, label }) => (
+            {getTimeframes(t).map(({ value, label }) => (
               <DropdownMenuItem
                 key={value}
                 textValue={label}
@@ -166,7 +154,7 @@ export const getBinanceColumns = (
     id: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-[10px] font-bold underline-offset-2">현재가</span>
+        <span className="text-[10px] font-bold underline-offset-2">{t('currentPrice')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -200,7 +188,7 @@ export const getBinanceColumns = (
     id: 'signed_change_rate',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>전일대비</p>
+        <p>{t('change')}</p>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -235,7 +223,7 @@ export const getBinanceColumns = (
     id: 'highest_24h_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>고가대비(24H)</span>
+        <span>{t('fromHigh24h')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -268,7 +256,7 @@ export const getBinanceColumns = (
     id: 'lowest_24h_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>저가대비(24H)</p>
+        <p>{t('fromLow24h')}</p>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -296,7 +284,7 @@ export const getBinanceColumns = (
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래금(일)</span>
+        <span>{t('volume')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),

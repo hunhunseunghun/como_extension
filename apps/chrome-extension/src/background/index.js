@@ -84,13 +84,27 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
   if (changed) chrome.storage.local.set({ triggeredPrices: triggered });
 }
 
+// 알림 문구는 팝업에서 고른 언어를 따르고, 설정이 없으면 브라우저 언어를 따른다.
+const NOTIFICATION_TEXT = {
+  ko: { up: '상향 도달', down: '하향 도달' },
+  en: { up: 'reached (rising)', down: 'reached (falling)' },
+};
+let userLanguage = null;
+chrome.storage.local.get('language', result => {
+  userLanguage = result.language || null;
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.language) userLanguage = changes.language.newValue || null;
+});
+const getLanguage = () => userLanguage || (chrome.i18n?.getUILanguage?.().toLowerCase().startsWith('ko') ? 'ko' : 'en');
+
 function sendNotification(exchange, ticker, currentPrice, alertPrice) {
   const notificationId = `${exchange}:${ticker}:${alertPrice}`;
   chrome.notifications.create(notificationId, {
     type: 'basic',
     iconUrl: 'como-logo.png',
     title: `${alertPrice > 10 ? alertPrice.toLocaleString('en-US') : alertPrice} ${ticker} ${exchange.toUpperCase()}`,
-    message: `${ticker} ${currentPrice > alertPrice ? '상향' : '하향'} 도달`,
+    message: `${ticker} ${NOTIFICATION_TEXT[getLanguage()][currentPrice > alertPrice ? 'up' : 'down']}`,
   });
 }
 
@@ -469,7 +483,8 @@ function normalizeBinanceMiniTicker(ticker, prev) {
   const open = Number(ticker.o);
   const close = Number(ticker.c);
   const change = close - open;
-  ticker.p = ticker.priceChange = String(change);
+  // REST 응답과 같은 소수 8자리 문자열로 맞춰 부동소수점 오차가 표시되지 않게 한다.
+  ticker.p = ticker.priceChange = change.toFixed(8);
   ticker.P = open ? ((change / open) * 100).toFixed(3) : '0';
   const prevPrice = Number(prev?.c ?? prev?.lastPrice);
   // 팝업은 c <= b 이면 BID(상승색)로 표시한다.

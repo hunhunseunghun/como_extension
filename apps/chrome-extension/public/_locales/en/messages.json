@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "COMO - Bitcoin & Crypto Live Prices (Upbit, Bithumb, Binance)"
+  },
+  "extDescription": {
+    "message": "Compare live Bitcoin, Ethereum and crypto prices across Upbit, Bithumb and Binance, with charts, price alerts and kimchi premium."
+  },
+  "commandToggle": {
+    "message": "Quickly open or close the crypto price popup"
+  }
+}

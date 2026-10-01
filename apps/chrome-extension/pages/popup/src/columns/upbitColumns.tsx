@@ -1,4 +1,5 @@
 import { ColumnDef } from '@tanstack/react-table';
+import { getTimeframes, Translate } from '@/i18n';
 import { UpbitTicker } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
@@ -17,20 +18,6 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
 // import ChartCell from '@/components/ChartCell';
 
-const timeframes = [
-  { value: '1m', label: '1분' },
-  { value: '3m', label: '3분' },
-  { value: '5m', label: '5분' },
-  { value: '10m', label: '10분' },
-  { value: '15m', label: '15분' },
-  { value: '30m', label: '30분' },
-  { value: '60m', label: '1시간' },
-  { value: '240m', label: '4시간' },
-  { value: '1d', label: '1일' },
-  { value: '1w', label: '1주' },
-  { value: '1M', label: '1월' },
-];
-
 export const getUpbitColumns = (
   coinNameKR: boolean,
   setCoinNameKR: (value: boolean) => void,
@@ -42,6 +29,7 @@ export const getUpbitColumns = (
   wideSize: boolean,
   timeframe: string,
   setTimeframe: (value: string) => void,
+  t: Translate,
 ): ColumnDef<UpbitTicker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -49,7 +37,7 @@ export const getUpbitColumns = (
     header: () => (
       <div className="flex" onClick={() => setCoinNameKR(!coinNameKR)}>
         <a href="#" className="mr-[2px] font-bold">
-          {coinNameKR ? '한글명' : '영문명'}
+          {coinNameKR ? t('nameKR') : t('nameEN')}
         </a>
         <ArrowRightLeft size={10} strokeWidth={3} className="mt-[2px]" />
       </div>
@@ -99,8 +87,8 @@ export const getUpbitColumns = (
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
               <div className="flex gap-[1px] items-center">
-                {upbitRow.market_event?.warning && <WarningIcon />}
-                {upbitRow.market_event?.caution && <CautionIcon />}
+                {upbitRow.market_event?.warning && <WarningIcon text={t('warningShort')} />}
+                {upbitRow.market_event?.caution && <CautionIcon text={t('cautionShort')} />}
               </div>
             </div>
             <span className="text-[11px] text-gray-500 font-medium">{convertMarket}</span>
@@ -128,13 +116,13 @@ export const getUpbitColumns = (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="h-5 w-11 text-[10px] font-semibold gap-0.5 hover:cursor-pointer">
-            <span>{timeframes.find(tf => tf.value === timeframe)?.label}</span>
+            <span>{getTimeframes(t).find(tf => tf.value === timeframe)?.label}</span>
             <ChevronDown className="size-2" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="relative left-1 w-13 data-[side=bottom]:slide-in-from-top-2 z-52">
           <DropdownMenuGroup>
-            {timeframes.map(({ value, label }) => (
+            {getTimeframes(t).map(({ value, label }) => (
               <DropdownMenuItem
                 key={value}
                 textValue={label}
@@ -167,7 +155,7 @@ export const getUpbitColumns = (
     accessorKey: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-[10px] font-bold underline-offset-2">현재가</span>
+        <span className="text-[10px] font-bold underline-offset-2">{t('currentPrice')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -208,7 +196,7 @@ export const getUpbitColumns = (
     id: 'signed_change_rate',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>전일대비</p>
+        <p>{t('change')}</p>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -234,7 +222,7 @@ export const getUpbitColumns = (
     id: 'highest_52_week_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>고가대비(52주)</span>
+        <span>{t('fromHigh52w')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -258,7 +246,7 @@ export const getUpbitColumns = (
     id: 'lowest_52_week_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>저가대비(52주)</p>
+        <p>{t('fromLow52w')}</p>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -283,7 +271,7 @@ export const getUpbitColumns = (
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>거래금(일)</span>
+        <span>{t('volume')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -299,10 +287,10 @@ export const getUpbitColumns = (
         }).format(value);
       };
       const formatCurrencyKR = (value: number) => {
-        return new Intl.NumberFormat('ko-KR', {
+        return new Intl.NumberFormat(t('numberLocale'), {
           style: 'currency',
           currency: 'KRW',
-          notation: 'compact', // 자동으로 만, 억, 조 단위 적용
+          notation: 'compact', // ko: 만·억·조, en: K·M·B 단위 적용
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         }).format(value);

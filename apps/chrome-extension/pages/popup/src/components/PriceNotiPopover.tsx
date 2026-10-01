@@ -15,6 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronDown, Bell, X, HelpCircle } from 'lucide-react';
 import { getRegExp } from 'korean-regexp';
+import { useI18n } from '@/i18n';
 
 type ExchangeTicker = {
   exchange: string;
@@ -76,6 +77,7 @@ const exchangesData: ExchangesData = {
 } as const;
 
 export const PriceNotiPopover = () => {
+  const { language, t } = useI18n();
   const [selectedTicker, setSelectedTicker] = useState<ExchangeTicker | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [allExchangesTickers, setAllExchangesTickers] = useState<AllExchangesTickers>([]);
@@ -181,7 +183,7 @@ export const PriceNotiPopover = () => {
 
   const handleSetPriceAlert = () => {
     if (!selectedTicker || targetPrice <= 0) {
-      setErrorMessage('유효한 종목과 지정가를 입력해주세요.');
+      setErrorMessage(t('alertInvalid'));
       return;
     }
 
@@ -267,7 +269,7 @@ export const PriceNotiPopover = () => {
               <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
             </Button>
             <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
-              지정가 알림 설정
+              {t('alertTitle')}
             </span>
           </div>
         </PopoverTrigger>
@@ -278,7 +280,7 @@ export const PriceNotiPopover = () => {
                 <section className="flex w-full border rounded-md gap-1">
                   <CommandInput
                     className="w-full h-6 p-0 gap-1 text-[11px] border-none text-neutral-400 pl-4 focus-visible:ring-0"
-                    placeholder="BTC , 비트"
+                    placeholder={t('searchPlaceholder')}
                     value={searchValue}
                     onValueChange={value => {
                       setSearchValue(value);
@@ -332,13 +334,15 @@ export const PriceNotiPopover = () => {
                         alt={`${selectedTicker.exchange} logo`}
                         className="size-3.5"
                       />
-                      {`${selectedTicker.koreanName ?? '종목 선택'} (${selectedTicker.market})`}
+                      {language === 'ko' && selectedTicker.koreanName
+                        ? `${selectedTicker.koreanName} (${selectedTicker.market})`
+                        : selectedTicker.market}
                     </div>
                   )}
                 </div>
 
                 <div className="relative flex text-[12px] bg-muted border-none p-1">
-                  <Label className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px]">지정 가격</Label>
+                  <Label className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px]">{t('targetPrice')}</Label>
                   <Input
                     type="text"
                     value={targetPrice.toLocaleString('en-US')}
@@ -352,17 +356,17 @@ export const PriceNotiPopover = () => {
 
                 <div className="relative flex text-[12px] bg-muted border-none p-1">
                   <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Label className="text-[10px]">데드밴드</Label>
+                    <Label className="text-[10px]">{t('deadband')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <HelpCircle className="size-3 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" />
                         </TooltipTrigger>
                         <TooltipContent className="w-[180px]">
-                          <div>0%: 지정가 도달마다 알림</div>
-                          <div>예시: 지정가 100,데드밴드 10%</div>
-                          <div>1.100 도달 시 첫 알림</div>
-                          <div>2.90-110 범위를 벗어난 후 다시 100 도달 시 두번째 알림</div>
+                          <div>{t('deadbandHelp1')}</div>
+                          <div>{t('deadbandHelp2')}</div>
+                          <div>{t('deadbandHelp3')}</div>
+                          <div>{t('deadbandHelp4')}</div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -406,13 +410,13 @@ export const PriceNotiPopover = () => {
                   variant="outline"
                   onClick={handleSetPriceAlert}
                   className="mt-2 h-7 text-[11px] hover:cursor-pointer">
-                  알림 추가
+                  {t('addAlert')}
                 </Button>
               </section>
             </Command>
           </div>
           <section>
-            <div className="font-semibold mt-1">전체 지정가 알림</div>
+            <div className="font-semibold mt-1">{t('allAlerts')}</div>
             <div className="h-[200px] overflow-y-auto light-scrollbar dark-scrollbar">
               {Object.keys(allPriceAlerts).length > 0 ? (
                 <Accordion type="single" collapsible className="w-full text-[11px] mt-1">
@@ -440,7 +444,7 @@ export const PriceNotiPopover = () => {
                                     pair && typeof pair === 'object' && pair.price !== undefined ? (
                                       <li key={index} className="flex items-center justify-between py-0.5">
                                         <span>
-                                          {pair.price.toLocaleString('en-US')} (데드밴드:{' '}
+                                          {pair.price.toLocaleString('en-US')} ({t('deadband')}:{' '}
                                           {(pair.deadband * 100).toFixed(2)}%)
                                         </span>
                                         <Button
@@ -462,7 +466,7 @@ export const PriceNotiPopover = () => {
                   )}
                 </Accordion>
               ) : (
-                <div className="text-[11px] mt-1">전체 지정가가 없습니다.</div>
+                <div className="text-[11px] mt-1">{t('noAlerts')}</div>
               )}
             </div>
           </section>

@@ -39,6 +39,8 @@ import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { FavoriteToggle } from '@/components/FavoriteToggle';
 import { PriceNotiPopover } from '@/components/PriceNotiPopover';
 import { KimchiPremiumBadge } from '@/components/KimchiPremiumBadge';
+import { LanguageToggle } from '@/components/LanguageToggle';
+import { useI18n } from '@/i18n';
 import { Search, Loader2 } from 'lucide-react';
 import { ChartProvider } from './components/ChartToolTip';
 
@@ -49,6 +51,7 @@ type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 const fallbackData: TickerTypes[] = [];
 
 const App = () => {
+  const { language, t } = useI18n();
   const [tickers, setTickers] = useState<{ [key: string]: TickerTypes }>({});
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -83,6 +86,11 @@ const App = () => {
   useEffect(() => {
     chrome.runtime.sendMessage('popupOpened');
   }, []);
+
+  // 한국어가 아니면 코인 이름을 영문명으로 보여준다.
+  useEffect(() => {
+    setCoinNameKR(language === 'ko');
+  }, [language]);
 
   usePort(
     setTickers,
@@ -137,6 +145,7 @@ const App = () => {
           wideSize,
           timeFrame,
           setTimeFrame,
+          t,
         ) as ColumnDef<TickerTypes>[];
       case 'bithumb':
         return getBithumbColumns(
@@ -150,6 +159,7 @@ const App = () => {
           wideSize,
           timeFrame,
           setTimeFrame,
+          t,
         ) as ColumnDef<TickerTypes>[];
       case 'binance':
         return getBinanceColumns(
@@ -161,6 +171,7 @@ const App = () => {
           wideSize,
           timeFrame,
           setTimeFrame,
+          t,
         ) as ColumnDef<TickerTypes>[];
     }
   }, [
@@ -172,6 +183,7 @@ const App = () => {
     favoriteFunc,
     wideSize,
     timeFrame,
+    t,
   ]);
 
   const table = useReactTable<TickerTypes>({
@@ -281,7 +293,7 @@ const App = () => {
                     </span>
 
                     <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                      {'상위 상승 종목'}
+                      {t('topGainer')}
                     </span>
                   </div>
                 )}
@@ -290,6 +302,7 @@ const App = () => {
                 <UpdateNoteToggle updatedVersion={updatedVersion} />
                 <PriceNotiPopover />
                 <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
+                <LanguageToggle />
                 <ModeToggle />
                 <SizeToggle wideSize={wideSize} setWideSize={setWideSize} />
               </section>
@@ -313,7 +326,7 @@ const App = () => {
                   <span>Total</span>
                   <span className="w-[17px]">{table.getRowModel().rows.length}</span>
                   <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                    {'현재 거래소 종목수'}
+                    {t('marketCount')}
                   </span>
                 </div>
                 <div className="relative flex justify-center items-center h-6 w-16 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
@@ -322,7 +335,7 @@ const App = () => {
                     <span className="text-neutral-400"> KRW</span>
                   </span>
                   <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                    {'한국수출입은행 고시 환율'}
+                    {t('exchangeRateSource')}
                   </span>
                 </div>
                 {maxChangeRateCoin.market && wideSize && (
@@ -338,7 +351,7 @@ const App = () => {
                     </span>
 
                     <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
-                      {'상위 상승 종목'}
+                      {t('topGainer')}
                     </span>
                   </div>
                 )}
@@ -349,7 +362,7 @@ const App = () => {
               <section className="relative items-center flex">
                 <Input
                   className="h-6 w-30 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
-                  placeholder=" BTC , 비트"
+                  placeholder={` ${t('searchPlaceholder')}`}
                   value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
                   onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
                 />

@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "COMO - 비트코인 & 암호화폐 실시간 가격 ( 업비트 빗썸 바이낸스 )",
+  "name": "__MSG_extName__",
   "version": "2.5.0",
-  "description": "비트코인(BTC), 이더리움(ETH), 리플(XRP) 등 암호화폐의 실시간 시세를 업비트 빗썸 바이낸스 거래소에서 비교하세요. 환율 정보, 가격 차트, 암호화폐 시장 동향을 한눈에 확인할 수 있는 최고의 도구!",
+  "default_locale": "en",
+  "description": "__MSG_extDescription__",
   "permissions": ["storage", "notifications", "alarms"],
   "host_permissions": [
     "https://api.upbit.com/*",
@@ -28,7 +29,7 @@
         "default": "Ctrl+Space",
         "mac": "Command+Space"
       },
-      "description": "비트코인 & 암호화폐 시세 팝업을 빠르게 열거나 닫기"
+      "description": "__MSG_commandToggle__"
     }
   }
 }
