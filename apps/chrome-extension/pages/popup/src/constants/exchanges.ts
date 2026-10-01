@@ -28,6 +28,11 @@ export const EXCHANGES: Record<ExchangePlatform, ExchangeMeta> = {
     labelKey: 'exchange_bybit',
     logo: 'https://coin-images.coingecko.com/markets/images/698/large/bybit_spot.png?1706864649',
   },
+  coinbase: {
+    key: 'coinbase',
+    labelKey: 'exchange_coinbase',
+    logo: 'https://coin-images.coingecko.com/markets/images/23/large/Coinbase_Coin_Primary.png?1706864258',
+  },
   okx: {
     key: 'okx',
     labelKey: 'exchange_okx',
@@ -38,11 +43,12 @@ export const EXCHANGES: Record<ExchangePlatform, ExchangeMeta> = {
 export const EXCHANGE_LIST = Object.values(EXCHANGES);
 
 // USDT·BTC 마켓을 쓰는 해외 거래소. 백그라운드가 바이낸스와 같은 필드 형태로 맞춰 보낸다.
-export const GLOBAL_EXCHANGES: readonly GlobalExchange[] = ['binance', 'bybit', 'okx'];
+export const GLOBAL_EXCHANGES: readonly GlobalExchange[] = ['binance', 'bybit', 'okx', 'coinbase'];
 export const isGlobalExchange = (exchange: string): exchange is GlobalExchange =>
   (GLOBAL_EXCHANGES as readonly string[]).includes(exchange);
 
-export const GLOBAL_QUOTES = ['USDT', 'BTC'] as const;
+// USDT를 USD보다 먼저 확인해야 BTCUSDT가 BTCU + SDT처럼 잘못 나뉘지 않는다.
+export const GLOBAL_QUOTES = ['USDT', 'USD', 'BTC'] as const;
 
 export const splitGlobalSymbol = (symbol: string) => {
   const quote = GLOBAL_QUOTES.find(q => symbol.endsWith(q)) ?? '';
@@ -58,5 +64,7 @@ export const getGlobalTradeUrl = (exchange: GlobalExchange, symbol: string) => {
       return `https://www.bybit.com/trade/spot/${base}/${quote}`;
     case 'okx':
       return `https://www.okx.com/trade-spot/${base.toLowerCase()}-${quote.toLowerCase()}`;
+    case 'coinbase':
+      return `https://www.coinbase.com/advanced-trade/spot/${base}-${quote}`;
   }
 };

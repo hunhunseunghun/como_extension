@@ -1,5 +1,5 @@
 // 초기 설정 및 전역 변수
-const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {}, bybit: {}, okx: {} };
+const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {}, bybit: {}, okx: {}, coinbase: {} };
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
 const getKSTDate = () =>
@@ -88,6 +88,14 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
 const NOTIFICATION_TEXT = {
   ko: { up: '상향 도달', down: '하향 도달' },
   en: { up: 'reached (rising)', down: 'reached (falling)' },
+  es: { up: 'alcanzado (subiendo)', down: 'alcanzado (bajando)' },
+  pt: { up: 'atingido (subindo)', down: 'atingido (caindo)' },
+  vi: { up: 'đã chạm (tăng)', down: 'đã chạm (giảm)' },
+  tr: { up: 'ulaştı (yükseliş)', down: 'ulaştı (düşüş)' },
+  id: { up: 'tercapai (naik)', down: 'tercapai (turun)' },
+  ja: { up: '到達（上昇）', down: '到達（下落）' },
+  zh: { up: '已到达（上涨）', down: '已到达（下跌）' },
+  hi: { up: 'पहुँचा (बढ़त)', down: 'पहुँचा (गिरावट)' },
 };
 let userLanguage = null;
 chrome.storage.local.get('language', result => {
@@ -96,7 +104,10 @@ chrome.storage.local.get('language', result => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.language) userLanguage = changes.language.newValue || null;
 });
-const getLanguage = () => userLanguage || (chrome.i18n?.getUILanguage?.().toLowerCase().startsWith('ko') ? 'ko' : 'en');
+const getLanguage = () => {
+  const language = userLanguage || chrome.i18n?.getUILanguage?.().toLowerCase().split('-')[0];
+  return NOTIFICATION_TEXT[language] ? language : 'en';
+};
 
 function sendNotification(exchange, ticker, currentPrice, alertPrice) {
   const notificationId = `${exchange}:${ticker}:${alertPrice}`;
@@ -106,6 +117,103 @@ function sendNotification(exchange, ticker, currentPrice, alertPrice) {
     title: `${alertPrice > 10 ? alertPrice.toLocaleString('en-US') : alertPrice} ${ticker} ${exchange.toUpperCase()}`,
     message: `${ticker} ${NOTIFICATION_TEXT[getLanguage()][currentPrice > alertPrice ? 'up' : 'down']}`,
   });
+  // 알림이 실제로 울린 시점은 리뷰 요청 조건으로 쓴다.
+  chrome.storage.local.set({ alertFiredAt: Date.now() });
+}
+
+// 알림을 누르면 해당 거래소의 거래 화면을 연다.
+const getTradeUrl = (exchange, market) => {
+  const quote = ['USDT', 'BTC', 'USD'].find(q => market.endsWith(q)) ?? '';
+  const base = quote ? market.slice(0, -quote.length) : market;
+  switch (exchange) {
+    case 'upbit':
+      return `https://upbit.com/exchange?code=CRIX.UPBIT.${market}`;
+    case 'bithumb':
+      return `https://www.bithumb.com/react/trade/order/${market.split('-').reverse().join('-')}`;
+    case 'binance':
+      return `https://www.binance.com/en/trade/${base}_${quote}?type=spot`;
+    case 'bybit':
+      return `https://www.bybit.com/trade/spot/${base}/${quote}`;
+    case 'okx':
+      return `https://www.okx.com/trade-spot/${base.toLowerCase()}-${quote.toLowerCase()}`;
+    case 'coinbase':
+      return `https://www.coinbase.com/advanced-trade/spot/${base}-${quote}`;
+    default:
+      return null;
+  }
+};
+
+chrome.notifications.onClicked.addListener(notificationId => {
+  const [exchange, market] = notificationId.split(':');
+  const url = market && getTradeUrl(exchange, market);
+  if (url) chrome.tabs.create({ url });
+  chrome.notifications.clear(notificationId);
+});
+
+// 툴바 배지: 고른 종목의 가격을 4글자 안으로 줄여 보여주고, 등락에 따라 배경색을 바꾼다.
+const BADGE_STORAGE_KEY = 'badgeSettings';
+let badgeSettings = null;
+let upDownSetting = null;
+let lastBadge = '';
+chrome.storage.local.get([BADGE_STORAGE_KEY, 'upDownColors'], result => {
+  badgeSettings = result[BADGE_STORAGE_KEY] || null;
+  upDownSetting = result.upDownColors || null;
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes[BADGE_STORAGE_KEY]) badgeSettings = changes[BADGE_STORAGE_KEY].newValue || null;
+  if (changes.upDownColors) upDownSetting = changes.upDownColors.newValue || null;
+  if (changes[BADGE_STORAGE_KEY] || changes.upDownColors || changes.language) updateBadge();
+});
+
+const getBadgeSettings = () =>
+  badgeSettings ??
+  (getLanguage() === 'ko'
+    ? { enabled: true, exchange: 'upbit', market: 'KRW-BTC' }
+    : { enabled: true, exchange: 'binance', market: 'BTCUSDT' });
+
+function formatBadgePrice(price) {
+  for (const [unit, size] of [
+    ['B', 1e9],
+    ['M', 1e6],
+    ['K', 1e3],
+  ]) {
+    if (price >= size) {
+      const value = price / size;
+      return `${value >= 10 ? Math.round(value) : value.toFixed(1)}${unit}`;
+    }
+  }
+  if (price >= 100) return price.toFixed(0);
+  if (price >= 10) return price.toFixed(1);
+  if (price >= 1) return price.toFixed(2);
+  if (price >= 0.001) return price.toFixed(3).slice(1);
+  return price.toExponential(0);
+}
+
+function updateBadge() {
+  const settings = getBadgeSettings();
+  const ticker = settings.enabled ? allExchangesTickers[settings.exchange]?.[settings.market] : null;
+  if (!ticker?.currentPrice) {
+    if (lastBadge) {
+      chrome.action.setBadgeText({ text: '' });
+      chrome.action.setTitle({ title: chrome.i18n?.getMessage?.('extName') || 'COMO' });
+      lastBadge = '';
+    }
+    return;
+  }
+
+  const changeRate = ticker.changeRate ?? 0;
+  const redUp = (upDownSetting ?? (['ko', 'ja', 'zh'].includes(getLanguage()) ? 'red-up' : 'green-up')) === 'red-up';
+  const color = changeRate >= 0 ? (redUp ? '#ef4444' : '#16a34a') : redUp ? '#3b82f6' : '#ef4444';
+  const text = formatBadgePrice(ticker.currentPrice);
+  const title = `${settings.market} ${ticker.currentPrice.toLocaleString('en-US')} (${changeRate >= 0 ? '+' : ''}${changeRate.toFixed(2)}%) · ${settings.exchange}`;
+  const key = `${text}|${color}|${title}`;
+  if (key === lastBadge) return;
+  lastBadge = key;
+  chrome.action.setBadgeText({ text });
+  chrome.action.setBadgeBackgroundColor({ color });
+  chrome.action.setBadgeTextColor?.({ color: '#ffffff' });
+  chrome.action.setTitle({ title });
 }
 
 function savePriceAlert(exchange, ticker, priceDeadbandPairs, response) {
@@ -185,6 +293,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse(response);
     });
     return true;
+  }
+  if (message.action === 'getSpreads') {
+    sendResponse(computeSpreads({ includeKrw: message.includeKrw !== false }));
   }
   if (message.action === 'getAllExchangesTickers') {
     sendResponse(Object.values(allExchangesTickers).flatMap(tickers => Object.values(tickers)));
@@ -347,7 +458,7 @@ class ExchangeData {
   setSnapshot(entries) {
     const tickers = {};
     const store = allExchangesTickers[this.name];
-    for (const { key, ticker, price, changeRate, koreanName = null } of entries) {
+    for (const { key, ticker, price, changeRate, volume = 0, koreanName = null } of entries) {
       if (!key) continue;
       store[key] = {
         ...store[key],
@@ -355,6 +466,8 @@ class ExchangeData {
         market: key,
         currentPrice: price ?? 0,
         changeRate: changeRate ?? 0,
+        // 24시간 거래대금(호가 통화 기준). 거래소 간 가격 차이에서 거래가 끊긴 마켓을 거르는 데 쓴다.
+        volume: Number(volume) || 0,
         koreanName,
       };
       tickers[key] = ticker;
@@ -388,6 +501,7 @@ class ExchangeData {
           ticker: { ...ticker, ...this.marketsInfo[ticker.market] },
           price: ticker.trade_price,
           changeRate: (ticker.signed_change_rate ?? 0) * 100,
+          volume: ticker.acc_trade_price_24h,
           koreanName: this.marketsInfo[ticker.market]?.korean_name ?? null,
         })),
       );
@@ -409,6 +523,7 @@ class ExchangeData {
         tick: message,
         price: Number(message.trade_price) || 0,
         changeRate: (Number(message.signed_change_rate) || 0) * 100,
+        volume: Number(message.acc_trade_price_24h) || undefined,
       },
     ];
   }
@@ -459,8 +574,9 @@ class ExchangeData {
         if (!updates.length) return;
 
         const store = allExchangesTickers[this.name];
-        for (const { key, tick, price, changeRate } of updates) {
+        for (const { key, tick, price, changeRate, volume } of updates) {
           store[key] = { ...store[key], exchange: this.name, market: key, currentPrice: price, changeRate };
+          if (volume) store[key].volume = volume;
           checkPriceAlerts(this.name, key, price);
           this.mergeTicker(key, tick);
         }
@@ -566,12 +682,18 @@ function toGlobalSnapshot(symbol, { last, open, high, low, quoteVolume }) {
 
 const globalEntry = (symbol, fields) => {
   const ticker = toGlobalSnapshot(symbol, fields);
-  return { key: symbol, ticker, price: Number(ticker.lastPrice), changeRate: Number(ticker.priceChangePercent) };
+  return {
+    key: symbol,
+    ticker,
+    price: Number(ticker.lastPrice),
+    changeRate: Number(ticker.priceChangePercent),
+    volume: ticker.quoteVolume,
+  };
 };
 
 const globalUpdate = (exchange, symbol, fields) => {
   const tick = toGlobalTick(symbol, fields, exchange.tickers?.[symbol]);
-  return { key: symbol, tick, price: Number(tick.c), changeRate: Number(tick.P) };
+  return { key: symbol, tick, price: Number(tick.c), changeRate: Number(tick.P), volume: Number(tick.q) || undefined };
 };
 
 const GLOBAL_QUOTES = ['USDT', 'BTC'];
@@ -626,35 +748,30 @@ class BinanceData extends ExchangeData {
     });
   }
 
+  // exchangeInfo(약 17MB)는 쓰지 않으므로 받지 않고, 24시간 시세(약 2MB)에서 마켓 목록을 얻는다.
   async fetchMarkets() {
     try {
-      const response = await fetch(`${this.apiUrl}/exchangeInfo`);
-      const data = await response.json();
-      this.marketsInfo = Object.fromEntries(data.symbols.map(symbol => [symbol.symbol, { ...symbol }]));
-      return data.symbols.map(symbol => symbol.symbol);
+      const response = await fetch(`${this.apiUrl}/ticker/24hr`, { headers: { Accept: 'application/json' } });
+      const tickersArray = await response.json();
+      this.initialList = tickersArray.filter(ticker => ticker.symbol && Number(ticker.lastPrice) !== 0);
+      return this.initialList.map(ticker => ticker.symbol);
     } catch (error) {
       console.warn(error);
-      return ['BTCUSDT'];
+      return [];
     }
   }
 
   async fetchInitialTickers() {
-    try {
-      const response = await fetch(`${this.apiUrl}/ticker/24hr`, { headers: { Accept: 'application/json' } });
-      const tickersArray = await response.json();
-      this.setSnapshot(
-        tickersArray
-          .filter(ticker => ticker.symbol && Number(ticker.lastPrice) !== 0)
-          .map(ticker => ({
-            key: ticker.symbol,
-            ticker: { ...ticker, market: ticker.symbol },
-            price: Number(ticker.lastPrice) || 0,
-            changeRate: Number(ticker.priceChangePercent) || 0,
-          })),
-      );
-    } catch (error) {
-      console.warn(error);
-    }
+    this.setSnapshot(
+      (this.initialList ?? []).map(ticker => ({
+        key: ticker.symbol,
+        ticker: { ...ticker, market: ticker.symbol },
+        price: Number(ticker.lastPrice) || 0,
+        changeRate: Number(ticker.priceChangePercent) || 0,
+        volume: ticker.quoteVolume,
+      })),
+    );
+    this.initialList = null;
   }
 
   getSubscriptions() {
@@ -779,6 +896,67 @@ class OkxData extends ExchangeData {
   }
 }
 
+class CoinbaseData extends ExchangeData {
+  constructor() {
+    super('coinbase', 'https://api.exchange.coinbase.com', 'wss://ws-feed.exchange.coinbase.com', { isGlobal: true });
+    // 팝업·알림에서는 BTCUSD 형태를 쓰고, Coinbase API에는 BTC-USD 형태를 쓴다.
+    this.productIds = {};
+  }
+
+  static symbol(productId) {
+    return productId.replace('-', '');
+  }
+
+  // Coinbase는 거래량을 기준 코인 수량으로 주므로 가격을 곱해 USD 거래대금으로 맞춘다.
+  static fields(t, last = t.last) {
+    return {
+      last,
+      open: t.open ?? t.open_24h,
+      high: t.high ?? t.high_24h,
+      low: t.low ?? t.low_24h,
+      quoteVolume: Number(t.volume ?? t.volume_24h) * Number(last),
+    };
+  }
+
+  async fetchMarkets() {
+    try {
+      const [products, stats] = await Promise.all([
+        fetchJson(`${this.apiUrl}/products`),
+        fetchJson(`${this.apiUrl}/products/stats`),
+      ]);
+      this.initialList = products
+        .filter(p => p.quote_currency === 'USD' && p.status === 'online' && !p.trading_disabled)
+        .map(p => ({ id: p.id, stats: stats[p.id]?.stats_24hour }))
+        .filter(p => Number(p.stats?.last) > 0);
+      this.productIds = Object.fromEntries(this.initialList.map(p => [CoinbaseData.symbol(p.id), p.id]));
+      return Object.keys(this.productIds);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchInitialTickers() {
+    this.setSnapshot(
+      (this.initialList ?? []).map(p => {
+        const entry = globalEntry(CoinbaseData.symbol(p.id), CoinbaseData.fields(p.stats));
+        entry.ticker.productId = p.id;
+        return entry;
+      }),
+    );
+    this.initialList = null;
+  }
+
+  getSubscriptions() {
+    return [JSON.stringify({ type: 'subscribe', product_ids: Object.values(this.productIds), channels: ['ticker'] })];
+  }
+
+  parseMessage(message) {
+    if (message?.type !== 'ticker' || !message.product_id) return [];
+    return [globalUpdate(this, CoinbaseData.symbol(message.product_id), CoinbaseData.fields(message, message.price))];
+  }
+}
+
 // 9. 활성 거래소 관리
 const STORAGE_KEY = 'activeExchangePlatform';
 let activeExchange = null;
@@ -820,10 +998,69 @@ const exchanges = {
   binance: new BinanceData(),
   bybit: new BybitData(),
   okx: new OkxData(),
+  coinbase: new CoinbaseData(),
 };
 
 let activePort = null;
 let maxChangeRateIntervalId = null;
+
+// 주기적으로 받아오는 부가 데이터(법정화폐 환율, 시장 지표). 팝업이 연결되면 마지막 값을 바로 보낸다.
+class PolledData {
+  constructor(type, intervalMs, load) {
+    this.type = type;
+    this.intervalMs = intervalMs;
+    this.load = load;
+    this.value = null;
+  }
+
+  async refresh() {
+    try {
+      const value = await this.load();
+      if (!value) return;
+      this.value = value;
+      this.post(activePort);
+    } catch (error) {
+      console.warn(error);
+    }
+  }
+
+  start() {
+    this.refresh();
+    setInterval(() => this.refresh(), this.intervalMs);
+  }
+
+  post(port) {
+    if (port && this.value) port.postMessage({ type: this.type, data: this.value });
+  }
+}
+
+const fetchJson = async url => {
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error(`${url} ${response.status}`);
+  return response.json();
+};
+
+const polledData = [
+  // USD 기준 166개 법정화폐 환율
+  new PolledData('fiatRates', 6 * 60 * 60 * 1000, async () => {
+    const data = await fetchJson('https://open.er-api.com/v6/latest/USD');
+    return data?.result === 'success' ? data.rates : null;
+  }),
+  // 공포·탐욕 지수, BTC 도미넌스, BTC 펀딩비. 하나가 실패해도 나머지는 보낸다.
+  new PolledData('marketStats', 5 * 60 * 1000, async () => {
+    const [fearGreed, global, funding] = await Promise.allSettled([
+      fetchJson('https://api.alternative.me/fng/'),
+      fetchJson('https://api.coingecko.com/api/v3/global'),
+      fetchJson('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT'),
+    ]);
+    const fng = fearGreed.value?.data?.[0];
+    return {
+      fearGreed: fng ? { value: Number(fng.value), classification: fng.value_classification } : null,
+      btcDominance: global.value?.data?.market_cap_percentage?.btc ?? null,
+      fundingRate: funding.value?.lastFundingRate != null ? Number(funding.value.lastFundingRate) : null,
+    };
+  }),
+];
 
 async function initialize() {
   activeExchange = await loadActiveExchange();
@@ -831,6 +1068,8 @@ async function initialize() {
   if (initial) initial.setPopupActive(true);
 
   // 거래소 하나가 느리거나 실패해도 나머지는 바로 시작한다.
+  polledData.forEach(data => data.start());
+  setInterval(updateBadge, 2000);
   await Promise.allSettled([
     ...Object.values(exchanges).map(exchange => exchange.start()),
     exchangeRateManager.initialize(),
@@ -846,6 +1085,7 @@ chrome.runtime.onConnect.addListener(port => {
   if (exchangeRateManager.exchangeRateUSD) {
     port.postMessage({ type: 'exchangeRateUSD', data: exchangeRateManager.exchangeRateUSD });
   }
+  polledData.forEach(data => data.post(port));
 
   const active = getExchangeInstance(activeExchange);
   if (active) active.connectPopup(activePort);
@@ -876,7 +1116,8 @@ chrome.runtime.onConnect.addListener(port => {
     for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
       for (const [market, ticker] of Object.entries(tickers)) {
         // 거래가 적은 FDUSD·EUR 등 기타 페어가 상위 상승 종목을 차지하지 않도록 KRW·USDT 마켓만 비교한다.
-        if (!market.startsWith('KRW-') && !market.endsWith('USDT')) continue;
+        if (!market.startsWith('KRW-') && !market.endsWith('USDT') && !(exchange === 'coinbase' && market.endsWith('USD')))
+          continue;
         const changeRate = ticker.changeRate ?? 0;
         if (changeRate > maxRate) {
           maxRate = changeRate;
@@ -932,6 +1173,55 @@ function computeKimchiPremium() {
     }
   }
   return { rate: usdRate, items };
+}
+
+// 거래소 간 가격 차이: 같은 코인을 USD로 환산해 가장 싼 곳과 비싼 곳의 차이를 구한다.
+// 원화 마켓은 환율로 환산하므로 김치 프리미엄도 함께 반영된다(includeKrw=false면 제외).
+const MAX_SPREAD = 30; // 이보다 크면 같은 티커의 다른 코인이거나 거래가 끊긴 마켓일 가능성이 높다.
+const MIN_SPREAD_VOLUME_USD = 100_000; // 24시간 거래대금이 이보다 적은 마켓은 시세가 오래됐을 수 있어 뺀다.
+
+function computeSpreads({ includeKrw = true, limit = 30 } = {}) {
+  const usdRate = exchangeRateManager.exchangeRateUSD;
+  const byCoin = {};
+  for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
+    for (const [market, ticker] of Object.entries(tickers)) {
+      const price = ticker.currentPrice;
+      if (!price) continue;
+      let coin = null;
+      let usdPrice = null;
+      if (market.startsWith('KRW-')) {
+        if (!includeKrw || !usdRate) continue;
+        coin = market.slice(4);
+        usdPrice = price / usdRate;
+      } else if (market.endsWith('USDT')) {
+        coin = market.slice(0, -4);
+        usdPrice = price;
+      } else if (exchange === 'coinbase' && market.endsWith('USD')) {
+        coin = market.slice(0, -3);
+        usdPrice = price;
+      }
+      if (!coin || coin === 'USDT' || coin === 'USDC') continue;
+      const volumeUsd = market.startsWith('KRW-') ? (ticker.volume ?? 0) / usdRate : (ticker.volume ?? 0);
+      if (volumeUsd < MIN_SPREAD_VOLUME_USD) continue;
+      (byCoin[coin] ??= []).push({ exchange, market, price, usdPrice });
+    }
+  }
+
+  const items = [];
+  for (const [coin, quotes] of Object.entries(byCoin)) {
+    if (quotes.length < 2) continue;
+    let low = quotes[0];
+    let high = quotes[0];
+    for (const quote of quotes) {
+      if (quote.usdPrice < low.usdPrice) low = quote;
+      if (quote.usdPrice > high.usdPrice) high = quote;
+    }
+    if (low.exchange === high.exchange) continue;
+    const spread = ((high.usdPrice - low.usdPrice) / low.usdPrice) * 100;
+    if (spread > 0 && spread <= MAX_SPREAD) items.push({ coin, spread, low, high, exchanges: quotes.length });
+  }
+  items.sort((a, b) => b.spread - a.spread);
+  return { usdRate, items: items.slice(0, limit) };
 }
 
 initialize();

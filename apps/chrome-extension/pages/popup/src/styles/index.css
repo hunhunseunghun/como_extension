@@ -169,3 +169,19 @@ body {
     height: 0px;
   }
 }
+
+/* 상승·하락 색. 기본은 빨강 상승(한·중·일 관례), data-updown="green-up"이면 초록 상승. */
+:root {
+  --color-up: #ef4444;
+  --color-down: #3b82f6;
+}
+:root[data-updown='green-up'] {
+  --color-up: #16a34a;
+  --color-down: #ef4444;
+}
+.text-up {
+  color: var(--color-up);
+}
+.text-down {
+  color: var(--color-down);
+}

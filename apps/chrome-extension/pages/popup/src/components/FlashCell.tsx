@@ -18,7 +18,7 @@ export default function FlashCell({ bidAskStatus, children, flashKey, className 
     }
   }, [bidAskStatus]);
 
-  const flashClass = bidAskStatus === 'ASK' ? 'text-blue-500' : bidAskStatus === 'BID' ? 'text-red-500' : '';
+  const flashClass = bidAskStatus === 'ASK' ? 'text-down' : bidAskStatus === 'BID' ? 'text-up' : '';
 
   return (
     <div className={`${className} transition-all duration-500 ease-out ${flash ? flashClass : ''}`} key={`${flashKey}`}>

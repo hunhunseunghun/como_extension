@@ -4,19 +4,28 @@
   "version": "2.5.0",
   "default_locale": "en",
   "description": "__MSG_extDescription__",
-  "permissions": ["storage", "notifications", "alarms"],
+  "permissions": ["storage", "notifications", "alarms", "sidePanel"],
   "host_permissions": [
     "https://api.upbit.com/*",
     "https://api.bithumb.com/*",
     "https://api.binance.com/*",
     "https://api.bybit.com/*",
     "https://www.okx.com/*",
+    "https://api.exchange.coinbase.com/*",
     "https://www.koreaexim.go.kr/*",
-    "https://m.stock.naver.com/*"
+    "https://m.stock.naver.com/*",
+    "https://open.er-api.com/*",
+    "https://api.alternative.me/*",
+    "https://api.coingecko.com/*",
+    "https://fapi.binance.com/*",
+    "https://api.dexscreener.com/*"
   ],
   "background": {
     "service_worker": "background.iife.js",
     "type": "module"
+  },
+  "side_panel": {
+    "default_path": "popup/index.html?view=sidepanel"
   },
   "action": {
     "default_popup": "popup/index.html",

@@ -20,10 +20,14 @@ export const usePort = (
   updatedVersionHandler: (data: string) => void,
   setMaxChangeRateCoin: React.Dispatch<React.SetStateAction<maxChagneRateCoin>>,
   setKimchiPremium: React.Dispatch<React.SetStateAction<KimchiPremium>>,
+  // 위에서 처리하지 않는 부가 데이터(fiatRates, marketStats, spreads 등)
+  onMessage?: (type: string, data: unknown) => void,
 ) => {
   // 핸들러가 렌더마다 바뀌어도 포트를 다시 연결하지 않도록 ref로 최신 값을 참조한다.
   const updatedVersionHandlerRef = useRef(updatedVersionHandler);
   updatedVersionHandlerRef.current = updatedVersionHandler;
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
 
   useEffect(() => {
     let port: chrome.runtime.Port | null = null;
@@ -71,6 +75,7 @@ export const usePort = (
           case 'binanceWebsocketTicker':
           case 'bybitWebsocketTicker':
           case 'okxWebsocketTicker':
+          case 'coinbaseWebsocketTicker':
             data.forEach((ticker: { s: string } & BinanceWebsocketTicker) => {
               if (ticker.s) queueTicker(ticker.s, ticker as Partial<TickerTypes>);
             });
@@ -80,6 +85,7 @@ export const usePort = (
           case 'binanceTickers':
           case 'bybitTickers':
           case 'okxTickers':
+          case 'coinbaseTickers':
             clearPending();
             setTickers(data);
             setIsLoading(false);
@@ -99,6 +105,9 @@ export const usePort = (
             break;
           case 'kimchiPremium':
             setKimchiPremium(data);
+            break;
+          default:
+            onMessageRef.current?.(type, data);
         }
       });
 

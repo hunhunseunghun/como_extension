@@ -1,149 +1,53 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ko, type MessageKey } from './messages/ko';
+import { en } from './messages/en';
+import { es } from './messages/es';
+import { pt } from './messages/pt';
+import { vi } from './messages/vi';
+import { tr } from './messages/tr';
+import { id } from './messages/id';
+import { ja } from './messages/ja';
+import { zh } from './messages/zh';
+import { hi } from './messages/hi';
 
-export type Language = 'ko' | 'en';
-export type DisplayCurrency = 'KRW' | 'USD';
-export const LANGUAGES: { value: Language; label: string }[] = [
-  { value: 'ko', label: '한국어' },
-  { value: 'en', label: 'English' },
-];
+export type { MessageKey };
 
-const ko = {
-  topGainer: '상위 상승 종목',
-  marketCount: '현재 거래소 종목수',
-  exchangeRateSource: '한국수출입은행 고시 환율',
-  searchPlaceholder: 'BTC , 비트',
-  language: '언어',
-  numberLocale: 'ko-KR',
+export const LANGUAGES = [
+  { value: 'en', label: 'English', currency: 'USD' },
+  { value: 'ko', label: '한국어', currency: 'KRW' },
+  { value: 'es', label: 'Español', currency: 'USD' },
+  { value: 'pt', label: 'Português', currency: 'BRL' },
+  { value: 'vi', label: 'Tiếng Việt', currency: 'VND' },
+  { value: 'tr', label: 'Türkçe', currency: 'TRY' },
+  { value: 'id', label: 'Bahasa Indonesia', currency: 'IDR' },
+  { value: 'ja', label: '日本語', currency: 'JPY' },
+  { value: 'zh', label: '中文', currency: 'CNY' },
+  { value: 'hi', label: 'हिन्दी', currency: 'INR' },
+] as const;
+export type Language = (typeof LANGUAGES)[number]['value'];
 
-  exchange_upbit: '업비트',
-  exchange_bithumb: '빗썸',
-  exchange_binance: '바이낸스',
-  exchange_bybit: '바이비트',
-  exchange_okx: 'OKX',
+// 법정화폐 환율은 백그라운드가 USD 기준으로 받아온다 (open.er-api.com).
+export const FIAT_CURRENCIES = [
+  'USD',
+  'EUR',
+  'GBP',
+  'KRW',
+  'JPY',
+  'CNY',
+  'INR',
+  'BRL',
+  'VND',
+  'TRY',
+  'IDR',
+  'NGN',
+  'PKR',
+  'PHP',
+  'THB',
+] as const;
+export type DisplayCurrency = (typeof FIAT_CURRENCIES)[number];
 
-  name: '이름',
-  nameKR: '한글명',
-  nameEN: '영문명',
-  currentPrice: '현재가',
-  change: '전일대비',
-  fromHigh24h: '고가대비(24H)',
-  fromLow24h: '저가대비(24H)',
-  fromHigh52w: '고가대비(52주)',
-  fromLow52w: '저가대비(52주)',
-  volume: '거래금(일)',
-  warningShort: '유',
-  cautionShort: '주',
-
-  tf_1m: '1분',
-  tf_3m: '3분',
-  tf_5m: '5분',
-  tf_10m: '10분',
-  tf_15m: '15분',
-  tf_30m: '30분',
-  tf_60m: '1시간',
-  tf_240m: '4시간',
-  tf_1d: '1일',
-  tf_1w: '1주',
-  tf_1M: '1월',
-
-  kimchiShort: '김프',
-  kimchiTooltip: '김치 프리미엄 (vs Binance USDT)',
-
-  alertTitle: '지정가 알림 설정',
-  alertInvalid: '유효한 종목과 지정가를 입력해주세요.',
-  selectMarket: '종목 선택',
-  targetPrice: '지정 가격',
-  deadband: '데드밴드',
-  deadbandHelp1: '0%: 지정가 도달마다 알림',
-  deadbandHelp2: '예시: 지정가 100,데드밴드 10%',
-  deadbandHelp3: '1.100 도달 시 첫 알림',
-  deadbandHelp4: '2.90-110 범위를 벗어난 후 다시 100 도달 시 두번째 알림',
-  addAlert: '알림 추가',
-  allAlerts: '전체 지정가 알림',
-  noAlerts: '전체 지정가가 없습니다.',
-
-  portfolio: '보유 자산',
-  totalValue: '총 평가금액',
-  totalPnl: '총 손익',
-  portfolioIncomplete: '일부 종목은 시세·환율이 없어 합계에서 제외됐습니다.',
-  portfolioInvalid: 'KRW·USDT 마켓, 수량, 평균 매수가를 확인해주세요.',
-  quantity: '수량',
-  avgPrice: '평균가',
-  add: '추가',
-  delete: '삭제',
-  noHoldings: '등록된 보유 코인이 없습니다.',
-};
-
-export type MessageKey = keyof typeof ko;
-
-const en: Record<MessageKey, string> = {
-  topGainer: 'Top gainer',
-  marketCount: 'Markets on this exchange',
-  exchangeRateSource: 'USD/KRW rate (Export-Import Bank of Korea)',
-  searchPlaceholder: 'BTC, ETH',
-  language: 'Language',
-  numberLocale: 'en-US',
-
-  exchange_upbit: 'Upbit',
-  exchange_bithumb: 'Bithumb',
-  exchange_binance: 'Binance',
-  exchange_bybit: 'Bybit',
-  exchange_okx: 'OKX',
-
-  name: 'Name',
-  nameKR: 'KR name',
-  nameEN: 'EN name',
-  currentPrice: 'Price',
-  change: 'Change',
-  fromHigh24h: 'From high (24H)',
-  fromLow24h: 'From low (24H)',
-  fromHigh52w: 'From high (52W)',
-  fromLow52w: 'From low (52W)',
-  volume: 'Volume (1D)',
-  warningShort: 'W',
-  cautionShort: 'C',
-
-  tf_1m: '1m',
-  tf_3m: '3m',
-  tf_5m: '5m',
-  tf_10m: '10m',
-  tf_15m: '15m',
-  tf_30m: '30m',
-  tf_60m: '1h',
-  tf_240m: '4h',
-  tf_1d: '1D',
-  tf_1w: '1W',
-  tf_1M: '1M',
-
-  kimchiShort: 'K-Prem',
-  kimchiTooltip: 'Kimchi premium (vs Binance USDT)',
-
-  alertTitle: 'Price alerts',
-  alertInvalid: 'Enter a valid market and target price.',
-  selectMarket: 'Select market',
-  targetPrice: 'Target price',
-  deadband: 'Deadband',
-  deadbandHelp1: '0%: alert every time the price is reached',
-  deadbandHelp2: 'e.g. target 100, deadband 10%',
-  deadbandHelp3: '1. First alert when 100 is reached',
-  deadbandHelp4: '2. Next alert only after leaving 90-110 and reaching 100 again',
-  addAlert: 'Add alert',
-  allAlerts: 'All price alerts',
-  noAlerts: 'No price alerts.',
-
-  portfolio: 'Portfolio',
-  totalValue: 'Total value',
-  totalPnl: 'Total P/L',
-  portfolioIncomplete: 'Some holdings are excluded from totals (no price or exchange rate).',
-  portfolioInvalid: 'Check the market (KRW or USDT), quantity and average price.',
-  quantity: 'Qty',
-  avgPrice: 'Avg price',
-  add: 'Add',
-  delete: 'Delete',
-  noHoldings: 'No holdings yet.',
-};
-
-const messages: Record<Language, Record<MessageKey, string>> = { ko, en };
+// 번역이 비어 있는 키는 영어로 보여준다.
+const messages: Record<Language, Partial<Record<MessageKey, string>>> = { ko, en, es, pt, vi, tr, id, ja, zh, hi };
 
 export type Translate = (key: MessageKey) => string;
 
@@ -152,13 +56,27 @@ export const getTimeframes = (t: Translate) =>
   TIMEFRAME_VALUES.map(value => ({ value, label: t(`tf_${value}` as MessageKey) }));
 
 export const LANGUAGE_STORAGE_KEY = 'language';
+export const UP_DOWN_STORAGE_KEY = 'upDownColors';
+
+// 한·중·일은 빨강이 상승, 그 외 대부분 지역은 초록이 상승이다.
+export type UpDownColors = 'red-up' | 'green-up';
+const defaultUpDown = (language: Language): UpDownColors =>
+  language === 'ko' || language === 'ja' || language === 'zh' ? 'red-up' : 'green-up';
 export const CURRENCY_STORAGE_KEY = 'displayCurrency';
+
+const isLanguage = (value: unknown): value is Language => LANGUAGES.some(language => language.value === value);
+const isCurrency = (value: unknown): value is DisplayCurrency =>
+  (FIAT_CURRENCIES as readonly unknown[]).includes(value);
 
 const detectLanguage = (): Language => {
   const ui =
     typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage ? chrome.i18n.getUILanguage() : navigator.language;
-  return ui?.toLowerCase().startsWith('ko') ? 'ko' : 'en';
+  const code = ui?.toLowerCase().split('-')[0];
+  return isLanguage(code) ? code : 'en';
 };
+
+const defaultCurrency = (language: Language): DisplayCurrency =>
+  LANGUAGES.find(item => item.value === language)?.currency ?? 'USD';
 
 type I18nContextValue = {
   language: Language;
@@ -167,28 +85,36 @@ type I18nContextValue = {
   // 해외 거래소 가격의 보조 표시와 포트폴리오 합계에 쓰는 통화
   currency: DisplayCurrency;
   setCurrency: (currency: DisplayCurrency) => void;
+  upDownColors: UpDownColors;
+  setUpDownColors: (colors: UpDownColors) => void;
 };
 
 const I18nContext = createContext<I18nContextValue>({
-  language: 'ko',
+  language: 'en',
   setLanguage: () => {},
-  t: key => ko[key],
-  currency: 'KRW',
+  t: key => en[key],
+  currency: 'USD',
   setCurrency: () => {},
+  upDownColors: 'green-up',
+  setUpDownColors: () => {},
 });
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const [language, setLanguageState] = useState<Language>(detectLanguage);
   const [storedCurrency, setStoredCurrency] = useState<DisplayCurrency | null>(null);
-  // 통화를 직접 고르지 않았다면 언어를 따른다 (한국어: KRW, 그 외: USD).
-  const currency: DisplayCurrency = storedCurrency ?? (language === 'ko' ? 'KRW' : 'USD');
+  // 통화를 직접 고르지 않았다면 언어에 맞는 통화를 쓴다 (예: 한국어 KRW, 日本語 JPY).
+  const currency = storedCurrency ?? defaultCurrency(language);
+  const [storedUpDown, setStoredUpDown] = useState<UpDownColors | null>(null);
+  const upDownColors = storedUpDown ?? defaultUpDown(language);
 
   useEffect(() => {
-    chrome.storage.local.get([LANGUAGE_STORAGE_KEY, CURRENCY_STORAGE_KEY], result => {
+    chrome.storage.local.get([LANGUAGE_STORAGE_KEY, CURRENCY_STORAGE_KEY, UP_DOWN_STORAGE_KEY], result => {
+      const storedColors = result?.[UP_DOWN_STORAGE_KEY];
+      if (storedColors === 'red-up' || storedColors === 'green-up') setStoredUpDown(storedColors);
       const stored = result?.[LANGUAGE_STORAGE_KEY];
-      if (stored === 'ko' || stored === 'en') setLanguageState(stored);
+      if (isLanguage(stored)) setLanguageState(stored);
       const storedCur = result?.[CURRENCY_STORAGE_KEY];
-      if (storedCur === 'KRW' || storedCur === 'USD') setStoredCurrency(storedCur);
+      if (isCurrency(storedCur)) setStoredCurrency(storedCur);
     });
   }, []);
 
@@ -197,19 +123,36 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     chrome.storage.local.set({ [CURRENCY_STORAGE_KEY]: next });
   }, []);
 
+  const setUpDownColors = useCallback((next: UpDownColors) => {
+    setStoredUpDown(next);
+    chrome.storage.local.set({ [UP_DOWN_STORAGE_KEY]: next });
+  }, []);
+
   const setLanguage = useCallback((next: Language) => {
     setLanguageState(next);
     chrome.storage.local.set({ [LANGUAGE_STORAGE_KEY]: next });
   }, []);
 
   const value = useMemo<I18nContextValue>(
-    () => ({ language, setLanguage, t: key => messages[language][key] ?? ko[key], currency, setCurrency }),
-    [language, setLanguage, currency, setCurrency],
+    () => ({
+      language,
+      setLanguage,
+      t: key => messages[language][key] ?? en[key] ?? ko[key],
+      currency,
+      setCurrency,
+      upDownColors,
+      setUpDownColors,
+    }),
+    [language, setLanguage, currency, setCurrency, upDownColors, setUpDownColors],
   );
 
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+
+  useEffect(() => {
+    document.documentElement.dataset.updown = upDownColors;
+  }, [upDownColors]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };

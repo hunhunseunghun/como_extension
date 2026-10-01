@@ -1,6 +1,7 @@
 import { ColumnDef } from '@tanstack/react-table';
-import { getTimeframes, Translate } from '@/i18n';
-import { FavoriteCoins, UpbitTicker } from '@/types';
+import { DisplayCurrency, getTimeframes, Translate } from '@/i18n';
+import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
+import { FavoriteCoins, MarketType, UpbitTicker } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
@@ -22,7 +23,7 @@ export const getUpbitColumns = (
   coinNameKR: boolean,
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
-  exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
+  exchangeMarketType: MarketType,
   favoriteCoins: FavoriteCoins,
   setFavoriteCoins: React.Dispatch<React.SetStateAction<FavoriteCoins>>,
   favoriteFunc: boolean,
@@ -30,6 +31,8 @@ export const getUpbitColumns = (
   timeframe: string,
   setTimeframe: (value: string) => void,
   t: Translate,
+  displayCurrency: DisplayCurrency,
+  fiatRates: FiatRates,
 ): ColumnDef<UpbitTicker>[] => [
   {
     accessorFn: row => `${row.korean_name} ${row.market}`,
@@ -161,7 +164,9 @@ export const getUpbitColumns = (
     ),
     cell: ({ getValue, row, cell }) => {
       const valueKRW = getValue() as number;
-      const changeRateKRW = exchangeRateUSD > 0 ? valueKRW / exchangeRateUSD : 0;
+      // 원화 마켓 보조 가격: 표시 통화가 KRW면 달러로, 아니면 표시 통화로 보여준다.
+      const secondaryCurrency = displayCurrency === 'KRW' ? 'USD' : displayCurrency;
+      const secondaryValue = convertFiat(valueKRW, 'KRW', secondaryCurrency, { exchangeRateUSD, fiatRates });
 
       return (
         <FlashCell
@@ -172,12 +177,8 @@ export const getUpbitColumns = (
           {exchangeMarketType === 'KRW' && (
             <>
               <span>{valueKRW?.toLocaleString()}</span>
-              <span key={exchangeRateUSD} className="text-[10px] text-gray-500">
-                {exchangeRateUSD > 0 &&
-                  `$${changeRateKRW.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}`}
+              <span className="text-[10px] text-gray-500">
+                {secondaryValue !== null && formatFiat(secondaryValue, secondaryCurrency, t('numberLocale'))}
               </span>
             </>
           )}
@@ -207,7 +208,7 @@ export const getUpbitColumns = (
         <div className="flex flex-col items-end font-medium">
           <span
             className={`${
-              row.original.change === 'RISE' ? 'text-red-500' : row.original.change === 'FALL' ? 'text-blue-500' : ''
+              row.original.change === 'RISE' ? 'text-up' : row.original.change === 'FALL' ? 'text-down' : ''
             }`}>
             {`${row.original.change === 'RISE' ? '+' : ''}${value}%`}
           </span>
@@ -230,7 +231,7 @@ export const getUpbitColumns = (
       const value = String(getValue());
       const highestPrice = row.original.highest_52_week_price?.toLocaleString();
       return (
-        <div className="flex flex-col items-end text-blue-500 font-medium">
+        <div className="flex flex-col items-end text-down font-medium">
           <span>-{value}%</span>
           {exchangeMarketType !== 'BTC' ? (
             <span className="text-[10px] text-gray-500">{highestPrice}</span>
@@ -254,7 +255,7 @@ export const getUpbitColumns = (
       const value = String(getValue());
       const lowestPrice = row.original.lowest_52_week_price;
       return (
-        <div className="flex flex-col items-end text-red-500 font-medium">
+        <div className="flex flex-col items-end text-up font-medium">
           <span>+{value}%</span>
           {exchangeMarketType !== 'BTC' ? (
             <span className="text-[10px] text-gray-500">{lowestPrice?.toLocaleString()}</span>

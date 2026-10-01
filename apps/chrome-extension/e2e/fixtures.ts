@@ -52,10 +52,13 @@ export const switchExchange = async (page: Page, from: string, to: string) => {
   await page.getByRole('menuitem', { name: to }).click();
 };
 
-// 일정 시간 동안 표 내용이 바뀌는지로 실시간 갱신을 확인한다.
-export const expectLiveUpdates = async (page: Page, ms = 6000) => {
+// 거래가 활발한 BTC 마켓만 남겨 두고, 일정 시간 동안 표 내용이 바뀌는지로 실시간 갱신을 확인한다.
+export const expectLiveUpdates = async (page: Page, ms = 10_000) => {
+  const search = page.getByPlaceholder(/BTC/).first();
+  await search.fill('BTC');
   const before = await page.locator('tbody').innerText();
   await expect.poll(() => page.locator('tbody').innerText(), { timeout: ms, intervals: [500] }).not.toBe(before);
+  await search.fill('');
 };
 
 export const totalCount = async (page: Page) =>

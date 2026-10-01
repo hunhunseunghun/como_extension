@@ -1,6 +1,6 @@
-export type ExchangePlatform = 'upbit' | 'bithumb' | 'binance' | 'bybit' | 'okx';
-export type GlobalExchange = 'binance' | 'bybit' | 'okx';
-export type MarketType = 'KRW' | 'BTC' | 'USDT';
+export type ExchangePlatform = 'upbit' | 'bithumb' | 'binance' | 'bybit' | 'okx' | 'coinbase';
+export type GlobalExchange = 'binance' | 'bybit' | 'okx' | 'coinbase';
+export type MarketType = 'KRW' | 'BTC' | 'USDT' | 'USD';
 export type FavoriteCoins = Record<ExchangePlatform, string[]>;
 export type maxChagneRateCoin = { exchange: string; market: string; changeRate: number };
 export type UpbitTicker = {

@@ -11,7 +11,7 @@ export interface ChartDataPoint {
   close: number;
 }
 
-type Exchange = 'binance' | 'upbit' | 'bithumb' | 'bybit' | 'okx';
+type Exchange = 'binance' | 'upbit' | 'bithumb' | 'bybit' | 'okx' | 'coinbase';
 
 interface BinanceKline {
   0: number; // Kline open time (timestamp in milliseconds)
@@ -213,6 +213,12 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
     return intervals[tf] || '1Dutc';
   };
 
+  // Coinbase는 1·5·15분, 1·6시간, 1일 봉만 지원한다. 없는 봉은 일봉으로 보여준다.
+  const getCoinbaseGranularity = (tf: string) => {
+    const granularities: Record<string, number> = { '1m': 60, '5m': 300, '15m': 900, '60m': 3600, '1d': 86400 };
+    return granularities[tf] || 86400;
+  };
+
   const configs: Record<
     Exchange,
     { url: string; params?: Record<string, string | number>; headers?: Record<string, string> }
@@ -238,6 +244,10 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
       url: 'https://api.bybit.com/v5/market/kline',
       params: { category: 'spot', symbol, interval: getBybitInterval(timeframe), limit: 200 },
     },
+    coinbase: {
+      url: `https://api.exchange.coinbase.com/products/${splitGlobalSymbol(symbol).base}-${splitGlobalSymbol(symbol).quote}/candles`,
+      params: { granularity: getCoinbaseGranularity(timeframe) },
+    },
     okx: {
       url: 'https://www.okx.com/api/v5/market/candles',
       params: {
@@ -249,13 +259,22 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
   };
 
   const config = configs[exchange];
-  // Bybit·OKX는 [시각, 시가, 고가, 저가, 종가, ...] 배열을 감싸서 보내므로 꺼내서 바이낸스 형식으로 맞춘다.
+  // Bybit·OKX·Coinbase는 [시각, 시가, 고가, 저가, 종가, ...] 배열을 감싸서 보내므로 꺼내서 바이낸스 형식으로 맞춘다.
   return axios.get(config.url, { params: config.params, headers: config.headers }).then(response => ({
     data: (exchange === 'bybit'
       ? response.data?.result?.list
       : exchange === 'okx'
         ? response.data?.data
-        : response.data) as BinanceKline[] | UpbitCandle[] | BithumbCandle[],
+        : exchange === 'coinbase'
+          ? // [초, 저가, 고가, 시가, 종가] → 바이낸스 [ms, 시가, 고가, 저가, 종가]
+            (response.data as number[][])?.map(([time, low, high, open, close]) => [
+              time * 1000,
+              String(open),
+              String(high),
+              String(low),
+              String(close),
+            ])
+          : response.data) as BinanceKline[] | UpbitCandle[] | BithumbCandle[],
   }));
 };
 
@@ -301,7 +320,7 @@ const formatChartData = (
     }),
   } as const;
 
-  const formatter = formatters[exchange === 'bybit' || exchange === 'okx' ? 'binance' : exchange];
+  const formatter = formatters[exchange === 'upbit' || exchange === 'bithumb' ? exchange : 'binance'];
   return data
     .reduce((acc: ChartDataPoint[], item: BinanceKline | UpbitCandle | BithumbCandle) => {
       const { timeNum, open, high, low, close } = formatter(item);

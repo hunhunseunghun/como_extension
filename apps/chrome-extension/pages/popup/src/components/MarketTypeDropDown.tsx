@@ -13,7 +13,8 @@ import { ChevronDown } from 'lucide-react';
 import { isGlobalExchange } from '@/constants/exchanges';
 
 const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
-type ExchangeMarketType = (typeof marketTypes)[number];
+const coinbaseMarketTypes = ['USD'] as const;
+type ExchangeMarketType = (typeof marketTypes)[number] | (typeof coinbaseMarketTypes)[number];
 
 interface MarketTypeDropDownProps {
   exchangeMarketType: ExchangeMarketType;
@@ -29,7 +30,13 @@ export function MarketTypeDropDown({
   setRowPinning,
 }: MarketTypeDropDownProps) {
   const filteredMarketTypes: readonly ExchangeMarketType[] =
-    exchangePlatform === 'bithumb' ? ['KRW', 'BTC'] : isGlobalExchange(exchangePlatform) ? ['USDT', 'BTC'] : marketTypes;
+    exchangePlatform === 'bithumb'
+      ? ['KRW', 'BTC']
+      : exchangePlatform === 'coinbase'
+        ? coinbaseMarketTypes
+        : isGlobalExchange(exchangePlatform)
+          ? ['USDT', 'BTC']
+          : marketTypes;
 
   const dropdownSeletedHandler = (type: ExchangeMarketType) => {
     const initRowPinning: RowPinningState = { top: [], bottom: [] };
@@ -38,6 +45,10 @@ export function MarketTypeDropDown({
   };
 
   useEffect(() => {
+    if (exchangePlatform === 'coinbase') {
+      setExchangeMarketType('USD');
+      return;
+    }
     if (isGlobalExchange(exchangePlatform)) {
       setExchangeMarketType('USDT');
       return;

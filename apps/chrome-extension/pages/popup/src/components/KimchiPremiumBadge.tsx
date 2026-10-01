@@ -30,7 +30,7 @@ export const KimchiPremiumBadge = ({ kimchiPremium, exchangePlatform }: Props) =
       {displays.map(({ coin, premium }) => (
         <span key={coin} className="flex items-center gap-0.5">
           <span className="text-neutral-400">{coin}</span>
-          <span className={premium >= 0 ? 'text-red-500' : 'text-blue-500'}>
+          <span className={premium >= 0 ? 'text-up' : 'text-down'}>
             {premium >= 0 ? '+' : ''}
             {premium.toFixed(2)}%
           </span>

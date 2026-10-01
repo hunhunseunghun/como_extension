@@ -3,6 +3,7 @@ import { getTimeframes, Translate } from '@/i18n';
 import { BinanceTicker, FavoriteCoins, GlobalExchange } from '@/types';
 import { getGlobalTradeUrl, splitGlobalSymbol } from '@/constants/exchanges';
 import type { DisplayCurrency } from '@/i18n';
+import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
 import { Star, ArrowDownUp, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
@@ -20,7 +21,7 @@ import { ChevronDown } from 'lucide-react';
 // 바이낸스·Bybit·OKX 공통 컬럼. 백그라운드가 세 거래소 시세를 바이낸스 필드 형태로 맞춰 보낸다.
 export const getGlobalColumns = (
   exchange: GlobalExchange,
-  exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
+  exchangeMarketType: 'KRW' | 'BTC' | 'USDT' | 'USD',
   favoriteCoins: FavoriteCoins,
   setFavoriteCoins: React.Dispatch<React.SetStateAction<FavoriteCoins>>,
   favoriteFunc: boolean,
@@ -31,6 +32,7 @@ export const getGlobalColumns = (
   t: Translate,
   displayCurrency: DisplayCurrency,
   exchangeRateUSD: number,
+  fiatRates: FiatRates,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -159,6 +161,9 @@ export const getGlobalColumns = (
       const lastPrice = Number(getValue() as string);
       const bidPrice = row.original.b || '0';
       const bidAskStatus = Number(lastPrice) <= Number(bidPrice) ? 'BID' : 'ASK';
+      // USDT 가격 아래에 표시 통화(USD가 아닐 때) 환산값을 보여준다.
+      const secondaryValue =
+        displayCurrency === 'USD' ? null : convertFiat(lastPrice, 'USD', displayCurrency, { exchangeRateUSD, fiatRates });
       const formattedPrice =
         lastPrice >= 1
           ? lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -171,23 +176,13 @@ export const getGlobalColumns = (
           bidAskStatus={bidAskStatus ? bidAskStatus : ''}
           className={'flex flex-col items-end font-medium'}>
           <span>
-            {exchangeMarketType === 'USDT'
+            {exchangeMarketType !== 'BTC'
               ? `$${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}`
               : lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}
           </span>
-          {exchangeMarketType === 'USDT' && displayCurrency === 'KRW' && exchangeRateUSD > 0 && (
+          {exchangeMarketType !== 'BTC' && secondaryValue !== null && (
             <span className="text-[10px] text-gray-500">
-              {(lastPrice * exchangeRateUSD).toLocaleString(
-                'ko-KR',
-                // 1원 미만 코인은 소수 자리 대신 유효숫자로 보여 ₩0으로 뭉개지지 않게 한다.
-                lastPrice * exchangeRateUSD >= 1
-                  ? {
-                      style: 'currency',
-                      currency: 'KRW',
-                      maximumFractionDigits: lastPrice * exchangeRateUSD >= 100 ? 0 : 2,
-                    }
-                  : { style: 'currency', currency: 'KRW', maximumSignificantDigits: 3 },
-              )}
+              {formatFiat(secondaryValue, displayCurrency, t('numberLocale'))}
             </span>
           )}
         </FlashCell>
@@ -211,7 +206,7 @@ export const getGlobalColumns = (
 
       return (
         <div className="flex flex-col items-end font-medium">
-          <span className={`${priceChange > 0 ? 'text-red-500' : priceChange < 0 ? 'text-blue-500' : ''}`}>
+          <span className={`${priceChange > 0 ? 'text-up' : priceChange < 0 ? 'text-down' : ''}`}>
             {`${value > 0 ? '+' : ''}${value.toFixed(2)}`}%
           </span>
           {exchangeMarketType !== 'BTC' && (
@@ -244,7 +239,7 @@ export const getGlobalColumns = (
       const highestPrice = row.original.h ? Number(row.original.h) : Number(row.original.highPrice);
       return (
         <div
-          className={`flex flex-col items-end ${value < 0 ? 'text-blue-500' : value > 0 ? 'text-red-500' : 'text-black-500'} font-medium`}>
+          className={`flex flex-col items-end ${value < 0 ? 'text-down' : value > 0 ? 'text-up' : 'text-black-500'} font-medium`}>
           <span>{value.toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
             <span className="text-[10px] text-gray-500">
@@ -277,7 +272,7 @@ export const getGlobalColumns = (
       const lowestPrice = row.original.l ? Number(row.original.l) : Number(row.original.lowPrice);
       return (
         <div
-          className={`flex flex-col items-end ${value > 0 ? 'text-red-500' : value < 0 ? 'text-blue-500' : 'text-black-500'} font-medium`}>
+          className={`flex flex-col items-end ${value > 0 ? 'text-up' : value < 0 ? 'text-down' : 'text-black-500'} font-medium`}>
           <span>+{value.toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
             <span className="text-[10px] text-gray-500">
@@ -314,6 +309,7 @@ export const getGlobalColumns = (
 
       switch (exchangeMarketType) {
         case 'USDT':
+        case 'USD':
           return (
             <div className="flex flex-col items-end font-medium p-2">
               <span>{formatCurrencyUS(value)}</span>
