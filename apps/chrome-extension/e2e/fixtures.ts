@@ -2,7 +2,9 @@ import { test as base, chromium, type BrowserContext, type Page } from '@playwri
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const EXTENSION_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
+// 기본은 빌드 결과(dist). COMO_EXTENSION_PATH로 압축을 푼 배포 zip 등을 검증할 수 있다.
+const EXTENSION_PATH =
+  process.env.COMO_EXTENSION_PATH ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
 
 type Fixtures = { extContext: BrowserContext; extensionId: string; popup: Page };
 
@@ -52,13 +54,15 @@ export const switchExchange = async (page: Page, from: string, to: string) => {
   await page.getByRole('menuitem', { name: to }).click();
 };
 
-// 거래가 활발한 BTC 마켓만 남겨 두고, 일정 시간 동안 표 내용이 바뀌는지로 실시간 갱신을 확인한다.
+// 거래대금 순으로 정렬해 가장 활발한 종목을 위에 두고, 일정 시간 동안 표 내용이 바뀌는지로 실시간 갱신을 확인한다.
 export const expectLiveUpdates = async (page: Page, ms = 20_000) => {
-  const search = page.getByPlaceholder(/BTC/).first();
-  await search.fill('BTC');
+  const volumeHeader = page.locator('thead th').last().locator('div').first();
+  const firstVolume = () => page.locator('tbody tr').first().locator('td').last().innerText();
+  // 오름차순 → 내림차순 순서로 바뀐다.
+  for (let i = 0; i < 2; i++) await volumeHeader.click();
+  await expect.poll(async () => (await firstVolume()).length).toBeGreaterThan(0);
   const before = await page.locator('tbody').innerText();
   await expect.poll(() => page.locator('tbody').innerText(), { timeout: ms, intervals: [500] }).not.toBe(before);
-  await search.fill('');
 };
 
 export const totalCount = async (page: Page) =>
