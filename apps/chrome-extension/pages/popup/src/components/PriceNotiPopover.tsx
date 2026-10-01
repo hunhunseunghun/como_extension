@@ -89,53 +89,37 @@ export const PriceNotiPopover = () => {
   }>({});
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const initializeChromeConnection = useCallback(() => {
+  // 전체 티커는 메시지 응답으로 받는다. 별도 'popup' 포트를 열면 App의 포트를 백그라운드에서 덮어쓴다.
+  useEffect(() => {
+    let isUnmounted = false;
     setIsLoading(true);
-    const port = chrome.runtime.connect({ name: 'popup' });
 
-    port.onMessage.addListener((message: { type: string; data: unknown }) => {
-      const { type, data } = message;
+    chrome.runtime.sendMessage({ action: 'getAllExchangesTickers' }, (tickers?: ExchangeTicker[]) => {
+      if (isUnmounted) return;
+      setIsLoading(false);
+      if (chrome.runtime.lastError || !Array.isArray(tickers)) return;
 
-      if (type === 'allExchangesTickers') {
-        const tickers = data as ExchangeTicker[];
-        const uniqueTickers = Array.from(
-          new Map(
-            tickers.map(ticker => [`${ticker.exchange.toLowerCase()}:${ticker.market.toLowerCase()}`, ticker]),
-          ).values(),
-        );
-        setAllExchangesTickers(uniqueTickers);
-        setIsLoading(false);
+      const uniqueTickers = Array.from(
+        new Map(
+          tickers.map(ticker => [`${ticker.exchange.toLowerCase()}:${ticker.market.toLowerCase()}`, ticker]),
+        ).values(),
+      );
+      setAllExchangesTickers(uniqueTickers);
 
-        const defaultTicker = uniqueTickers.find(ticker => ticker.exchange === 'upbit' && ticker.market === 'KRW-BTC');
-        if (defaultTicker) {
-          setSelectedTicker(defaultTicker);
-          setTargetPrice(defaultTicker.currentPrice || 0);
-        }
-      } else if (type === 'setPriceAlertResponse' || type === 'deletePriceAlertResponse') {
-        chrome.storage.local.get(['priceAlerts'], result => {
-          setAllPriceAlerts(result.priceAlerts || {});
-        });
+      const defaultTicker = uniqueTickers.find(ticker => ticker.exchange === 'upbit' && ticker.market === 'KRW-BTC');
+      if (defaultTicker) {
+        setSelectedTicker(defaultTicker);
+        setTargetPrice(defaultTicker.currentPrice || 0);
       }
     });
-
-    port.onDisconnect.addListener(() => {
-      setIsLoading(false);
-    });
-
-    chrome.runtime.sendMessage({ action: 'getAllExchangesTickers' });
     chrome.storage.local.get(['priceAlerts'], result => {
-      setAllPriceAlerts(result.priceAlerts || {});
+      if (!isUnmounted) setAllPriceAlerts(result.priceAlerts || {});
     });
 
     return () => {
-      return port.disconnect();
+      isUnmounted = true;
     };
   }, []);
-
-  useEffect(() => {
-    const disconnect = initializeChromeConnection();
-    return disconnect;
-  }, [initializeChromeConnection]);
 
   const filteredTickers = useMemo(() => {
     if (isLoading || allExchangesTickers.length === 0) return [];

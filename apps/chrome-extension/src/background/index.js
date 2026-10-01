@@ -2,76 +2,88 @@
 const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
-let CURRENT_DATE = new Date()
-  .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
-  .replace(/\./g, '')
-  .replace(/ /g, '');
+const getKSTDate = () =>
+  new Date()
+    .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .replace(/\./g, '')
+    .replace(/ /g, '');
+
+let CURRENT_DATE = getKSTDate();
 
 chrome.alarms.create('updateDate', { periodInMinutes: 30 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'updateDate') {
-    CURRENT_DATE = new Date()
-      .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
-      .replace(/\./g, '')
-      .replace(/ /g, '');
+    const date = getKSTDate();
+    if (date === CURRENT_DATE) return;
+    CURRENT_DATE = date;
+    // 서비스 워커가 날짜를 넘겨 살아 있으면 환율이 갱신되지 않으므로 날짜가 바뀔 때 다시 조회한다.
+    exchangeRateManager.updateExchangeRate();
   }
 });
 
 const getDynamicUserAgent = () => navigator.userAgent;
 
 // 지정가 알림 관련 함수
+// 웹소켓 틱마다 storage를 읽지 않도록 알림 설정을 메모리에 캐시하고 storage 변경 시 동기화한다.
+const alertCache = { priceAlerts: {}, triggeredPrices: {}, deadbandSettings: {} };
+const ALERT_KEYS = Object.keys(alertCache);
+
+chrome.storage.local.get(ALERT_KEYS, result => {
+  ALERT_KEYS.forEach(key => {
+    alertCache[key] = result[key] || {};
+  });
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  ALERT_KEYS.forEach(key => {
+    if (changes[key]) alertCache[key] = changes[key].newValue || {};
+  });
+});
+
 function checkPriceAlerts(exchange, ticker, currentPrice) {
   // 알림 미설정 ticker도 lastPrice 추적: 첫 알림 등록 후 즉시 크로싱 검출 가능하도록.
   const lastPrice = allExchangesTickers[exchange][ticker]?.lastPrice ?? null;
   allExchangesTickers[exchange][ticker] = allExchangesTickers[exchange][ticker] || {};
   allExchangesTickers[exchange][ticker].lastPrice = currentPrice;
 
-  chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
-    const alerts = result.priceAlerts || {};
-    let triggered = result.triggeredPrices || {};
-    const deadbandSettings = result.deadbandSettings || {};
+  const alertPrices = alertCache.priceAlerts[exchange]?.[ticker];
+  if (!alertPrices?.length || lastPrice === null) return;
 
-    if (!alerts[exchange] || !alerts[exchange][ticker]) return;
+  const triggered = alertCache.triggeredPrices;
+  const deadbandSettings = alertCache.deadbandSettings;
+  triggered[exchange] = triggered[exchange] || {};
+  triggered[exchange][ticker] = triggered[exchange][ticker] || {};
+  const tickerTriggered = triggered[exchange][ticker];
+  let changed = false;
 
-    const alertPrices = alerts[exchange][ticker];
-    triggered[exchange] = triggered[exchange] || {};
-    triggered[exchange][ticker] = triggered[exchange][ticker] || {};
+  alertPrices.forEach(({ price: alertPrice, deadband: alertDeadband }) => {
+    if (alertPrice === undefined) return;
+    const deadband = deadbandSettings[exchange]?.[ticker]?.[alertPrice] ?? alertDeadband ?? 0;
+    const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
+    const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
 
-    alertPrices.forEach(({ price: alertPrice, deadband: alertDeadband }) => {
-      if (lastPrice !== null && alertPrice !== undefined) {
-        const deadband = deadbandSettings[exchange]?.[ticker]?.[alertPrice] ?? alertDeadband ?? 0;
+    if (deadband === 0) {
+      if (crossedUp || crossedDown) sendNotification(exchange, ticker, currentPrice, alertPrice);
+      return;
+    }
 
-        if (deadband === 0) {
-          const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
-          const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
-          if (crossedUp || crossedDown) {
-            sendNotification(exchange, ticker, currentPrice, alertPrice);
-          }
-        } else {
-          const deadbandValue = alertPrice * deadband;
-          const upperBound = alertPrice + deadbandValue;
-          const lowerBound = alertPrice - deadbandValue;
-
-          if (!triggered[exchange][ticker][alertPrice]) {
-            const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
-            const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
-            if (crossedUp || crossedDown) {
-              sendNotification(exchange, ticker, currentPrice, alertPrice);
-              triggered[exchange][ticker][alertPrice] = true;
-            }
-          } else {
-            if (currentPrice <= lowerBound || currentPrice >= upperBound) {
-              triggered[exchange][ticker][alertPrice] = false;
-            }
-          }
-        }
+    if (!tickerTriggered[alertPrice]) {
+      if (crossedUp || crossedDown) {
+        sendNotification(exchange, ticker, currentPrice, alertPrice);
+        tickerTriggered[alertPrice] = true;
+        changed = true;
       }
-    });
-
-    if (Object.keys(triggered[exchange][ticker]).length > 0) {
-      chrome.storage.local.set({ triggeredPrices: triggered }, () => {});
+    } else {
+      const deadbandValue = alertPrice * deadband;
+      if (currentPrice <= alertPrice - deadbandValue || currentPrice >= alertPrice + deadbandValue) {
+        tickerTriggered[alertPrice] = false;
+        changed = true;
+      }
     }
   });
+
+  if (changed) chrome.storage.local.set({ triggeredPrices: triggered });
 }
 
 function sendNotification(exchange, ticker, currentPrice, alertPrice) {
@@ -163,12 +175,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message.action === 'getAllExchangesTickers') {
-    if (activePort) {
-      const data = Object.values(allExchangesTickers)
-        .map(tickers => Object.values(tickers))
-        .reduce((acc, curr) => [...acc, ...curr], []);
-      activePort.postMessage({ type: 'allExchangesTickers', data });
-    }
+    sendResponse(Object.values(allExchangesTickers).flatMap(tickers => Object.values(tickers)));
   }
 });
 
@@ -277,6 +284,8 @@ class ExchangeRateManager {
 }
 
 //  ExchangeData 클래스
+const TICKER_CHUNK_SIZE = 100;
+
 class ExchangeData {
   constructor(name, apiUrl, wsUrl) {
     this.name = name;
@@ -297,11 +306,21 @@ class ExchangeData {
 
   async fetchInitialTickers() {
     try {
-      const marketsParam = this.markets?.join(',');
-      const response = await fetch(`${this.apiUrl}/ticker?markets=${marketsParam}`, {
-        headers: { Accept: 'application/json' },
-      });
-      const tickersArray = await response.json();
+      // 마켓 전체를 한 URL에 넣으면 빗썸이 414(URI Too Long)로 거부하므로 나눠서 요청한다.
+      const chunks = [];
+      for (let i = 0; i < this.markets.length; i += TICKER_CHUNK_SIZE) {
+        chunks.push(this.markets.slice(i, i + TICKER_CHUNK_SIZE));
+      }
+      const responses = await Promise.all(
+        chunks.map(async chunk => {
+          const response = await fetch(`${this.apiUrl}/ticker?markets=${chunk.join(',')}`, {
+            headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) throw new Error(`${this.name} ticker ${response.status}`);
+          return response.json();
+        }),
+      );
+      const tickersArray = responses.flat();
 
       this.tickers = tickersArray.reduce((acc, ticker) => {
         if (ticker.market) {
@@ -327,8 +346,8 @@ class ExchangeData {
   connectPopup(port) {
     if (!port || port.name !== 'popup') return;
     this.port = port;
-    this.port.onDisconnect.addListener(() => {
-      this.port = null;
+    port.onDisconnect.addListener(() => {
+      if (this.port === port) this.port = null;
     });
     if (this.isPopupActive && this.tickers) {
       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
@@ -361,6 +380,7 @@ class ExchangeData {
 
         if (this.name === 'binance' && Array.isArray(ticker)) {
           ticker.forEach(binanceTicker => {
+            normalizeBinanceMiniTicker(binanceTicker, this.tickers?.[binanceTicker.s]);
             allExchangesTickers[this.name][binanceTicker.s] = {
               ...allExchangesTickers[this.name][binanceTicker.s],
               exchange: this.name,
@@ -369,6 +389,7 @@ class ExchangeData {
               changeRate: binanceTicker.P ? Number(binanceTicker.P) : 0,
             };
             checkPriceAlerts(this.name, binanceTicker.s, Number(binanceTicker.c));
+            this.mergeTicker(binanceTicker.s, binanceTicker);
           });
         }
         if (this.name === 'upbit' || this.name === 'bithumb') {
@@ -380,6 +401,7 @@ class ExchangeData {
             changeRate: ticker.signed_change_rate ? Number(ticker.signed_change_rate) * 100 : 0,
           };
           checkPriceAlerts(this.name, ticker.code, Number(ticker.trade_price));
+          this.mergeTicker(ticker.code, ticker);
         }
 
         if (this.isPopupActive && this.port) {
@@ -399,6 +421,12 @@ class ExchangeData {
       this.socket = null;
       this.reconnectWebSocket();
     };
+  }
+
+  // 팝업을 다시 열 때 보내는 스냅샷이 최초 REST 응답에 머물지 않도록 웹소켓 갱신분을 병합한다.
+  mergeTicker(key, data) {
+    const current = this.tickers?.[key];
+    if (current) Object.assign(current, data);
   }
 
   reconnectWebSocket() {
@@ -436,6 +464,18 @@ class ExchangeData {
       this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
     }
   }
+}
+
+// miniTicker에는 없는 등락률(P)·변동액(p, priceChange)·체결 방향(b)을 채워 팝업이 기존 24hrTicker 필드를 그대로 쓰게 한다.
+function normalizeBinanceMiniTicker(ticker, prev) {
+  const open = Number(ticker.o);
+  const close = Number(ticker.c);
+  const change = close - open;
+  ticker.p = ticker.priceChange = String(change);
+  ticker.P = open ? ((change / open) * 100).toFixed(3) : '0';
+  const prevPrice = Number(prev?.c ?? prev?.lastPrice);
+  // 팝업은 c <= b 이면 BID(상승색)로 표시한다.
+  ticker.b = Number.isFinite(prevPrice) && close >= prevPrice ? ticker.c : '0';
 }
 
 //  UpbitData, BithumbData, BinanceData 클래스
@@ -486,7 +526,8 @@ class BithumbData extends ExchangeData {
 
 class BinanceData extends ExchangeData {
   constructor() {
-    super('binance', 'https://api.binance.com/api/v3', 'wss://stream.binance.com:9443/ws/!ticker@arr');
+    // !ticker@arr 스트림은 연결은 되지만 더 이상 메시지를 보내지 않아 !miniTicker@arr를 사용한다.
+    super('binance', 'https://api.binance.com/api/v3', 'wss://stream.binance.com:9443/ws/!miniTicker@arr');
   }
 
   async fetchMarkets() {
@@ -614,7 +655,9 @@ chrome.runtime.onConnect.addListener(port => {
   }
 
   port.onDisconnect.addListener(() => {
+    if (activePort !== port) return;
     activePort = null;
+    exchangeRateManager.port = null;
     if (maxChangeRateIntervalId !== null) {
       clearInterval(maxChangeRateIntervalId);
       maxChangeRateIntervalId = null;

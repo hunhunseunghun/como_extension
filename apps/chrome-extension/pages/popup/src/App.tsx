@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import '@/styles/App.css';
 import {
   UpbitTicker,
@@ -71,14 +71,14 @@ const App = () => {
   const [timeFrame, setTimeFrame] = useState<string>('1d');
   const [kimchiPremium, setKimchiPremium] = useState<KimchiPremium>({ rate: null, items: {} });
 
-  const updatedVersionHandler = (newVersion: string) => {
+  const updatedVersionHandler = useCallback((newVersion: string) => {
     chrome.storage.local.get('updatedVersion', result => {
       const stored = result?.updatedVersion || '';
       if (stored !== newVersion) {
         setUpdatedVersion(newVersion);
       }
     });
-  };
+  }, []);
 
   useEffect(() => {
     chrome.runtime.sendMessage('popupOpened');
@@ -188,7 +188,6 @@ const App = () => {
     initialState: { sorting: [{ id: 'trade_price', desc: true }] },
     enableRowPinning: favoriteFunc,
     keepPinnedRows: true,
-    debugRows: true,
   });
 
   const centerRows = table.getCenterRows();
@@ -210,12 +209,8 @@ const App = () => {
   const nonChartColumns = table.getAllColumns().filter(col => col.id !== 'candlestick_chart');
   const equalColumnWidth = Math.floor(remainingWidth / nonChartColumns.length); // 나머지 열의 균등 너비
 
-  const adjustedColumnWidths = useMemo(() => {
-    return table.getAllColumns().map(column => ({
-      id: column.id,
-      width: column.id === 'candlestick_chart' ? chartColumnWidth : equalColumnWidth,
-    }));
-  }, [table, viewportWidth]);
+  const getColumnWidth = (columnId: string) =>
+    columnId === 'candlestick_chart' ? chartColumnWidth : equalColumnWidth || 100;
 
   // favoriteCoins와 rowPinning 동기화
   useEffect(() => {
@@ -370,7 +365,7 @@ const App = () => {
                   {table.getHeaderGroups().map(headerGroup => (
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map(header => {
-                        const adjustedWidth = adjustedColumnWidths.find(col => col.id === header.id)?.width || 100;
+                        const adjustedWidth = getColumnWidth(header.id);
                         return (
                           <TableHead
                             key={header.id}
@@ -410,8 +405,7 @@ const App = () => {
                             key={row.id}
                             data-state={row.getIsSelected() && 'selected'}>
                             {row.getVisibleCells().map(cell => {
-                              const adjustedWidth =
-                                adjustedColumnWidths.find(col => col.id === cell.column.id)?.width || 100;
+                              const adjustedWidth = getColumnWidth(cell.column.id);
                               return (
                                 <TableCell
                                   key={cell.id}
@@ -440,8 +434,7 @@ const App = () => {
                               key={row.id}
                               data-state={row.getIsSelected() && 'selected'}>
                               {row.getVisibleCells().map(cell => {
-                                const adjustedWidth =
-                                  adjustedColumnWidths.find(col => col.id === cell.column.id)?.width || 100;
+                                const adjustedWidth = getColumnWidth(cell.column.id);
                                 return (
                                   <TableCell
                                     key={cell.id}
