@@ -1,0 +1,43 @@
+COMO – Cotação de Criptomoedas e Bitcoin em Tempo Real
+
+Cotação ao vivo de Bitcoin, Ethereum e criptomoedas de 9 corretoras em um clique — com alertas de preço, acompanhamento de carteira, gráficos e a cotação ao vivo na sua barra de ferramentas.
+
+📈 Cotações em tempo real de 9 corretoras
+O COMO se conecta a nove das principais corretoras globais e coreanas. Os preços chegam ao vivo via WebSocket, então a tabela se atualiza a cada negociação. Troque de corretora e de mercado em um segundo.
+
+🔔 Alertas de preço
+Defina preços-alvo para qualquer moeda e receba uma notificação na área de trabalho quando o preço cruzar o alvo. A opção de zona morta evita alertas repetidos quando o preço oscila em torno do seu alvo. Clique na notificação para abrir a moeda na corretora.
+
+💼 Carteira
+Adicione seus ativos (moeda, quantidade, preço médio) para ver o valor total e o lucro/prejuízo em tempo real. Os totais podem ser exibidos em 15 moedas locais, como dólar americano, euro, iene, won ou rupia.
+
+🧭 Insights de mercado
+• Índice de Medo e Ganância, dominância do BTC e taxa de financiamento do BTC num relance
+• Spread entre corretoras: veja onde a mesma moeda está mais barata e mais cara
+• Prêmio kimchi das corretoras coreanas
+
+🐸 DEX e memecoins
+Pesquise qualquer token por símbolo ou endereço de contrato (com tecnologia DexScreener) e adicione-o à sua lista de observação — mesmo antes de ser listado em uma corretora centralizada.
+
+🕯 Gráficos
+Gráficos de candlestick de 1 minuto a 1 mês para todas as corretoras, direto no popup.
+
+⚡ Feito para ser rápido
+• Cotação ao vivo no ícone da barra de ferramentas (escolha qualquer moeda)
+• O modo painel lateral mantém os preços visíveis enquanto você navega
+• Atalho de teclado: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Favoritos fixados no topo, modo escuro, layouts compacto e amplo
+• Estilo de cores: verde para alta ou vermelho para alta
+
+🌍 Disponível em 10 idiomas
+A interface segue o idioma do seu navegador, e você pode trocá-lo a qualquer momento nas configurações.
+
+🔒 Privacidade
+O COMO lê apenas dados públicos de mercado das APIs das corretoras e de cotações. Ele não lê as páginas que você visita, e suas configurações, alertas e carteira ficam no seu navegador. Não é preciso criar conta nem fazer login.
+
+Novidades da versão 3.0.0
+• Seis novas corretoras, totalizando nove
+• Carteira com lucro/prejuízo ao vivo e 15 moedas de exibição
+• Selo de cotação na barra de ferramentas, modo painel lateral, insights de mercado, lista de observação de tokens DEX
+• 10 idiomas e cores de alta/baixa conforme a região
+• Cotações em tempo real mais rápidas e confiáveis (corrigidos os preços desatualizados ao reabrir e as atualizações ao vivo da Binance)

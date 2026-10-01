@@ -1,0 +1,43 @@
+COMO – Pantau Harga Kripto & Harga Bitcoin Real-Time
+
+Harga Bitcoin, Ethereum, dan kripto secara live dari 9 exchange dalam satu klik — dilengkapi alert harga, pelacakan portofolio, grafik, dan harga live di toolbar Anda.
+
+📈 Harga real-time dari 9 exchange
+COMO terhubung ke sembilan exchange besar global dan Korea. Harga dialirkan secara live melalui WebSocket, jadi tabel langsung diperbarui setiap ada transaksi. Ganti exchange dan pasar dalam sekejap.
+
+🔔 Alert harga
+Atur harga target untuk koin apa pun dan dapatkan notifikasi desktop saat harga melewatinya. Opsi deadband mencegah alert berulang saat harga bergerak naik-turun di sekitar target Anda. Klik notifikasi untuk membuka koin tersebut di exchange.
+
+💼 Portofolio
+Tambahkan aset Anda (koin, jumlah, harga rata-rata) untuk melihat total nilai dan untung/rugi secara real-time. Total dapat ditampilkan dalam 15 mata uang lokal, seperti dolar AS, euro, yen, won, atau rupiah.
+
+🧭 Wawasan pasar
+• Fear & Greed Index, dominasi BTC, dan funding rate BTC dalam sekilas
+• Selisih harga antar-exchange: lihat di mana koin yang sama paling murah dan paling mahal
+• Kimchi premium untuk exchange Korea
+
+🐸 DEX & meme coin
+Cari token apa pun berdasarkan simbol atau alamat kontrak (didukung oleh DexScreener) dan tambahkan ke watchlist Anda — bahkan sebelum listing di exchange terpusat.
+
+🕯 Grafik
+Grafik candlestick dari 1 menit hingga 1 bulan untuk setiap exchange, langsung di dalam popup.
+
+⚡ Dirancang untuk kecepatan
+• Harga live di badge toolbar (pilih koin apa saja)
+• Mode panel samping membuat harga tetap terlihat saat Anda browsing
+• Pintasan keyboard: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Favorit disematkan di atas, mode gelap, tata letak ringkas dan lebar
+• Gaya warna hijau-naik atau merah-naik
+
+🌍 Tersedia dalam 10 bahasa
+Tampilan mengikuti bahasa browser Anda, dan Anda dapat mengubahnya kapan saja di pengaturan.
+
+🔒 Privasi
+COMO hanya membaca data pasar publik dari API exchange dan API harga. COMO tidak membaca halaman yang Anda kunjungi, serta pengaturan, alert, dan portofolio Anda tetap tersimpan di browser Anda. Tidak perlu akun atau login.
+
+Yang baru di versi 3.0.0
+• Enam exchange baru, total menjadi sembilan
+• Portofolio dengan untung/rugi live, 15 mata uang tampilan
+• Badge harga di toolbar, mode panel samping, wawasan pasar, watchlist token DEX
+• 10 bahasa dan warna naik/turun sesuai wilayah
+• Harga real-time lebih cepat dan andal (perbaikan harga usang saat dibuka kembali dan pembaruan live Binance)

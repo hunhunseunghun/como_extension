@@ -1,0 +1,43 @@
+COMO – Precio de Criptomonedas y Bitcoin en Tiempo Real
+
+Precios de Bitcoin, Ethereum y criptomonedas en vivo de 9 exchanges con un solo clic — con alertas de precio, seguimiento de portafolio, gráficos y el precio en vivo en tu barra de herramientas.
+
+📈 Precios en tiempo real de 9 exchanges
+COMO se conecta a nueve de los principales exchanges globales y coreanos. Los precios llegan en vivo por WebSocket, así que la tabla se actualiza con cada operación. Cambia de exchange y de mercado en un segundo.
+
+🔔 Alertas de precio
+Define precios objetivo para cualquier moneda y recibe una notificación de escritorio cuando el precio lo cruce. La opción de banda muerta evita alertas repetidas cuando el precio oscila alrededor de tu objetivo. Haz clic en la notificación para abrir la moneda en el exchange.
+
+💼 Portafolio
+Agrega tus tenencias (moneda, cantidad, precio promedio) para ver el valor total y las ganancias/pérdidas en tiempo real. Los totales se pueden mostrar en 15 monedas locales, como dólares estadounidenses, euros, yenes, wones o rupias.
+
+🧭 Análisis del mercado
+• Índice de Miedo y Codicia (Fear & Greed), dominancia de BTC y tasa de financiamiento de BTC de un vistazo
+• Diferencia de precio entre exchanges: mira dónde la misma moneda está más barata y más cara
+• Prima kimchi de los exchanges coreanos
+
+🐸 DEX y memecoins
+Busca cualquier token por símbolo o dirección de contrato (con tecnología de DexScreener) y agrégalo a tu lista de seguimiento — incluso antes de que se liste en un exchange centralizado.
+
+🕯 Gráficos
+Gráficos de velas de 1 minuto a 1 mes para cada exchange, directamente en la ventana emergente.
+
+⚡ Pensado para la velocidad
+• Precio en vivo en el ícono de la barra de herramientas (elige cualquier moneda)
+• El modo de panel lateral mantiene los precios visibles mientras navegas
+• Atajo de teclado: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Favoritos fijados arriba, modo oscuro, diseños compacto y amplio
+• Estilo de color: verde al alza o rojo al alza
+
+🌍 Disponible en 10 idiomas
+La interfaz usa el idioma de tu navegador, y puedes cambiarlo cuando quieras en la configuración.
+
+🔒 Privacidad
+COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión.
+
+Novedades de la versión 3.0.0
+• Seis exchanges nuevos, para un total de nueve
+• Portafolio con ganancias/pérdidas en vivo y 15 monedas de visualización
+• Insignia de precio en la barra de herramientas, modo de panel lateral, análisis del mercado, lista de seguimiento de tokens DEX
+• 10 idiomas y colores de subida/bajada según la región
+• Precios en tiempo real más rápidos y confiables (se corrigieron los precios desactualizados al reabrir y las actualizaciones en vivo de Binance)

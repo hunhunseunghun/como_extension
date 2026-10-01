@@ -3,7 +3,7 @@
     "message": "COMO: Crypto Price Tracker & Bitcoin Ticker – Alerts, Portfolio"
   },
   "extDescription": {
-    "message": "Live crypto & Bitcoin prices from Binance, Coinbase, Bybit, OKX, Upbit and Bithumb, with price alerts, portfolio and charts."
+    "message": "Live Bitcoin & crypto prices from 9 major exchanges, with price alerts, portfolio profit/loss, charts and a toolbar price badge."
   },
   "commandToggle": {
     "message": "Quickly open or close the crypto price popup"

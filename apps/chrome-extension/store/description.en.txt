@@ -1,0 +1,43 @@
+COMO – Crypto Price Tracker & Bitcoin Ticker
+
+Live Bitcoin, Ethereum and crypto prices from 9 exchanges in one click — with price alerts, portfolio tracking, charts and a live price on your toolbar.
+
+📈 Real-time prices from 9 exchanges
+COMO connects to nine major global and Korean exchanges. Prices stream in live over WebSocket, so the table updates as trades happen. Switch exchanges and markets in a second.
+
+🔔 Price alerts
+Set target prices for any coin and get a desktop notification when the price crosses it. A deadband option prevents repeated alerts when the price hovers around your target. Click the notification to open the coin on the exchange.
+
+💼 Portfolio
+Add your holdings (coin, quantity, average price) to see total value and profit/loss in real time. Totals can be shown in 15 local currencies, such as US dollars, euros, yen, won or rupees.
+
+🧭 Market insights
+• Fear & Greed Index, BTC dominance and BTC funding rate at a glance
+• Cross-exchange spread: see where the same coin is cheapest and most expensive
+• Kimchi premium for Korean exchanges
+
+🐸 DEX & meme coins
+Search any token by symbol or contract address (powered by DexScreener) and add it to your watchlist — even before it lists on a centralized exchange.
+
+🕯 Charts
+Candlestick charts from 1 minute to 1 month for every exchange, right inside the popup.
+
+⚡ Built for speed
+• Live price on the toolbar badge (choose any coin)
+• Side panel mode keeps prices visible while you browse
+• Keyboard shortcut: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Favorites pinned to the top, dark mode, compact and wide layouts
+• Green-up or red-up color style
+
+🌍 Available in 10 languages
+The interface follows your browser language, and you can switch it any time in settings.
+
+🔒 Privacy
+COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required.
+
+What's new in 3.0.0
+• Six new exchanges, for nine in total
+• Portfolio with live profit/loss, 15 display currencies
+• Toolbar price badge, side panel mode, market insights, DEX token watchlist
+• 10 languages and region-based up/down colors
+• Faster, more reliable real-time prices (fixed stale prices on reopen and Binance live updates)

@@ -1,0 +1,43 @@
+COMO – Theo Dõi Giá Coin & Giá Bitcoin Trực Tiếp
+
+Giá Bitcoin, Ethereum và tiền điện tử trực tiếp từ 9 sàn giao dịch chỉ với một cú nhấp — kèm cảnh báo giá, theo dõi danh mục đầu tư, biểu đồ và giá trực tiếp ngay trên thanh công cụ.
+
+📈 Giá thời gian thực từ 9 sàn
+COMO kết nối với chín sàn giao dịch lớn trên thế giới và tại Hàn Quốc. Giá được truyền trực tiếp qua WebSocket, nên bảng giá cập nhật ngay khi có giao dịch khớp lệnh. Chuyển sàn và thị trường chỉ trong một giây.
+
+🔔 Cảnh báo giá
+Đặt giá mục tiêu cho bất kỳ coin nào và nhận thông báo trên máy tính khi giá vượt qua mức đó. Tùy chọn vùng đệm (deadband) giúp tránh cảnh báo lặp lại khi giá dao động quanh mục tiêu của bạn. Nhấp vào thông báo để mở coin đó trên sàn.
+
+💼 Danh mục đầu tư
+Thêm tài sản bạn đang nắm giữ (coin, số lượng, giá trung bình) để xem tổng giá trị và lãi/lỗ theo thời gian thực. Tổng có thể hiển thị bằng 15 loại tiền tệ địa phương, chẳng hạn như đô la Mỹ, euro, yên, won hay rupee.
+
+🧭 Thông tin thị trường
+• Chỉ số Sợ hãi & Tham lam, tỷ lệ thống trị BTC và funding rate BTC trong nháy mắt
+• Chênh lệch giá giữa các sàn: xem cùng một coin ở đâu rẻ nhất và đắt nhất
+• Kimchi premium của các sàn Hàn Quốc
+
+🐸 DEX & meme coin
+Tìm bất kỳ token nào theo ký hiệu hoặc địa chỉ hợp đồng (dữ liệu từ DexScreener) và thêm vào danh sách theo dõi — kể cả trước khi token được niêm yết trên sàn tập trung.
+
+🕯 Biểu đồ
+Biểu đồ nến từ 1 phút đến 1 tháng cho mọi sàn, ngay trong cửa sổ popup.
+
+⚡ Tối ưu cho tốc độ
+• Giá trực tiếp trên huy hiệu thanh công cụ (chọn bất kỳ coin nào)
+• Chế độ bảng bên giúp giá luôn hiển thị khi bạn lướt web
+• Phím tắt: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Ghim coin yêu thích lên đầu, chế độ tối, bố cục gọn và rộng
+• Kiểu màu xanh là tăng hoặc đỏ là tăng
+
+🌍 Hỗ trợ 10 ngôn ngữ
+Giao diện tự động theo ngôn ngữ của trình duyệt, và bạn có thể đổi ngôn ngữ bất cứ lúc nào trong phần cài đặt.
+
+🔒 Quyền riêng tư
+COMO chỉ đọc dữ liệu thị trường công khai từ API của các sàn và API giá. Tiện ích không đọc các trang bạn truy cập, còn cài đặt, cảnh báo và danh mục của bạn được lưu ngay trong trình duyệt. Không cần tài khoản hay đăng nhập.
+
+Có gì mới trong phiên bản 3.0.0
+• Thêm sáu sàn mới, nâng tổng số lên chín sàn
+• Danh mục đầu tư với lãi/lỗ trực tiếp, 15 loại tiền tệ hiển thị
+• Huy hiệu giá trên thanh công cụ, chế độ bảng bên, thông tin thị trường, danh sách theo dõi token DEX
+• 10 ngôn ngữ và màu tăng/giảm theo khu vực
+• Giá thời gian thực nhanh và ổn định hơn (đã sửa lỗi giá cũ khi mở lại và lỗi cập nhật trực tiếp của Binance)
