@@ -12,6 +12,9 @@ export const ko = {
   exchange_bybit: '바이비트',
   exchange_okx: 'OKX',
   exchange_coinbase: 'Coinbase',
+  exchange_bitget: 'Bitget',
+  exchange_kraken: 'Kraken',
+  exchange_coindcx: 'CoinDCX',
 
   name: '이름',
   nameKR: '한글명',

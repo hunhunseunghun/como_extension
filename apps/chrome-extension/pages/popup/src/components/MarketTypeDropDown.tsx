@@ -8,13 +8,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ExchangePlatform } from '@/types';
+import { ExchangePlatform, MarketType } from '@/types';
 import { ChevronDown } from 'lucide-react';
-import { isGlobalExchange } from '@/constants/exchanges';
+import { MARKET_TYPES } from '@/constants/exchanges';
 
-const marketTypes = ['KRW', 'BTC', 'USDT'] as const;
-const coinbaseMarketTypes = ['USD'] as const;
-type ExchangeMarketType = (typeof marketTypes)[number] | (typeof coinbaseMarketTypes)[number];
+type ExchangeMarketType = MarketType;
 
 interface MarketTypeDropDownProps {
   exchangeMarketType: ExchangeMarketType;
@@ -29,14 +27,7 @@ export function MarketTypeDropDown({
   setExchangeMarketType,
   setRowPinning,
 }: MarketTypeDropDownProps) {
-  const filteredMarketTypes: readonly ExchangeMarketType[] =
-    exchangePlatform === 'bithumb'
-      ? ['KRW', 'BTC']
-      : exchangePlatform === 'coinbase'
-        ? coinbaseMarketTypes
-        : isGlobalExchange(exchangePlatform)
-          ? ['USDT', 'BTC']
-          : marketTypes;
+  const filteredMarketTypes = MARKET_TYPES[exchangePlatform] ?? MARKET_TYPES.upbit;
 
   const dropdownSeletedHandler = (type: ExchangeMarketType) => {
     const initRowPinning: RowPinningState = { top: [], bottom: [] };
@@ -44,16 +35,10 @@ export function MarketTypeDropDown({
     setRowPinning(initRowPinning);
   };
 
+  // 거래소를 바꾸면 그 거래소의 기본 마켓으로 돌아간다.
   useEffect(() => {
-    if (exchangePlatform === 'coinbase') {
-      setExchangeMarketType('USD');
-      return;
-    }
-    if (isGlobalExchange(exchangePlatform)) {
-      setExchangeMarketType('USDT');
-      return;
-    }
-    setExchangeMarketType('KRW');
+    setExchangeMarketType(filteredMarketTypes[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exchangePlatform]);
 
   return (

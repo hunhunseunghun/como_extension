@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "COMO: Giá Bitcoin & Tiền Điện Tử Trực Tiếp – Cảnh Báo Giá, Danh Mục"
+  },
+  "extDescription": {
+    "message": "Giá Bitcoin và tiền điện tử trực tiếp từ Binance, Coinbase, Bybit, OKX, Upbit, Bithumb, kèm cảnh báo giá, danh mục và biểu đồ."
+  },
+  "commandToggle": {
+    "message": "Mở hoặc đóng nhanh cửa sổ giá tiền điện tử"
+  }
+}

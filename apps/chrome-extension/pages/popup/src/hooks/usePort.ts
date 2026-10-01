@@ -76,6 +76,9 @@ export const usePort = (
           case 'bybitWebsocketTicker':
           case 'okxWebsocketTicker':
           case 'coinbaseWebsocketTicker':
+          case 'bitgetWebsocketTicker':
+          case 'krakenWebsocketTicker':
+          case 'coindcxWebsocketTicker':
             data.forEach((ticker: { s: string } & BinanceWebsocketTicker) => {
               if (ticker.s) queueTicker(ticker.s, ticker as Partial<TickerTypes>);
             });
@@ -86,6 +89,9 @@ export const usePort = (
           case 'bybitTickers':
           case 'okxTickers':
           case 'coinbaseTickers':
+          case 'bitgetTickers':
+          case 'krakenTickers':
+          case 'coindcxTickers':
             clearPending();
             setTickers(data);
             setIsLoading(false);

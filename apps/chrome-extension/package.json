@@ -12,7 +12,8 @@
     "dev:background": "pnpx nodemon --exec node src/background/index.js",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "dev:ext": "node scripts/dev-extension.mjs"
+    "dev:ext": "node scripts/dev-extension.mjs",
+    "package": "node scripts/package.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

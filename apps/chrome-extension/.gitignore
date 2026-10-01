@@ -40,3 +40,4 @@ yarn-error.log*
 # Playwright
 e2e/.results
 playwright-report
+release

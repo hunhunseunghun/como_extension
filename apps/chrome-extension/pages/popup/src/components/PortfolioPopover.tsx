@@ -12,13 +12,19 @@ import { convertFiat, formatFiat, useMarket } from '@/lib/market';
 import { ExchangePlatform } from '@/types';
 
 type Holding = { id: string; exchange: ExchangePlatform; market: string; quantity: number; avgPrice: number };
-type Quote = 'KRW' | 'USD';
+type Quote = 'KRW' | 'USD' | 'INR';
 
 const STORAGE_KEY = 'portfolio';
 
 // KRW 마켓은 원화, USDT·USD 마켓은 달러(USDT≈USD)로 본다. BTC 마켓은 지원하지 않는다.
 const getQuote = (market: string): Quote | null =>
-  market.startsWith('KRW-') ? 'KRW' : market.endsWith('USDT') || market.endsWith('USD') ? 'USD' : null;
+  market.startsWith('KRW-')
+    ? 'KRW'
+    : market.endsWith('USDT') || market.endsWith('USD')
+      ? 'USD'
+      : market.endsWith('INR')
+        ? 'INR'
+        : null;
 
 const getCoin = (exchange: ExchangePlatform, market: string) =>
   isGlobalExchange(exchange) ? splitGlobalSymbol(market).base : (market.split('-')[1] ?? market);

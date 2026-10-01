@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "COMO: 加密货币行情 & 比特币实时价格 – 价格提醒、资产组合"
+  },
+  "extDescription": {
+    "message": "实时查看币安、Coinbase、Bybit、OKX、Upbit、Bithumb 的比特币和加密货币价格，支持价格提醒、资产组合和K线图。"
+  },
+  "commandToggle": {
+    "message": "快速打开或关闭加密货币价格弹窗"
+  }
+}

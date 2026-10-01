@@ -1,5 +1,15 @@
 // 초기 설정 및 전역 변수
-const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {}, bybit: {}, okx: {}, coinbase: {} };
+const allExchangesTickers = {
+  upbit: {},
+  bithumb: {},
+  binance: {},
+  bybit: {},
+  okx: {},
+  coinbase: {},
+  bitget: {},
+  kraken: {},
+  coindcx: {},
+};
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
 const getKSTDate = () =>
@@ -123,7 +133,7 @@ function sendNotification(exchange, ticker, currentPrice, alertPrice) {
 
 // 알림을 누르면 해당 거래소의 거래 화면을 연다.
 const getTradeUrl = (exchange, market) => {
-  const quote = ['USDT', 'BTC', 'USD'].find(q => market.endsWith(q)) ?? '';
+  const quote = ['USDT', 'USD', 'INR', 'BTC'].find(q => market.endsWith(q)) ?? '';
   const base = quote ? market.slice(0, -quote.length) : market;
   switch (exchange) {
     case 'upbit':
@@ -138,6 +148,12 @@ const getTradeUrl = (exchange, market) => {
       return `https://www.okx.com/trade-spot/${base.toLowerCase()}-${quote.toLowerCase()}`;
     case 'coinbase':
       return `https://www.coinbase.com/advanced-trade/spot/${base}-${quote}`;
+    case 'bitget':
+      return `https://www.bitget.com/spot/${base}${quote}`;
+    case 'kraken':
+      return `https://pro.kraken.com/app/trade/${base.toLowerCase()}-${quote.toLowerCase()}`;
+    case 'coindcx':
+      return `https://coindcx.com/trade/${market}`;
     default:
       return null;
   }
@@ -553,7 +569,10 @@ class ExchangeData {
     socket.onopen = () => {
       this.isReconnecting = false;
       this.currentReconnectDelay = this.initialReconnectDelay;
-      this.getSubscriptions().forEach(subscription => socket.send(subscription));
+      // 일부 거래소(Bitget 등)는 초당 메시지 수를 제한하므로 구독 메시지를 나눠 보낸다.
+      this.getSubscriptions().forEach((subscription, index) =>
+        setTimeout(() => socket.readyState === WebSocket.OPEN && socket.send(subscription), index * 120),
+      );
 
       const heartbeat = this.getHeartbeatMessage();
       clearInterval(this.heartbeatId);
@@ -570,18 +589,7 @@ class ExchangeData {
         if (data instanceof Blob) data = await data.text();
         if (data === 'pong') return;
 
-        const updates = this.parseMessage(JSON.parse(data));
-        if (!updates.length) return;
-
-        const store = allExchangesTickers[this.name];
-        for (const { key, tick, price, changeRate, volume } of updates) {
-          store[key] = { ...store[key], exchange: this.name, market: key, currentPrice: price, changeRate };
-          if (volume) store[key].volume = volume;
-          checkPriceAlerts(this.name, key, price);
-          this.mergeTicker(key, tick);
-        }
-
-        if (this.isPopupActive && this.port) this.forwardTicks(updates);
+        this.applyUpdates(this.parseMessage(JSON.parse(data)));
       } catch (error) {
         console.warn(error);
       }
@@ -595,6 +603,19 @@ class ExchangeData {
     };
     socket.onerror = handleClose;
     socket.onclose = handleClose;
+  }
+
+  // 실시간 갱신(웹소켓·폴링)을 전 거래소 시세에 반영하고, 알림을 확인하고, 팝업에 보낸다.
+  applyUpdates(updates) {
+    if (!updates.length) return;
+    const store = allExchangesTickers[this.name];
+    for (const { key, tick, price, changeRate, volume } of updates) {
+      store[key] = { ...store[key], exchange: this.name, market: key, currentPrice: price, changeRate };
+      if (volume) store[key].volume = volume;
+      checkPriceAlerts(this.name, key, price);
+      this.mergeTicker(key, tick);
+    }
+    if (this.isPopupActive && this.port) this.forwardTicks(updates);
   }
 
   // 팝업을 다시 열 때 보내는 스냅샷이 최초 REST 응답에 머물지 않도록 웹소켓 갱신분을 병합한다.
@@ -957,6 +978,206 @@ class CoinbaseData extends ExchangeData {
   }
 }
 
+// Bitget: 현물 3천여 마켓 중 거래대금 상위만 실시간으로 받는다 (연결당 구독 1000개 제한).
+const BITGET_MAX_MARKETS = 900;
+
+class BitgetData extends ExchangeData {
+  constructor() {
+    super('bitget', 'https://api.bitget.com/api/v2', 'wss://ws.bitget.com/v2/ws/public', { isGlobal: true });
+  }
+
+  static fields(t) {
+    return { last: t.lastPr, open: t.open ?? t.open24h, high: t.high24h, low: t.low24h, quoteVolume: t.quoteVolume };
+  }
+
+  async fetchMarkets() {
+    try {
+      const { data } = await fetchJson(`${this.apiUrl}/spot/market/tickers`);
+      this.initialList = data
+        .filter(t => hasGlobalQuote(t.symbol) && Number(t.lastPr) > 0)
+        .sort((a, b) => Number(b.usdtVolume) - Number(a.usdtVolume))
+        .slice(0, BITGET_MAX_MARKETS);
+      return this.initialList.map(t => t.symbol);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchInitialTickers() {
+    this.setSnapshot((this.initialList ?? []).map(t => globalEntry(t.symbol, BitgetData.fields(t))));
+    this.initialList = null;
+  }
+
+  getSubscriptions() {
+    const messages = [];
+    for (let i = 0; i < this.markets.length; i += 50) {
+      const args = this.markets.slice(i, i + 50).map(instId => ({ instType: 'SPOT', channel: 'ticker', instId }));
+      messages.push(JSON.stringify({ op: 'subscribe', args }));
+    }
+    return messages;
+  }
+
+  getHeartbeatMessage() {
+    return 'ping';
+  }
+
+  parseMessage(message) {
+    if (message?.arg?.channel !== 'ticker' || !Array.isArray(message.data)) return [];
+    return message.data.map(t => globalUpdate(this, t.instId, BitgetData.fields(t)));
+  }
+}
+
+// Kraken: USD 마켓. REST 이름(XBT)과 웹소켓 이름(BTC)이 달라 BTC 기준 심볼(BTCUSD)로 맞춘다.
+// EUR/USD 같은 외환 페어와 스테이블코인 페어는 코인 시세가 아니므로 뺀다.
+const NON_CRYPTO_BASES = new Set(['EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'JPY', 'USDT', 'USDC', 'DAI', 'PYUSD', 'TUSD', 'USDS', 'USDG', 'RLUSD', 'EURT', 'EURQ', 'EURR', 'USDQ', 'USDR']);
+class KrakenData extends ExchangeData {
+  constructor() {
+    super('kraken', 'https://api.kraken.com/0/public', 'wss://ws.kraken.com/v2', { isGlobal: true });
+    this.wsSymbols = {};
+  }
+
+  static symbol(wsname) {
+    const [base, quote] = wsname.split('/');
+    return `${base === 'XBT' ? 'BTC' : base === 'XDG' ? 'DOGE' : base}${quote}`;
+  }
+
+  async fetchMarkets() {
+    try {
+      const [pairs, tickers] = await Promise.all([
+        fetchJson(`${this.apiUrl}/AssetPairs`),
+        fetchJson(`${this.apiUrl}/Ticker`),
+      ]);
+      this.initialList = Object.entries(pairs.result)
+        .filter(
+          ([, pair]) =>
+            pair.wsname?.endsWith('/USD') && pair.status === 'online' && !NON_CRYPTO_BASES.has(pair.wsname.split('/')[0]),
+        )
+        .map(([key, pair]) => ({ symbol: KrakenData.symbol(pair.wsname), wsname: pair.wsname, ticker: tickers.result[key] }))
+        .filter(item => Number(item.ticker?.c?.[0]) > 0);
+      // 웹소켓 v2는 XBT 대신 BTC처럼 표준 코드를 쓴다.
+      this.wsSymbols = Object.fromEntries(
+        this.initialList.map(({ symbol, wsname }) => [symbol, wsname.replace(/^XBT\//, 'BTC/').replace(/^XDG\//, 'DOGE/')]),
+      );
+      return this.initialList.map(item => item.symbol);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchInitialTickers() {
+    this.setSnapshot(
+      (this.initialList ?? []).map(({ symbol, ticker }) =>
+        globalEntry(symbol, {
+          last: ticker.c[0],
+          open: ticker.o,
+          high: ticker.h[1],
+          low: ticker.l[1],
+          quoteVolume: Number(ticker.v[1]) * Number(ticker.p[1]),
+        }),
+      ),
+    );
+    this.initialList = null;
+  }
+
+  getSubscriptions() {
+    const symbols = Object.values(this.wsSymbols);
+    const messages = [];
+    for (let i = 0; i < symbols.length; i += TICKER_CHUNK_SIZE) {
+      messages.push(
+        JSON.stringify({ method: 'subscribe', params: { channel: 'ticker', symbol: symbols.slice(i, i + TICKER_CHUNK_SIZE) } }),
+      );
+    }
+    return messages;
+  }
+
+  parseMessage(message) {
+    if (message?.channel !== 'ticker' || !Array.isArray(message.data)) return [];
+    return message.data.map(t =>
+      globalUpdate(this, KrakenData.symbol(t.symbol), {
+        last: t.last,
+        open: t.last - t.change,
+        high: t.high,
+        low: t.low,
+        quoteVolume: Number(t.volume) * Number(t.vwap ?? t.last),
+      }),
+    );
+  }
+}
+
+// CoinDCX: 인도 1위 거래소. 공개 웹소켓이 socket.io라 REST 전체 시세를 주기적으로 받는다.
+// 팝업에서 보고 있을 때만 자주(3초) 받고, 아니면 알림·포트폴리오용으로 1분마다 받는다.
+const COINDCX_ACTIVE_INTERVAL = 3000;
+const COINDCX_IDLE_INTERVAL = 60_000;
+
+class CoindcxData extends ExchangeData {
+  constructor() {
+    super('coindcx', 'https://api.coindcx.com/exchange', null, { isGlobal: true });
+    this.pollTimer = null;
+  }
+
+  static fields(t) {
+    const last = Number(t.last_price);
+    const changeRate = Number(t.change_24_hour) || 0;
+    return {
+      last,
+      open: last / (1 + changeRate / 100),
+      high: t.high,
+      low: t.low,
+      // volume은 호가 통화(INR·USDT) 기준 거래대금이다.
+      quoteVolume: t.volume,
+    };
+  }
+
+  async fetchTickers() {
+    const tickers = await fetchJson(`${this.apiUrl}/ticker`);
+    return tickers.filter(t => /(INR|USDT)$/.test(t.market) && Number(t.last_price) > 0);
+  }
+
+  async fetchMarkets() {
+    try {
+      this.initialList = await this.fetchTickers();
+      return this.initialList.map(t => t.market);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchInitialTickers() {
+    this.setSnapshot((this.initialList ?? []).map(t => globalEntry(t.market, CoindcxData.fields(t))));
+    this.initialList = null;
+  }
+
+  async poll() {
+    try {
+      const updates = (await this.fetchTickers()).map(t => globalUpdate(this, t.market, CoindcxData.fields(t)));
+      this.applyUpdates(updates);
+    } catch (error) {
+      console.warn(error);
+    }
+    clearTimeout(this.pollTimer);
+    const interval = this.isPopupActive && this.port ? COINDCX_ACTIVE_INTERVAL : COINDCX_IDLE_INTERVAL;
+    this.pollTimer = setTimeout(() => this.poll(), interval);
+  }
+
+  connectWebSocket() {
+    if (!this.pollTimer) this.pollTimer = setTimeout(() => this.poll(), COINDCX_IDLE_INTERVAL);
+  }
+
+  // 팝업에서 이 거래소를 열면 바로 빠른 주기로 바꾼다.
+  setPopupActive(active) {
+    super.setPopupActive(active);
+    if (active && this.pollTimer) this.poll();
+  }
+
+  connectPopup(port) {
+    super.connectPopup(port);
+    if (this.isPopupActive && this.pollTimer) this.poll();
+  }
+}
+
 // 9. 활성 거래소 관리
 const STORAGE_KEY = 'activeExchangePlatform';
 let activeExchange = null;
@@ -999,6 +1220,9 @@ const exchanges = {
   bybit: new BybitData(),
   okx: new OkxData(),
   coinbase: new CoinbaseData(),
+  bitget: new BitgetData(),
+  kraken: new KrakenData(),
+  coindcx: new CoindcxData(),
 };
 
 let activePort = null;
@@ -1116,8 +1340,8 @@ chrome.runtime.onConnect.addListener(port => {
     for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
       for (const [market, ticker] of Object.entries(tickers)) {
         // 거래가 적은 FDUSD·EUR 등 기타 페어가 상위 상승 종목을 차지하지 않도록 KRW·USDT 마켓만 비교한다.
-        if (!market.startsWith('KRW-') && !market.endsWith('USDT') && !(exchange === 'coinbase' && market.endsWith('USD')))
-          continue;
+        const isUsdMarket = (exchange === 'coinbase' || exchange === 'kraken') && market.endsWith('USD');
+        if (!market.startsWith('KRW-') && !market.endsWith('USDT') && !isUsdMarket) continue;
         const changeRate = ticker.changeRate ?? 0;
         if (changeRate > maxRate) {
           maxRate = changeRate;
@@ -1196,12 +1420,17 @@ function computeSpreads({ includeKrw = true, limit = 30 } = {}) {
       } else if (market.endsWith('USDT')) {
         coin = market.slice(0, -4);
         usdPrice = price;
-      } else if (exchange === 'coinbase' && market.endsWith('USD')) {
+      } else if ((exchange === 'coinbase' || exchange === 'kraken') && market.endsWith('USD')) {
         coin = market.slice(0, -3);
         usdPrice = price;
+      } else if (market.endsWith('INR')) {
+        const inrRate = polledData.find(data => data.type === 'fiatRates')?.value?.INR;
+        if (!inrRate) continue;
+        coin = market.slice(0, -3);
+        usdPrice = price / inrRate;
       }
       if (!coin || coin === 'USDT' || coin === 'USDC') continue;
-      const volumeUsd = market.startsWith('KRW-') ? (ticker.volume ?? 0) / usdRate : (ticker.volume ?? 0);
+      const volumeUsd = (ticker.volume ?? 0) * (usdPrice / price);
       if (volumeUsd < MIN_SPREAD_VOLUME_USD) continue;
       (byCoin[coin] ??= []).push({ exchange, market, price, usdPrice });
     }

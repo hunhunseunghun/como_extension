@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { FavoriteCoins } from '@/types';
 
-const EMPTY: FavoriteCoins = { upbit: [], bithumb: [], binance: [], bybit: [], okx: [], coinbase: [] };
+const EMPTY: FavoriteCoins = {
+  upbit: [],
+  bithumb: [],
+  binance: [],
+  bybit: [],
+  okx: [],
+  coinbase: [],
+  bitget: [],
+  kraken: [],
+  coindcx: [],
+};
 
 export const useFavorites = () => {
   const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>(EMPTY);

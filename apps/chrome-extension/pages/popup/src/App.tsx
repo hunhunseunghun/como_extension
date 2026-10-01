@@ -29,7 +29,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getUpbitColumns } from '@/columns/upbitColumns';
 import { getBithumbColumns } from '@/columns/bithumbColumns';
 import { getGlobalColumns } from '@/columns/globalColumns';
-import { EXCHANGES, isGlobalExchange } from '@/constants/exchanges';
+import { EXCHANGES, isGlobalExchange, MARKET_TYPES } from '@/constants/exchanges';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { Input } from '@/components/ui/input';
 import { SizeToggle } from '@/components/SizeToggle';
@@ -152,8 +152,9 @@ const App = () => {
 
   const specificMarketType = useMemo(() => {
     if (isGlobalExchange(exchangePlatform)) {
-      if (exchangePlatform === 'coinbase') return 'USD';
-      return exchangeMarketType === 'KRW' ? 'USDT' : exchangeMarketType;
+      const available = MARKET_TYPES[exchangePlatform];
+      // 거래소를 막 바꿨을 때 이전 거래소의 마켓이 남아 있으면 새 거래소 기본값을 쓴다.
+      return available.includes(exchangeMarketType) ? exchangeMarketType : available[0];
     }
     return exchangeMarketType;
   }, [exchangePlatform, exchangeMarketType]);

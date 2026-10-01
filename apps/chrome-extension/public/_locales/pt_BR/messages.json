@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "COMO: Cotação de Criptomoedas e Bitcoin ao Vivo – Alertas, Carteira"
+  },
+  "extDescription": {
+    "message": "Preços de Bitcoin e cripto ao vivo: Binance, Coinbase, Bybit, OKX, Upbit e Bithumb, com alertas de preço, carteira e gráficos."
+  },
+  "commandToggle": {
+    "message": "Abra ou feche rapidamente o popup de preços de cripto"
+  }
+}

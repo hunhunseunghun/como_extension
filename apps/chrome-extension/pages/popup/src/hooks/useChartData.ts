@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import axios from 'axios';
 import type { Time } from 'lightweight-charts';
 import { splitGlobalSymbol } from '@/constants/exchanges';
+import type { ExchangePlatform } from '@/types';
 
 export interface ChartDataPoint {
   time: Time;
@@ -11,7 +12,7 @@ export interface ChartDataPoint {
   close: number;
 }
 
-type Exchange = 'binance' | 'upbit' | 'bithumb' | 'bybit' | 'okx' | 'coinbase';
+type Exchange = ExchangePlatform;
 
 interface BinanceKline {
   0: number; // Kline open time (timestamp in milliseconds)
@@ -129,7 +130,58 @@ export const useChartData = (symbol?: string, exchange: Exchange = 'binance', ti
   return { chartData, loading, error, fetchData };
 };
 
-const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = '1d') => {
+// CoinDCX 캔들 API는 BTCINR 대신 I-BTC_INR 같은 페어 코드를 쓴다. 마켓 목록은 한 번만 받는다.
+let coindcxPairsPromise: Promise<Record<string, string>> | null = null;
+const getCoindcxPair = async (symbol: string) => {
+  coindcxPairsPromise ??= axios
+    .get<{ coindcx_name: string; pair: string }[]>('https://api.coindcx.com/exchange/v1/markets_details')
+    .then(({ data }) => Object.fromEntries(data.map(market => [market.coindcx_name, market.pair])))
+    .catch(error => {
+      coindcxPairsPromise = null;
+      throw error;
+    });
+  return (await coindcxPairsPromise)[symbol];
+};
+
+type Kline = [number, string, string, string, string];
+
+// 거래소마다 다른 캔들 응답을 바이낸스 형식 [ms, 시가, 고가, 저가, 종가]로 맞춘다.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const toKlines = (exchange: Exchange, data: any): BinanceKline[] | UpbitCandle[] | BithumbCandle[] => {
+  const asKline = (time: number, open: unknown, high: unknown, low: unknown, close: unknown): Kline => [
+    time,
+    String(open),
+    String(high),
+    String(low),
+    String(close),
+  ];
+  switch (exchange) {
+    case 'bybit':
+      return data?.result?.list;
+    case 'okx':
+    case 'bitget':
+      return data?.data;
+    case 'coinbase': // [초, 저가, 고가, 시가, 종가]
+      return (data as number[][])?.map(([time, low, high, open, close]) =>
+        asKline(time * 1000, open, high, low, close),
+      ) as unknown as BinanceKline[];
+    case 'kraken': {
+      // { result: { XXBTZUSD: [[초, 시가, 고가, 저가, 종가, ...]], last } }
+      const rows = Object.entries(data?.result ?? {}).find(([key]) => key !== 'last')?.[1] as unknown[][] | undefined;
+      return rows?.map(([time, open, high, low, close]) =>
+        asKline(Number(time) * 1000, open, high, low, close),
+      ) as unknown as BinanceKline[];
+    }
+    case 'coindcx':
+      return (data as { time: number; open: number; high: number; low: number; close: number }[])?.map(candle =>
+        asKline(candle.time, candle.open, candle.high, candle.low, candle.close),
+      ) as unknown as BinanceKline[];
+    default:
+      return data;
+  }
+};
+
+const fetchChartData = async (symbol: string, exchange: Exchange, timeframe: string = '1d') => {
   const getUpbitInterval = (tf: string) => {
     const intervals: Record<string, string> = {
       '1m': 'minutes/1',
@@ -219,6 +271,53 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
     return granularities[tf] || 86400;
   };
 
+  const getBitgetGranularity = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1min',
+      '3m': '3min',
+      '5m': '5min',
+      '15m': '15min',
+      '30m': '30min',
+      '60m': '1h',
+      '240m': '4h',
+      '1d': '1day',
+      '1w': '1week',
+      '1M': '1M',
+    };
+    return intervals[tf] || '1day';
+  };
+
+  const getKrakenInterval = (tf: string) => {
+    const intervals: Record<string, number> = {
+      '1m': 1,
+      '5m': 5,
+      '15m': 15,
+      '30m': 30,
+      '60m': 60,
+      '240m': 240,
+      '1d': 1440,
+      '1w': 10080,
+    };
+    return intervals[tf] || 1440;
+  };
+
+  const getCoindcxInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1m',
+      '5m': '5m',
+      '15m': '15m',
+      '30m': '30m',
+      '60m': '1h',
+      '240m': '4h',
+      '1d': '1d',
+      '1w': '1w',
+      '1M': '1M',
+    };
+    return intervals[tf] || '1d';
+  };
+
+  const coindcxPair = exchange === 'coindcx' ? await getCoindcxPair(symbol) : '';
+
   const configs: Record<
     Exchange,
     { url: string; params?: Record<string, string | number>; headers?: Record<string, string> }
@@ -248,6 +347,18 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
       url: `https://api.exchange.coinbase.com/products/${splitGlobalSymbol(symbol).base}-${splitGlobalSymbol(symbol).quote}/candles`,
       params: { granularity: getCoinbaseGranularity(timeframe) },
     },
+    bitget: {
+      url: 'https://api.bitget.com/api/v2/spot/market/candles',
+      params: { symbol, granularity: getBitgetGranularity(timeframe), limit: 200 },
+    },
+    kraken: {
+      url: 'https://api.kraken.com/0/public/OHLC',
+      params: { pair: symbol, interval: getKrakenInterval(timeframe) },
+    },
+    coindcx: {
+      url: 'https://public.coindcx.com/market_data/candles',
+      params: { pair: coindcxPair, interval: getCoindcxInterval(timeframe), limit: 200 },
+    },
     okx: {
       url: 'https://www.okx.com/api/v5/market/candles',
       params: {
@@ -259,23 +370,8 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
   };
 
   const config = configs[exchange];
-  // Bybit·OKX·Coinbase는 [시각, 시가, 고가, 저가, 종가, ...] 배열을 감싸서 보내므로 꺼내서 바이낸스 형식으로 맞춘다.
-  return axios.get(config.url, { params: config.params, headers: config.headers }).then(response => ({
-    data: (exchange === 'bybit'
-      ? response.data?.result?.list
-      : exchange === 'okx'
-        ? response.data?.data
-        : exchange === 'coinbase'
-          ? // [초, 저가, 고가, 시가, 종가] → 바이낸스 [ms, 시가, 고가, 저가, 종가]
-            (response.data as number[][])?.map(([time, low, high, open, close]) => [
-              time * 1000,
-              String(open),
-              String(high),
-              String(low),
-              String(close),
-            ])
-          : response.data) as BinanceKline[] | UpbitCandle[] | BithumbCandle[],
-  }));
+  const response = await axios.get(config.url, { params: config.params, headers: config.headers });
+  return { data: toKlines(exchange, response.data) };
 };
 
 const formatChartData = (

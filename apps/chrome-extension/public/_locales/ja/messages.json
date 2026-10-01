@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "COMO: 仮想通貨・ビットコイン価格をリアルタイム表示 – 価格アラート・ポートフォリオ"
+  },
+  "extDescription": {
+    "message": "Binance・Coinbase・Bybit・OKX・Upbit・Bithumbのビットコインや仮想通貨の価格をリアルタイム表示。価格アラート、ポートフォリオ、チャート機能付き。"
+  },
+  "commandToggle": {
+    "message": "仮想通貨価格のポップアップをすばやく開閉"
+  }
+}

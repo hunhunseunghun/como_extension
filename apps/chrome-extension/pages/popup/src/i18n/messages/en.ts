@@ -14,6 +14,9 @@ export const en: Record<MessageKey, string> = {
   exchange_bybit: 'Bybit',
   exchange_okx: 'OKX',
   exchange_coinbase: 'Coinbase',
+  exchange_bitget: 'Bitget',
+  exchange_kraken: 'Kraken',
+  exchange_coindcx: 'CoinDCX',
 
   name: 'Name',
   nameKR: 'KR name',

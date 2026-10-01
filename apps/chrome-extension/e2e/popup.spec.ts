@@ -36,6 +36,9 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     ['바이낸스', '바이비트'],
     ['바이비트', 'OKX'],
     ['OKX', 'Coinbase'],
+    ['Coinbase', 'Bitget'],
+    ['Bitget', 'Kraken'],
+    ['Kraken', 'CoinDCX'],
   ] as const) {
     test(`${to} 시세가 로드되고 실시간으로 갱신된다`, async ({ popup }) => {
       await switchExchange(popup, from, to);
@@ -50,13 +53,18 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
           .first(),
       ).toBeVisible();
       await popup.screenshot({ path: test.info().outputPath(`${to}.png`) });
+
+      // 첫 종목 차트가 열린다.
+      await popup.locator('tbody tr').first().locator('svg.lucide-chart-candlestick').click();
+      await expect(popup.locator('.tooltip canvas').first()).toBeVisible({ timeout: 15_000 });
+      await popup.mouse.click(5, 5);
     });
   }
 
   test('다시 열면 마지막 거래소를 유지한다', async ({ popup }) => {
     await popup.reload();
-    await expect(popup.getByRole('button', { name: 'Coinbase' }).first()).toBeVisible();
-    await switchExchange(popup, 'Coinbase', '업비트');
+    await expect(popup.getByRole('button', { name: 'CoinDCX' }).first()).toBeVisible();
+    await switchExchange(popup, 'CoinDCX', '업비트');
     await expect(rows(popup).nth(5)).toBeVisible();
   });
 

@@ -1,6 +1,6 @@
 import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { getTimeframes, Translate } from '@/i18n';
-import { BinanceTicker, FavoriteCoins, GlobalExchange } from '@/types';
+import { BinanceTicker, FavoriteCoins, GlobalExchange, MarketType } from '@/types';
 import { getGlobalTradeUrl, splitGlobalSymbol } from '@/constants/exchanges';
 import type { DisplayCurrency } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
@@ -21,7 +21,7 @@ import { ChevronDown } from 'lucide-react';
 // 바이낸스·Bybit·OKX 공통 컬럼. 백그라운드가 세 거래소 시세를 바이낸스 필드 형태로 맞춰 보낸다.
 export const getGlobalColumns = (
   exchange: GlobalExchange,
-  exchangeMarketType: 'KRW' | 'BTC' | 'USDT' | 'USD',
+  exchangeMarketType: MarketType,
   favoriteCoins: FavoriteCoins,
   setFavoriteCoins: React.Dispatch<React.SetStateAction<FavoriteCoins>>,
   favoriteFunc: boolean,
@@ -162,8 +162,12 @@ export const getGlobalColumns = (
       const bidPrice = row.original.b || '0';
       const bidAskStatus = Number(lastPrice) <= Number(bidPrice) ? 'BID' : 'ASK';
       // USDT 가격 아래에 표시 통화(USD가 아닐 때) 환산값을 보여준다.
+      // 호가 통화: USDT·USD는 달러, INR은 루피. 표시 통화와 다르면 아래에 환산값을 보여준다.
+      const quoteCurrency = exchangeMarketType === 'INR' ? 'INR' : 'USD';
       const secondaryValue =
-        displayCurrency === 'USD' ? null : convertFiat(lastPrice, 'USD', displayCurrency, { exchangeRateUSD, fiatRates });
+        exchangeMarketType === 'BTC' || displayCurrency === quoteCurrency
+          ? null
+          : convertFiat(lastPrice, quoteCurrency, displayCurrency, { exchangeRateUSD, fiatRates });
       const formattedPrice =
         lastPrice >= 1
           ? lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -176,9 +180,9 @@ export const getGlobalColumns = (
           bidAskStatus={bidAskStatus ? bidAskStatus : ''}
           className={'flex flex-col items-end font-medium'}>
           <span>
-            {exchangeMarketType !== 'BTC'
-              ? `$${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}`
-              : lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}
+            {exchangeMarketType === 'BTC'
+              ? lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })
+              : `${exchangeMarketType === 'INR' ? '₹' : '$'}${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}`}
           </span>
           {exchangeMarketType !== 'BTC' && secondaryValue !== null && (
             <span className="text-[10px] text-gray-500">
@@ -298,9 +302,9 @@ export const getGlobalColumns = (
     cell: ({ getValue }) => {
       const value = Number(getValue());
       const formatCurrencyUS = (value: number) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat(exchangeMarketType === 'INR' ? 'en-IN' : 'en-US', {
           style: 'currency',
-          currency: 'USD',
+          currency: exchangeMarketType === 'INR' ? 'INR' : 'USD',
           notation: 'compact', // K, M, B 단위로 축약
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
@@ -310,6 +314,7 @@ export const getGlobalColumns = (
       switch (exchangeMarketType) {
         case 'USDT':
         case 'USD':
+        case 'INR':
           return (
             <div className="flex flex-col items-end font-medium p-2">
               <span>{formatCurrencyUS(value)}</span>
