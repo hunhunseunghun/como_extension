@@ -8,12 +8,13 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { useChartData } from '@/hooks/useChartData';
+import type { ExchangePlatform } from '@/types';
 
 interface ChartTooltipProps {
   children: React.ReactNode;
   className: string;
   symbol?: string;
-  exchange?: 'binance' | 'upbit' | 'bithumb';
+  exchange?: ExchangePlatform;
   wideSize: boolean;
   timeframe: string;
 }

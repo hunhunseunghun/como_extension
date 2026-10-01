@@ -1,6 +1,6 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { getTimeframes, Translate } from '@/i18n';
-import { BithumbTicker } from '@/types';
+import { BithumbTicker, FavoriteCoins } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
 import { getRegExp } from 'korean-regexp';
@@ -22,8 +22,8 @@ export const getBithumbColumns = (
   setCoinNameKR: (value: boolean) => void,
   exchangeRateUSD: number,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
-  favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
-  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
+  favoriteCoins: FavoriteCoins,
+  setFavoriteCoins: React.Dispatch<React.SetStateAction<FavoriteCoins>>,
   favoriteFunc: boolean,
   wideSize: boolean,
   timeframe: string,

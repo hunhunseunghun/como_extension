@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export type Language = 'ko' | 'en';
+export type DisplayCurrency = 'KRW' | 'USD';
 export const LANGUAGES: { value: Language; label: string }[] = [
   { value: 'ko', label: '한국어' },
   { value: 'en', label: 'English' },
@@ -17,6 +18,8 @@ const ko = {
   exchange_upbit: '업비트',
   exchange_bithumb: '빗썸',
   exchange_binance: '바이낸스',
+  exchange_bybit: '바이비트',
+  exchange_okx: 'OKX',
 
   name: '이름',
   nameKR: '한글명',
@@ -58,6 +61,17 @@ const ko = {
   addAlert: '알림 추가',
   allAlerts: '전체 지정가 알림',
   noAlerts: '전체 지정가가 없습니다.',
+
+  portfolio: '보유 자산',
+  totalValue: '총 평가금액',
+  totalPnl: '총 손익',
+  portfolioIncomplete: '일부 종목은 시세·환율이 없어 합계에서 제외됐습니다.',
+  portfolioInvalid: 'KRW·USDT 마켓, 수량, 평균 매수가를 확인해주세요.',
+  quantity: '수량',
+  avgPrice: '평균가',
+  add: '추가',
+  delete: '삭제',
+  noHoldings: '등록된 보유 코인이 없습니다.',
 };
 
 export type MessageKey = keyof typeof ko;
@@ -73,6 +87,8 @@ const en: Record<MessageKey, string> = {
   exchange_upbit: 'Upbit',
   exchange_bithumb: 'Bithumb',
   exchange_binance: 'Binance',
+  exchange_bybit: 'Bybit',
+  exchange_okx: 'OKX',
 
   name: 'Name',
   nameKR: 'KR name',
@@ -114,6 +130,17 @@ const en: Record<MessageKey, string> = {
   addAlert: 'Add alert',
   allAlerts: 'All price alerts',
   noAlerts: 'No price alerts.',
+
+  portfolio: 'Portfolio',
+  totalValue: 'Total value',
+  totalPnl: 'Total P/L',
+  portfolioIncomplete: 'Some holdings are excluded from totals (no price or exchange rate).',
+  portfolioInvalid: 'Check the market (KRW or USDT), quantity and average price.',
+  quantity: 'Qty',
+  avgPrice: 'Avg price',
+  add: 'Add',
+  delete: 'Delete',
+  noHoldings: 'No holdings yet.',
 };
 
 const messages: Record<Language, Record<MessageKey, string>> = { ko, en };
@@ -125,28 +152,49 @@ export const getTimeframes = (t: Translate) =>
   TIMEFRAME_VALUES.map(value => ({ value, label: t(`tf_${value}` as MessageKey) }));
 
 export const LANGUAGE_STORAGE_KEY = 'language';
+export const CURRENCY_STORAGE_KEY = 'displayCurrency';
 
 const detectLanguage = (): Language => {
-  const ui = typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage ? chrome.i18n.getUILanguage() : navigator.language;
+  const ui =
+    typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage ? chrome.i18n.getUILanguage() : navigator.language;
   return ui?.toLowerCase().startsWith('ko') ? 'ko' : 'en';
 };
 
-type I18nContextValue = { language: Language; setLanguage: (language: Language) => void; t: Translate };
+type I18nContextValue = {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  t: Translate;
+  // 해외 거래소 가격의 보조 표시와 포트폴리오 합계에 쓰는 통화
+  currency: DisplayCurrency;
+  setCurrency: (currency: DisplayCurrency) => void;
+};
 
 const I18nContext = createContext<I18nContextValue>({
   language: 'ko',
   setLanguage: () => {},
   t: key => ko[key],
+  currency: 'KRW',
+  setCurrency: () => {},
 });
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const [language, setLanguageState] = useState<Language>(detectLanguage);
+  const [storedCurrency, setStoredCurrency] = useState<DisplayCurrency | null>(null);
+  // 통화를 직접 고르지 않았다면 언어를 따른다 (한국어: KRW, 그 외: USD).
+  const currency: DisplayCurrency = storedCurrency ?? (language === 'ko' ? 'KRW' : 'USD');
 
   useEffect(() => {
-    chrome.storage.local.get(LANGUAGE_STORAGE_KEY, result => {
+    chrome.storage.local.get([LANGUAGE_STORAGE_KEY, CURRENCY_STORAGE_KEY], result => {
       const stored = result?.[LANGUAGE_STORAGE_KEY];
       if (stored === 'ko' || stored === 'en') setLanguageState(stored);
+      const storedCur = result?.[CURRENCY_STORAGE_KEY];
+      if (storedCur === 'KRW' || storedCur === 'USD') setStoredCurrency(storedCur);
     });
+  }, []);
+
+  const setCurrency = useCallback((next: DisplayCurrency) => {
+    setStoredCurrency(next);
+    chrome.storage.local.set({ [CURRENCY_STORAGE_KEY]: next });
   }, []);
 
   const setLanguage = useCallback((next: Language) => {
@@ -155,8 +203,8 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const value = useMemo<I18nContextValue>(
-    () => ({ language, setLanguage, t: key => messages[language][key] ?? ko[key] }),
-    [language, setLanguage],
+    () => ({ language, setLanguage, t: key => messages[language][key] ?? ko[key], currency, setCurrency }),
+    [language, setLanguage, currency, setCurrency],
   );
 
   useEffect(() => {

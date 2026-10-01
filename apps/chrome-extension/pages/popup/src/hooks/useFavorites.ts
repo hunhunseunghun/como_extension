@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FavoriteCoins } from '@/types';
 
-const EMPTY: FavoriteCoins = { upbit: [], bithumb: [], binance: [] };
+const EMPTY: FavoriteCoins = { upbit: [], bithumb: [], binance: [], bybit: [], okx: [] };
 
 export const useFavorites = () => {
   const [favoriteCoins, setFavoriteCoins] = useState<FavoriteCoins>(EMPTY);
@@ -9,7 +9,8 @@ export const useFavorites = () => {
 
   useEffect(() => {
     chrome.storage.local.get('favoriteCoins', result => {
-      setFavoriteCoins(result?.favoriteCoins || EMPTY);
+      // 거래소가 추가돼도 기존 저장값에 없는 키가 비어 있지 않도록 기본값과 합친다.
+      setFavoriteCoins({ ...EMPTY, ...(result?.favoriteCoins || {}) });
       hasLoaded.current = true;
     });
   }, []);
@@ -17,11 +18,9 @@ export const useFavorites = () => {
   useEffect(() => {
     if (!hasLoaded.current) return;
     chrome.storage.local.set({
-      favoriteCoins: {
-        upbit: [...new Set(favoriteCoins.upbit)],
-        bithumb: [...new Set(favoriteCoins.bithumb)],
-        binance: [...new Set(favoriteCoins.binance)],
-      },
+      favoriteCoins: Object.fromEntries(
+        Object.entries(favoriteCoins).map(([exchange, coins]) => [exchange, [...new Set(coins)]]),
+      ),
     });
   }, [favoriteCoins]);
 

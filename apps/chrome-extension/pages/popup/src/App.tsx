@@ -28,7 +28,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getUpbitColumns } from '@/columns/upbitColumns';
 import { getBithumbColumns } from '@/columns/bithumbColumns';
-import { getBinanceColumns } from '@/columns/binanceColumns';
+import { getGlobalColumns } from '@/columns/globalColumns';
+import { EXCHANGES, isGlobalExchange } from '@/constants/exchanges';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { Input } from '@/components/ui/input';
 import { ModeToggle } from '@/components/ModeToggle';
@@ -40,6 +41,7 @@ import { FavoriteToggle } from '@/components/FavoriteToggle';
 import { PriceNotiPopover } from '@/components/PriceNotiPopover';
 import { KimchiPremiumBadge } from '@/components/KimchiPremiumBadge';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import { PortfolioPopover } from '@/components/PortfolioPopover';
 import { useI18n } from '@/i18n';
 import { Search, Loader2 } from 'lucide-react';
 import { ChartProvider } from './components/ChartToolTip';
@@ -51,7 +53,7 @@ type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 const fallbackData: TickerTypes[] = [];
 
 const App = () => {
-  const { language, t } = useI18n();
+  const { language, t, currency } = useI18n();
   const [tickers, setTickers] = useState<{ [key: string]: TickerTypes }>({});
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -115,17 +117,16 @@ const App = () => {
           (ticker): ticker is BithumbTicker =>
             'market' in ticker && ticker.market?.startsWith(`${exchangeMarketType}-`),
         );
-      case 'binance':
+      default:
+        if (!isGlobalExchange(exchangePlatform)) return fallbackData;
         return Object.values(tickers).filter(
           (ticker): ticker is BinanceTicker => 'symbol' in ticker && ticker.symbol?.endsWith(`${exchangeMarketType}`),
         );
-      default:
-        return fallbackData;
     }
   }, [tickers, exchangePlatform, exchangeMarketType]);
 
   const specificMarketType = useMemo(() => {
-    if (exchangePlatform === 'binance') {
+    if (isGlobalExchange(exchangePlatform)) {
       return exchangeMarketType === 'KRW' ? 'USDT' : exchangeMarketType;
     }
     return exchangeMarketType;
@@ -161,8 +162,9 @@ const App = () => {
           setTimeFrame,
           t,
         ) as ColumnDef<TickerTypes>[];
-      case 'binance':
-        return getBinanceColumns(
+      default:
+        return getGlobalColumns(
+          exchangePlatform,
           specificMarketType,
           favoriteCoins,
           setFavoriteCoins,
@@ -172,6 +174,8 @@ const App = () => {
           timeFrame,
           setTimeFrame,
           t,
+          currency,
+          exchangeRateUSD,
         ) as ColumnDef<TickerTypes>[];
     }
   }, [
@@ -184,6 +188,7 @@ const App = () => {
     wideSize,
     timeFrame,
     t,
+    currency,
   ]);
 
   const table = useReactTable<TickerTypes>({
@@ -239,7 +244,7 @@ const App = () => {
 
     rows.forEach(row => {
       const market =
-        exchangePlatform === 'binance'
+        isGlobalExchange(exchangePlatform)
           ? (row.original as BinanceTicker).symbol
           : (row.original as UpbitTicker | BithumbTicker).market;
       const shouldPin = favoriteCoins[exchangePlatform].includes(market);
@@ -257,18 +262,7 @@ const App = () => {
     table.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
   }, [wideSize, exchangePlatform]);
 
-  const maxChangeRateCoinhandleLogo = (exchange: string) => {
-    switch (exchange) {
-      case 'upbit':
-        return 'https://coin-images.coingecko.com/markets/images/117/large/upbit.png?1706864294';
-      case 'bithumb':
-        return 'https://coin-images.coingecko.com/markets/images/6/large/bithumb_BI.png?1706864248';
-      case 'binance':
-        return 'https://coin-images.coingecko.com/markets/images/469/large/Binance.png?1706864454';
-      default:
-        return;
-    }
-  };
+  const maxChangeRateCoinhandleLogo = (exchange: string) => EXCHANGES[exchange as ExchangePlatform]?.logo;
 
   return (
     <ChartProvider>
@@ -300,6 +294,7 @@ const App = () => {
               </section>
               <section className="flex gap-1">
                 <UpdateNoteToggle updatedVersion={updatedVersion} />
+                <PortfolioPopover exchangeRateUSD={exchangeRateUSD} />
                 <PriceNotiPopover />
                 <FavoriteToggle favoriteFunc={favoriteFunc} setFavoriteFunc={setFavoriteFunc} />
                 <LanguageToggle />
@@ -355,7 +350,7 @@ const App = () => {
                     </span>
                   </div>
                 )}
-                {wideSize && exchangePlatform !== 'binance' && (
+                {wideSize && !isGlobalExchange(exchangePlatform) && (
                   <KimchiPremiumBadge kimchiPremium={kimchiPremium} exchangePlatform={exchangePlatform} />
                 )}
               </section>

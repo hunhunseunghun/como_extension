@@ -1,5 +1,5 @@
 // 초기 설정 및 전역 변수
-const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {} };
+const allExchangesTickers = { upbit: {}, bithumb: {}, binance: {}, bybit: {}, okx: {} };
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
 const getKSTDate = () =>
@@ -296,17 +296,24 @@ class ExchangeRateManager {
 }
 
 //  ExchangeData 클래스
+// 공통: 스냅샷 보관, 실시간 갱신 병합, 지정가 알림 확인, 팝업 전달.
+// 거래소별: fetchMarkets / fetchInitialTickers / getSubscriptions / parseMessage 만 구현한다.
 const TICKER_CHUNK_SIZE = 100;
+const HEARTBEAT_INTERVAL = 20000;
+// OKX·Bybit는 종목별로 초당 수백~수천 건을 보내므로 해외 거래소 틱은 모아서 팝업에 전달한다.
+const GLOBAL_FORWARD_INTERVAL = 200;
 
 class ExchangeData {
-  constructor(name, apiUrl, wsUrl) {
+  constructor(name, apiUrl, wsUrl, { isGlobal = false } = {}) {
     this.name = name;
     this.apiUrl = apiUrl;
     this.wsUrl = wsUrl;
+    // 해외(USDT) 거래소는 팝업에서 바이낸스와 같은 필드 형태를 사용한다.
+    this.isGlobal = isGlobal;
     this.socket = null;
     this.port = null;
     this.markets = [];
-    this.marketsInfo = null;
+    this.marketsInfo = {};
     this.tickers = null;
     this.initialReconnectDelay = 2000;
     this.currentReconnectDelay = this.initialReconnectDelay;
@@ -314,8 +321,51 @@ class ExchangeData {
     this.backoffFactor = 1.5;
     this.isPopupActive = false;
     this.isReconnecting = false;
+    this.heartbeatId = null;
+    this.pendingTicks = {};
+    this.forwardTimer = null;
   }
 
+  forwardTicks(updates) {
+    if (!this.isGlobal) {
+      this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: updates[0].tick });
+      return;
+    }
+    for (const { key, tick } of updates) this.pendingTicks[key] = tick;
+    if (this.forwardTimer) return;
+    this.forwardTimer = setTimeout(() => {
+      this.forwardTimer = null;
+      const ticks = Object.values(this.pendingTicks);
+      this.pendingTicks = {};
+      if (ticks.length && this.isPopupActive && this.port) {
+        this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: ticks });
+      }
+    }, GLOBAL_FORWARD_INTERVAL);
+  }
+
+  // entries: [{ key, ticker, price, changeRate, koreanName? }]
+  setSnapshot(entries) {
+    const tickers = {};
+    const store = allExchangesTickers[this.name];
+    for (const { key, ticker, price, changeRate, koreanName = null } of entries) {
+      if (!key) continue;
+      store[key] = {
+        ...store[key],
+        exchange: this.name,
+        market: key,
+        currentPrice: price ?? 0,
+        changeRate: changeRate ?? 0,
+        koreanName,
+      };
+      tickers[key] = ticker;
+    }
+    this.tickers = tickers;
+    if (this.port && this.isPopupActive) {
+      this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
+    }
+  }
+
+  // 업비트·빗썸 공통 REST 스냅샷
   async fetchInitialTickers() {
     try {
       // 마켓 전체를 한 URL에 넣으면 빗썸이 414(URI Too Long)로 거부하므로 나눠서 요청한다.
@@ -332,27 +382,39 @@ class ExchangeData {
           return response.json();
         }),
       );
-      const tickersArray = responses.flat();
-
-      this.tickers = tickersArray.reduce((acc, ticker) => {
-        if (ticker.market) {
-          allExchangesTickers[this.name][ticker.market] = {
-            exchange: this.name,
-            market: ticker.market ?? '',
-            currentPrice: ticker.trade_price ?? 0,
-            changeRate: ticker.signed_change_rate ?? 0,
-            koreanName: this.marketsInfo[ticker.market]?.korean_name ?? null,
-          };
-          acc[ticker.market] = { ...ticker, ...this.marketsInfo[ticker.market] };
-        }
-        return acc;
-      }, {});
-      if (this.port && this.isPopupActive) {
-        this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
-      }
+      this.setSnapshot(
+        responses.flat().map(ticker => ({
+          key: ticker.market,
+          ticker: { ...ticker, ...this.marketsInfo[ticker.market] },
+          price: ticker.trade_price,
+          changeRate: (ticker.signed_change_rate ?? 0) * 100,
+          koreanName: this.marketsInfo[ticker.market]?.korean_name ?? null,
+        })),
+      );
     } catch (error) {
       console.warn(error);
     }
+  }
+
+  // 업비트·빗썸 공통 구독/파싱
+  getSubscriptions() {
+    return [JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }])];
+  }
+
+  parseMessage(message) {
+    if (!message?.code) return [];
+    return [
+      {
+        key: message.code,
+        tick: message,
+        price: Number(message.trade_price) || 0,
+        changeRate: (Number(message.signed_change_rate) || 0) * 100,
+      },
+    ];
+  }
+
+  getHeartbeatMessage() {
+    return null;
   }
 
   connectPopup(port) {
@@ -370,69 +432,53 @@ class ExchangeData {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
     if (this.socket) this.socket.close();
 
-    this.socket = new WebSocket(this.wsUrl);
+    const socket = new WebSocket(this.wsUrl);
+    this.socket = socket;
 
-    this.socket.onopen = () => {
+    socket.onopen = () => {
       this.isReconnecting = false;
       this.currentReconnectDelay = this.initialReconnectDelay;
-      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-        const subscription =
-          this.name === 'binance'
-            ? null
-            : JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }]);
-        if (subscription) this.socket.send(subscription);
+      this.getSubscriptions().forEach(subscription => socket.send(subscription));
+
+      const heartbeat = this.getHeartbeatMessage();
+      clearInterval(this.heartbeatId);
+      if (heartbeat) {
+        this.heartbeatId = setInterval(() => {
+          if (socket.readyState === WebSocket.OPEN) socket.send(heartbeat);
+        }, HEARTBEAT_INTERVAL);
       }
     };
 
-    this.socket.onmessage = async event => {
+    socket.onmessage = async event => {
       try {
         let data = event.data;
         if (data instanceof Blob) data = await data.text();
-        const ticker = JSON.parse(data);
+        if (data === 'pong') return;
 
-        if (this.name === 'binance' && Array.isArray(ticker)) {
-          ticker.forEach(binanceTicker => {
-            normalizeBinanceMiniTicker(binanceTicker, this.tickers?.[binanceTicker.s]);
-            allExchangesTickers[this.name][binanceTicker.s] = {
-              ...allExchangesTickers[this.name][binanceTicker.s],
-              exchange: this.name,
-              market: binanceTicker.s,
-              currentPrice: binanceTicker.c ? Number(binanceTicker.c) : 0,
-              changeRate: binanceTicker.P ? Number(binanceTicker.P) : 0,
-            };
-            checkPriceAlerts(this.name, binanceTicker.s, Number(binanceTicker.c));
-            this.mergeTicker(binanceTicker.s, binanceTicker);
-          });
-        }
-        if (this.name === 'upbit' || this.name === 'bithumb') {
-          allExchangesTickers[this.name][ticker.code] = {
-            ...allExchangesTickers[this.name][ticker.code],
-            exchange: this.name,
-            market: ticker.code ?? '',
-            currentPrice: ticker.trade_price ? Number(ticker.trade_price) : 0,
-            changeRate: ticker.signed_change_rate ? Number(ticker.signed_change_rate) * 100 : 0,
-          };
-          checkPriceAlerts(this.name, ticker.code, Number(ticker.trade_price));
-          this.mergeTicker(ticker.code, ticker);
+        const updates = this.parseMessage(JSON.parse(data));
+        if (!updates.length) return;
+
+        const store = allExchangesTickers[this.name];
+        for (const { key, tick, price, changeRate } of updates) {
+          store[key] = { ...store[key], exchange: this.name, market: key, currentPrice: price, changeRate };
+          checkPriceAlerts(this.name, key, price);
+          this.mergeTicker(key, tick);
         }
 
-        if (this.isPopupActive && this.port) {
-          this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: ticker });
-        }
+        if (this.isPopupActive && this.port) this.forwardTicks(updates);
       } catch (error) {
         console.warn(error);
       }
     };
 
-    this.socket.onerror = () => {
+    const handleClose = () => {
+      if (this.socket !== socket) return;
+      clearInterval(this.heartbeatId);
       this.socket = null;
       this.reconnectWebSocket();
     };
-
-    this.socket.onclose = () => {
-      this.socket = null;
-      this.reconnectWebSocket();
-    };
+    socket.onerror = handleClose;
+    socket.onclose = handleClose;
   }
 
   // 팝업을 다시 열 때 보내는 스냅샷이 최초 REST 응답에 머물지 않도록 웹소켓 갱신분을 병합한다.
@@ -478,20 +524,60 @@ class ExchangeData {
   }
 }
 
-// miniTicker에는 없는 등락률(P)·변동액(p, priceChange)·체결 방향(b)을 채워 팝업이 기존 24hrTicker 필드를 그대로 쓰게 한다.
-function normalizeBinanceMiniTicker(ticker, prev) {
-  const open = Number(ticker.o);
-  const close = Number(ticker.c);
-  const change = close - open;
+// 해외 거래소 시세를 바이낸스 24hrTicker(스냅샷)·웹소켓 필드 형태로 맞춘다.
+// 팝업은 c <= b 이면 BID(상승색)로 표시하므로 직전 가격 대비 방향으로 b를 채운다.
+function toGlobalTick(symbol, { last, open, high, low, quoteVolume }, prev) {
+  const close = Number(last);
+  const openPrice = Number(open);
+  const change = close - openPrice;
   // REST 응답과 같은 소수 8자리 문자열로 맞춰 부동소수점 오차가 표시되지 않게 한다.
-  ticker.p = ticker.priceChange = change.toFixed(8);
-  ticker.P = open ? ((change / open) * 100).toFixed(3) : '0';
+  const priceChange = change.toFixed(8);
   const prevPrice = Number(prev?.c ?? prev?.lastPrice);
-  // 팝업은 c <= b 이면 BID(상승색)로 표시한다.
-  ticker.b = Number.isFinite(prevPrice) && close >= prevPrice ? ticker.c : '0';
+  return {
+    s: symbol,
+    c: String(last),
+    o: String(open),
+    h: String(high),
+    l: String(low),
+    q: String(quoteVolume),
+    p: priceChange,
+    priceChange,
+    P: openPrice ? ((change / openPrice) * 100).toFixed(3) : '0',
+    b: Number.isFinite(prevPrice) && close >= prevPrice ? String(last) : '0',
+  };
 }
 
-//  UpbitData, BithumbData, BinanceData 클래스
+function toGlobalSnapshot(symbol, { last, open, high, low, quoteVolume }) {
+  const close = Number(last);
+  const openPrice = Number(open);
+  const change = close - openPrice;
+  return {
+    symbol,
+    market: symbol,
+    lastPrice: String(last),
+    openPrice: String(open),
+    highPrice: String(high),
+    lowPrice: String(low),
+    quoteVolume: String(quoteVolume),
+    priceChange: change.toFixed(8),
+    priceChangePercent: openPrice ? ((change / openPrice) * 100).toFixed(3) : '0',
+  };
+}
+
+const globalEntry = (symbol, fields) => {
+  const ticker = toGlobalSnapshot(symbol, fields);
+  return { key: symbol, ticker, price: Number(ticker.lastPrice), changeRate: Number(ticker.priceChangePercent) };
+};
+
+const globalUpdate = (exchange, symbol, fields) => {
+  const tick = toGlobalTick(symbol, fields, exchange.tickers?.[symbol]);
+  return { key: symbol, tick, price: Number(tick.c), changeRate: Number(tick.P) };
+};
+
+const GLOBAL_QUOTES = ['USDT', 'BTC'];
+const hasGlobalQuote = symbol => GLOBAL_QUOTES.some(quote => symbol.endsWith(quote));
+
+//  거래소별 클래스
 class UpbitData extends ExchangeData {
   constructor() {
     super('upbit', 'https://api.upbit.com/v1', 'wss://api.upbit.com/websocket/v1');
@@ -501,16 +587,15 @@ class UpbitData extends ExchangeData {
     try {
       const response = await fetch(`${this.apiUrl}/market/all?isDetails=true`);
       const tickers = await response.json();
-      this.markets = tickers.map(ticker => ticker.market);
       this.marketsInfo = tickers.reduce((acc, ticker) => {
         const caution = ticker.market_event?.caution ? Object.values(ticker.market_event.caution).some(Boolean) : false;
         acc[ticker.market] = { ...ticker, market_event: { ...ticker.market_event, caution } };
         return acc;
       }, {});
-      return this.markets;
+      return tickers.map(ticker => ticker.market);
     } catch (error) {
       console.warn(error);
-      return (this.markets = ['KRW-BTC']);
+      return ['KRW-BTC'];
     }
   }
 }
@@ -524,15 +609,11 @@ class BithumbData extends ExchangeData {
     try {
       const response = await fetch(`${this.apiUrl}/market/all?isDetails=true`);
       const data = await response.json();
-      this.markets = data.map(ticker => ticker.market);
-      this.marketsInfo = data.reduce((acc, ticker) => {
-        acc[ticker.market] = { ...ticker };
-        return acc;
-      }, {});
-      return this.markets;
+      this.marketsInfo = Object.fromEntries(data.map(ticker => [ticker.market, { ...ticker }]));
+      return data.map(ticker => ticker.market);
     } catch (error) {
       console.warn(error);
-      return (this.markets = ['KRW-BTC']);
+      return ['KRW-BTC'];
     }
   }
 }
@@ -540,49 +621,161 @@ class BithumbData extends ExchangeData {
 class BinanceData extends ExchangeData {
   constructor() {
     // !ticker@arr 스트림은 연결은 되지만 더 이상 메시지를 보내지 않아 !miniTicker@arr를 사용한다.
-    super('binance', 'https://api.binance.com/api/v3', 'wss://stream.binance.com:9443/ws/!miniTicker@arr');
+    super('binance', 'https://api.binance.com/api/v3', 'wss://stream.binance.com:9443/ws/!miniTicker@arr', {
+      isGlobal: true,
+    });
   }
 
   async fetchMarkets() {
     try {
       const response = await fetch(`${this.apiUrl}/exchangeInfo`);
       const data = await response.json();
-      this.markets = data.symbols.map(symbol => symbol.symbol);
-      this.marketsInfo = data.symbols.reduce((acc, symbol) => {
-        acc[symbol.symbol] = { ...symbol };
-        return acc;
-      }, {});
-      return this.markets;
+      this.marketsInfo = Object.fromEntries(data.symbols.map(symbol => [symbol.symbol, { ...symbol }]));
+      return data.symbols.map(symbol => symbol.symbol);
     } catch (error) {
       console.warn(error);
-      return (this.markets = ['BTCUSDT']);
+      return ['BTCUSDT'];
     }
   }
 
   async fetchInitialTickers() {
     try {
-      const response = await fetch(`${this.apiUrl}/ticker/24hr`, {
-        headers: { Accept: 'application/json' },
-      });
+      const response = await fetch(`${this.apiUrl}/ticker/24hr`, { headers: { Accept: 'application/json' } });
       const tickersArray = await response.json();
-      this.tickers = tickersArray.reduce((acc, ticker) => {
-        if (ticker.symbol && Number(ticker.lastPrice) !== 0) {
-          allExchangesTickers[this.name][ticker.symbol] = {
-            exchange: this.name,
-            market: ticker.symbol,
-            currentPrice: ticker.lastPrice ? Number(ticker.lastPrice) : 0,
-            changeRate: ticker.priceChangePercent ? Number(ticker.priceChangePercent) : 0,
-          };
-          acc[ticker.symbol] = { ...ticker, market: ticker.symbol };
-        }
-        return acc;
-      }, {});
-      if (this.port && this.isPopupActive) {
-        this.port.postMessage({ type: `${this.name}Tickers`, data: this.tickers });
-      }
+      this.setSnapshot(
+        tickersArray
+          .filter(ticker => ticker.symbol && Number(ticker.lastPrice) !== 0)
+          .map(ticker => ({
+            key: ticker.symbol,
+            ticker: { ...ticker, market: ticker.symbol },
+            price: Number(ticker.lastPrice) || 0,
+            changeRate: Number(ticker.priceChangePercent) || 0,
+          })),
+      );
     } catch (error) {
       console.warn(error);
     }
+  }
+
+  getSubscriptions() {
+    return [];
+  }
+
+  parseMessage(message) {
+    if (!Array.isArray(message)) return [];
+    return message.map(t => globalUpdate(this, t.s, { last: t.c, open: t.o, high: t.h, low: t.l, quoteVolume: t.q }));
+  }
+}
+
+class BybitData extends ExchangeData {
+  constructor() {
+    super('bybit', 'https://api.bybit.com/v5', 'wss://stream.bybit.com/v5/public/spot', { isGlobal: true });
+  }
+
+  static fields(t) {
+    return {
+      last: t.lastPrice,
+      open: t.prevPrice24h,
+      high: t.highPrice24h,
+      low: t.lowPrice24h,
+      quoteVolume: t.turnover24h,
+    };
+  }
+
+  async fetchMarkets() {
+    try {
+      const response = await fetch(`${this.apiUrl}/market/tickers?category=spot`);
+      const { result } = await response.json();
+      this.initialList = result.list.filter(t => hasGlobalQuote(t.symbol) && Number(t.lastPrice) > 0);
+      return this.initialList.map(t => t.symbol);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchInitialTickers() {
+    this.setSnapshot((this.initialList ?? []).map(t => globalEntry(t.symbol, BybitData.fields(t))));
+    this.initialList = null;
+  }
+
+  // Bybit 현물은 요청당 구독 10개 제한이 있다.
+  getSubscriptions() {
+    const messages = [];
+    for (let i = 0; i < this.markets.length; i += 10) {
+      messages.push(JSON.stringify({ op: 'subscribe', args: this.markets.slice(i, i + 10).map(s => `tickers.${s}`) }));
+    }
+    return messages;
+  }
+
+  getHeartbeatMessage() {
+    return JSON.stringify({ op: 'ping' });
+  }
+
+  parseMessage(message) {
+    const t = message?.data;
+    if (!message?.topic?.startsWith('tickers.') || !t?.symbol) return [];
+    return [globalUpdate(this, t.symbol, BybitData.fields(t))];
+  }
+}
+
+class OkxData extends ExchangeData {
+  constructor() {
+    super('okx', 'https://www.okx.com/api/v5', 'wss://ws.okx.com:8443/ws/v5/public', { isGlobal: true });
+    // 팝업·알림에서는 BTCUSDT 형태를 쓰고, OKX API에는 BTC-USDT 형태를 쓴다.
+    this.instIds = {};
+  }
+
+  static symbol(instId) {
+    return instId.replace('-', '');
+  }
+
+  static fields(t) {
+    return { last: t.last, open: t.open24h, high: t.high24h, low: t.low24h, quoteVolume: t.volCcy24h };
+  }
+
+  async fetchMarkets() {
+    try {
+      const response = await fetch(`${this.apiUrl}/market/tickers?instType=SPOT`);
+      const { data } = await response.json();
+      this.initialList = data.filter(
+        t => GLOBAL_QUOTES.some(quote => t.instId.endsWith(`-${quote}`)) && Number(t.last) > 0,
+      );
+      this.instIds = Object.fromEntries(this.initialList.map(t => [OkxData.symbol(t.instId), t.instId]));
+      return Object.keys(this.instIds);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchInitialTickers() {
+    this.setSnapshot(
+      (this.initialList ?? []).map(t => {
+        const entry = globalEntry(OkxData.symbol(t.instId), OkxData.fields(t));
+        entry.ticker.instId = t.instId;
+        return entry;
+      }),
+    );
+    this.initialList = null;
+  }
+
+  getSubscriptions() {
+    const args = this.markets.map(symbol => ({ channel: 'tickers', instId: this.instIds[symbol] }));
+    const messages = [];
+    for (let i = 0; i < args.length; i += TICKER_CHUNK_SIZE) {
+      messages.push(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + TICKER_CHUNK_SIZE) }));
+    }
+    return messages;
+  }
+
+  getHeartbeatMessage() {
+    return 'ping';
+  }
+
+  parseMessage(message) {
+    if (message?.arg?.channel !== 'tickers' || !Array.isArray(message.data)) return [];
+    return message.data.map(t => globalUpdate(this, OkxData.symbol(t.instId), OkxData.fields(t)));
   }
 }
 
@@ -597,20 +790,11 @@ async function saveActiveExchange(exchange) {
 
 async function loadActiveExchange() {
   const { [STORAGE_KEY]: state } = await chrome.storage.local.get(STORAGE_KEY);
-  return state || 'upbit';
+  return exchanges[state] ? state : 'upbit';
 }
 
 function getExchangeInstance(name) {
-  switch (name) {
-    case 'upbit':
-      return upbit;
-    case 'bithumb':
-      return bithumb;
-    case 'binance':
-      return binance;
-    default:
-      return null;
-  }
+  return exchanges[name] ?? null;
 }
 
 async function handleExchangeChange(exchange) {
@@ -630,24 +814,27 @@ async function handleExchangeChange(exchange) {
 
 // 10. 메인 실행 로직
 const exchangeRateManager = new ExchangeRateManager();
-const upbit = new UpbitData();
-const bithumb = new BithumbData();
-const binance = new BinanceData();
+const exchanges = {
+  upbit: new UpbitData(),
+  bithumb: new BithumbData(),
+  binance: new BinanceData(),
+  bybit: new BybitData(),
+  okx: new OkxData(),
+};
 
 let activePort = null;
 let maxChangeRateIntervalId = null;
 
 async function initialize() {
   activeExchange = await loadActiveExchange();
-
-  await upbit.start();
-  await bithumb.start();
-  await binance.start();
-
   const initial = getExchangeInstance(activeExchange);
   if (initial) initial.setPopupActive(true);
 
-  await exchangeRateManager.initialize();
+  // 거래소 하나가 느리거나 실패해도 나머지는 바로 시작한다.
+  await Promise.allSettled([
+    ...Object.values(exchanges).map(exchange => exchange.start()),
+    exchangeRateManager.initialize(),
+  ]);
 }
 
 chrome.runtime.onConnect.addListener(port => {
@@ -688,6 +875,8 @@ chrome.runtime.onConnect.addListener(port => {
 
     for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
       for (const [market, ticker] of Object.entries(tickers)) {
+        // 거래가 적은 FDUSD·EUR 등 기타 페어가 상위 상승 종목을 차지하지 않도록 KRW·USDT 마켓만 비교한다.
+        if (!market.startsWith('KRW-') && !market.endsWith('USDT')) continue;
         const changeRate = ticker.changeRate ?? 0;
         if (changeRate > maxRate) {
           maxRate = changeRate;

@@ -1,6 +1,8 @@
 import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { getTimeframes, Translate } from '@/i18n';
-import { BinanceTicker } from '@/types';
+import { BinanceTicker, FavoriteCoins, GlobalExchange } from '@/types';
+import { getGlobalTradeUrl, splitGlobalSymbol } from '@/constants/exchanges';
+import type { DisplayCurrency } from '@/i18n';
 import { Star, ArrowDownUp, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
@@ -15,16 +17,20 @@ import { Button } from '@/components/ui/button';
 
 import { ChevronDown } from 'lucide-react';
 
-export const getBinanceColumns = (
+// 바이낸스·Bybit·OKX 공통 컬럼. 백그라운드가 세 거래소 시세를 바이낸스 필드 형태로 맞춰 보낸다.
+export const getGlobalColumns = (
+  exchange: GlobalExchange,
   exchangeMarketType: 'KRW' | 'BTC' | 'USDT',
-  favoriteCoins: { upbit: string[]; bithumb: string[]; binance: string[] },
-  setFavoriteCoins: React.Dispatch<React.SetStateAction<{ upbit: string[]; bithumb: string[]; binance: string[] }>>,
+  favoriteCoins: FavoriteCoins,
+  setFavoriteCoins: React.Dispatch<React.SetStateAction<FavoriteCoins>>,
   favoriteFunc: boolean,
   setSorting: React.Dispatch<React.SetStateAction<SortingState>>,
   wideSize: boolean,
   timeframe: string,
   setTimeframe: (value: string) => void,
   t: Translate,
+  displayCurrency: DisplayCurrency,
+  exchangeRateUSD: number,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -43,24 +49,20 @@ export const getBinanceColumns = (
     ),
     cell: ({ row }) => {
       const symbol = row.original.symbol;
-      const removeMarket = row.original.symbol?.endsWith('BTC')
-        ? symbol.slice(0, -3)
-        : row.original.symbol?.endsWith('USDT')
-          ? symbol.slice(0, -4)
-          : row.original.symbol;
+      const removeMarket = splitGlobalSymbol(symbol).base;
 
-      const binanceTradeURL = `https://www.binance.com/en/trade/${symbol}?type=spot`;
-      const savedCoins = favoriteCoins?.binance?.join(',') || '';
+      const tradeURL = getGlobalTradeUrl(exchange, symbol);
+      const savedCoins = favoriteCoins?.[exchange]?.join(',') || '';
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
         setFavoriteCoins(prev => {
           const updated = { ...prev };
           if (savedCoins.includes(symbol)) {
-            updated.binance = updated.binance.filter(coin => coin !== symbol);
+            updated[exchange] = updated[exchange].filter(coin => coin !== symbol);
             row.pin(false); // 고정 해제
           } else {
-            updated.binance = [...updated.binance, symbol];
+            updated[exchange] = [...updated[exchange], symbol];
             row.pin('top'); // 상단 고정
           }
           return updated;
@@ -83,7 +85,7 @@ export const getBinanceColumns = (
           )}
           <div className="text-left">
             <div className="flex gap-[2px]">
-              <a href={binanceTradeURL} target="_blank" className="hover:text-gray-400">
+              <a href={tradeURL} target="_blank" className="hover:text-gray-400">
                 {removeMarket}
               </a>
             </div>
@@ -93,14 +95,9 @@ export const getBinanceColumns = (
       );
     },
     filterFn: (row, _columnId, filterValue) => {
-      const symbol = row.original.symbol.toLowerCase();
       const searchValue = filterValue.toLowerCase().trim();
       if (!filterValue) return true;
-      const removeMarket = symbol?.endsWith('BTC')
-        ? symbol.slice(0, -3)
-        : symbol?.endsWith('USDT')
-          ? symbol.slice(0, -4)
-          : symbol;
+      const removeMarket = splitGlobalSymbol(row.original.symbol).base.toLowerCase();
       const fullTextMatch = removeMarket.includes(searchValue);
       return fullTextMatch;
     },
@@ -138,7 +135,7 @@ export const getBinanceColumns = (
           <ChartToolTip
             className="flex justify-center items-center hover:text-red-500"
             symbol={row.original.symbol}
-            exchange="binance"
+            exchange={exchange}
             wideSize={wideSize}
             timeframe={timeframe}>
             <ChartCandlestick size={16} />
@@ -178,6 +175,21 @@ export const getBinanceColumns = (
               ? `$${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}`
               : lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}
           </span>
+          {exchangeMarketType === 'USDT' && displayCurrency === 'KRW' && exchangeRateUSD > 0 && (
+            <span className="text-[10px] text-gray-500">
+              {(lastPrice * exchangeRateUSD).toLocaleString(
+                'ko-KR',
+                // 1원 미만 코인은 소수 자리 대신 유효숫자로 보여 ₩0으로 뭉개지지 않게 한다.
+                lastPrice * exchangeRateUSD >= 1
+                  ? {
+                      style: 'currency',
+                      currency: 'KRW',
+                      maximumFractionDigits: lastPrice * exchangeRateUSD >= 100 ? 0 : 2,
+                    }
+                  : { style: 'currency', currency: 'KRW', maximumSignificantDigits: 3 },
+              )}
+            </span>
+          )}
         </FlashCell>
       );
     },

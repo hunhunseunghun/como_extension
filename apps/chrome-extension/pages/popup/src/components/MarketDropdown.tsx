@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { UpbitTicker, BithumbTicker, BinanceTicker } from '@/types';
+import { UpbitTicker, BithumbTicker, BinanceTicker, ExchangePlatform } from '@/types';
 import { RowPinningState } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,31 +12,14 @@ import {
 
 import { ChevronDown } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { EXCHANGES, EXCHANGE_LIST } from '@/constants/exchanges';
 
-const exchangesData = {
-  upbit: {
-    key: 'upbit',
-    labelKey: 'exchange_upbit',
-    logo: 'https://coin-images.coingecko.com/markets/images/117/large/upbit.png?1706864294',
-  },
-  bithumb: {
-    key: 'bithumb',
-    labelKey: 'exchange_bithumb',
-    logo: 'https://coin-images.coingecko.com/markets/images/6/large/bithumb_BI.png?1706864248',
-  },
-  // coinone: { key: 'coinone', label: '코인원', logo: CoinOneLogo },
-  binance: {
-    key: 'binance',
-    labelKey: 'exchange_binance',
-    logo: 'https://coin-images.coingecko.com/markets/images/469/large/Binance.png?1706864454',
-  },
-} as const;
 
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 
 interface MarketDropdownProps {
-  exchangePlatform: 'upbit' | 'bithumb' | 'binance';
-  setExchangePlatform: (platform: keyof typeof exchangesData) => void;
+  exchangePlatform: ExchangePlatform;
+  setExchangePlatform: (platform: ExchangePlatform) => void;
   setIsLoading: (loading: boolean) => void;
   setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>;
   setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
@@ -50,9 +33,8 @@ export const MarketDropdown = ({
   setTickers,
 }: MarketDropdownProps) => {
   const { t } = useI18n();
-  const exchangeList = Object.values(exchangesData);
-  const selectedPlatform = exchangesData[exchangePlatform] || exchangesData.upbit;
-  type ExchangePlatform = keyof typeof exchangesData;
+  const exchangeList = EXCHANGE_LIST;
+  const selectedPlatform = EXCHANGES[exchangePlatform] || EXCHANGES.upbit;
 
   useEffect(() => {
     chrome.runtime.sendMessage({ action: 'changeExchange', exchange: exchangePlatform });

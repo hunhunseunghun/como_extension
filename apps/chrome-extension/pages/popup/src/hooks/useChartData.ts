@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import axios from 'axios';
 import type { Time } from 'lightweight-charts';
+import { splitGlobalSymbol } from '@/constants/exchanges';
 
 export interface ChartDataPoint {
   time: Time;
@@ -10,7 +11,7 @@ export interface ChartDataPoint {
   close: number;
 }
 
-type Exchange = 'binance' | 'upbit' | 'bithumb';
+type Exchange = 'binance' | 'upbit' | 'bithumb' | 'bybit' | 'okx';
 
 interface BinanceKline {
   0: number; // Kline open time (timestamp in milliseconds)
@@ -179,6 +180,39 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
     return intervals[tf] || '24h';
   };
 
+  const getBybitInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1',
+      '3m': '3',
+      '5m': '5',
+      '15m': '15',
+      '30m': '30',
+      '60m': '60',
+      '240m': '240',
+      '1d': 'D',
+      '1w': 'W',
+      '1M': 'M',
+    };
+    return intervals[tf] || 'D';
+  };
+
+  // OKX 일·주·월봉 기본값은 UTC+8 기준이라 다른 거래소와 맞추기 위해 UTC 봉을 쓴다.
+  const getOkxInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1m',
+      '3m': '3m',
+      '5m': '5m',
+      '15m': '15m',
+      '30m': '30m',
+      '60m': '1H',
+      '240m': '4H',
+      '1d': '1Dutc',
+      '1w': '1Wutc',
+      '1M': '1Mutc',
+    };
+    return intervals[tf] || '1Dutc';
+  };
+
   const configs: Record<
     Exchange,
     { url: string; params?: Record<string, string | number>; headers?: Record<string, string> }
@@ -200,12 +234,29 @@ const fetchChartData = (symbol: string, exchange: Exchange, timeframe: string = 
       params: { market: symbol.toUpperCase(), count: 200 },
       headers: { accept: 'application/json' },
     },
+    bybit: {
+      url: 'https://api.bybit.com/v5/market/kline',
+      params: { category: 'spot', symbol, interval: getBybitInterval(timeframe), limit: 200 },
+    },
+    okx: {
+      url: 'https://www.okx.com/api/v5/market/candles',
+      params: {
+        instId: `${splitGlobalSymbol(symbol).base}-${splitGlobalSymbol(symbol).quote}`,
+        bar: getOkxInterval(timeframe),
+        limit: 200,
+      },
+    },
   };
 
   const config = configs[exchange];
-  return axios.get<
-    Exchange extends 'binance' ? BinanceKline[] : Exchange extends 'upbit' ? UpbitCandle[] : BithumbCandle[]
-  >(config.url, { params: config.params, headers: config.headers });
+  // Bybit·OKX는 [시각, 시가, 고가, 저가, 종가, ...] 배열을 감싸서 보내므로 꺼내서 바이낸스 형식으로 맞춘다.
+  return axios.get(config.url, { params: config.params, headers: config.headers }).then(response => ({
+    data: (exchange === 'bybit'
+      ? response.data?.result?.list
+      : exchange === 'okx'
+        ? response.data?.data
+        : response.data) as BinanceKline[] | UpbitCandle[] | BithumbCandle[],
+  }));
 };
 
 const formatChartData = (
@@ -218,7 +269,7 @@ const formatChartData = (
   }
 
   const formatters: Record<
-    Exchange,
+    'binance' | 'upbit' | 'bithumb',
     (item: BinanceKline | UpbitCandle | BithumbCandle) => {
       timeNum: number;
       open: number;
@@ -250,7 +301,7 @@ const formatChartData = (
     }),
   } as const;
 
-  const formatter = formatters[exchange];
+  const formatter = formatters[exchange === 'bybit' || exchange === 'okx' ? 'binance' : exchange];
   return data
     .reduce((acc: ChartDataPoint[], item: BinanceKline | UpbitCandle | BithumbCandle) => {
       const { timeNum, open, high, low, close } = formatter(item);

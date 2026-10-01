@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ChevronDown, Bell, X, HelpCircle } from 'lucide-react';
 import { getRegExp } from 'korean-regexp';
 import { useI18n } from '@/i18n';
+import { EXCHANGES } from '@/constants/exchanges';
 
 type ExchangeTicker = {
   exchange: string;
@@ -26,14 +27,7 @@ type ExchangeTicker = {
 };
 type AllExchangesTickers = ExchangeTicker[];
 
-type ExchangeData = {
-  key: string;
-  label: string;
-  logo: string;
-};
-type ExchangesData = {
-  [key: string]: ExchangeData;
-};
+type ExchangeData = (typeof EXCHANGES)[keyof typeof EXCHANGES];
 
 type PriceDeadbandPair = { price: number; deadband: number };
 
@@ -58,23 +52,7 @@ const searchTicker = (ticker: ExchangeTicker, searchValue: string): boolean => {
   return false;
 };
 
-const exchangesData: ExchangesData = {
-  upbit: {
-    key: 'upbit',
-    label: '업비트',
-    logo: 'https://coin-images.coingecko.com/markets/images/117/large/upbit.png?1706864294',
-  },
-  bithumb: {
-    key: 'bithumb',
-    label: '빗썸',
-    logo: 'https://coin-images.coingecko.com/markets/images/6/large/bithumb_BI.png?1706864248',
-  },
-  binance: {
-    key: 'binance',
-    label: '바이낸스',
-    logo: 'https://coin-images.coingecko.com/markets/images/469/large/Binance.png?1706864454',
-  },
-} as const;
+const exchangesData = EXCHANGES;
 
 export const PriceNotiPopover = () => {
   const { language, t } = useI18n();
@@ -303,7 +281,7 @@ export const PriceNotiPopover = () => {
                           <DropdownMenuItem
                             key={key}
                             className="w-7.5 px-1 py-1 justify-center items-center text-xs hover:cursor-pointer"
-                            onClick={() => setExchangePlatform(exchangesData[key])}>
+                            onClick={() => setExchangePlatform(exchangesData[key as keyof typeof exchangesData])}>
                             <img src={logo} className="size-3.5" />
                           </DropdownMenuItem>
                         ))}

@@ -9,6 +9,8 @@
     "https://api.upbit.com/*",
     "https://api.bithumb.com/*",
     "https://api.binance.com/*",
+    "https://api.bybit.com/*",
+    "https://www.okx.com/*",
     "https://www.koreaexim.go.kr/*",
     "https://m.stock.naver.com/*"
   ],
