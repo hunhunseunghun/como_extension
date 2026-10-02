@@ -33,11 +33,13 @@ Grafik candlestick dari 1 menit hingga 1 bulan untuk setiap exchange, langsung d
 Tampilan mengikuti bahasa browser Anda, dan Anda dapat mengubahnya kapan saja di pengaturan.
 
 🔒 Privasi
-COMO hanya membaca data pasar publik dari API exchange dan API harga. COMO tidak membaca halaman yang Anda kunjungi, serta pengaturan, alert, dan portofolio Anda tetap tersimpan di browser Anda. Tidak perlu akun atau login.
+Secara bawaan, COMO hanya membaca data pasar publik dari API exchange dan API harga. COMO tidak membaca halaman yang Anda kunjungi, serta pengaturan, alert, dan portofolio Anda tetap tersimpan di browser Anda. Tidak perlu akun atau login. Sinkronisasi akun opsional memakai API key baca-saja yang Anda masukkan; key hanya disimpan di browser Anda dan hanya dikirim ke exchange tersebut.
 
-Yang baru di versi 3.0.0
-• Enam exchange baru, total menjadi sembilan
-• Portofolio dengan untung/rugi live, 15 mata uang tampilan
-• Badge harga di toolbar, mode panel samping, wawasan pasar, watchlist token DEX
-• 10 bahasa dan warna naik/turun sesuai wilayah
-• Harga real-time lebih cepat dan andal (perbaikan harga usang saat dibuka kembali dan pembaruan live Binance)
+Yang baru di versi 3.1.0
+• Desain baru (tampilan lama tetap bisa dipilih di pengaturan) dan tema yang mengikuti sistem
+• Alert baru: listing baru di exchange Korea, perubahan harga 24 jam, dan ambang kimchi premium
+• Wawasan futures: funding rate tertinggi dan terendah, likuidasi dalam satu jam terakhir
+• Tren: koin trending, berita kripto, dan unlock token
+• Kartu berbagi: bagikan imbal hasil portofolio sebagai gambar, tanpa nominal
+• Sinkronisasi akun baca-saja opsional untuk mengimpor aset Anda
+• Panduan pengaturan singkat saat pertama kali dipasang

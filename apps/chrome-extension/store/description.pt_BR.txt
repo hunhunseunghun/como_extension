@@ -33,11 +33,13 @@ Gráficos de candlestick de 1 minuto a 1 mês para todas as corretoras, direto n
 A interface segue o idioma do seu navegador, e você pode trocá-lo a qualquer momento nas configurações.
 
 🔒 Privacidade
-O COMO lê apenas dados públicos de mercado das APIs das corretoras e de cotações. Ele não lê as páginas que você visita, e suas configurações, alertas e carteira ficam no seu navegador. Não é preciso criar conta nem fazer login.
+Por padrão, o COMO lê apenas dados públicos de mercado das APIs das corretoras e de cotações. Ele não lê as páginas que você visita, e suas configurações, alertas e carteira ficam no seu navegador. Não é preciso criar conta nem fazer login. A sincronização de conta opcional usa uma chave de API somente leitura que você informa; a chave fica salva apenas no seu navegador e é enviada apenas para essa corretora.
 
-Novidades da versão 3.0.0
-• Seis novas corretoras, totalizando nove
-• Carteira com lucro/prejuízo ao vivo e 15 moedas de exibição
-• Selo de cotação na barra de ferramentas, modo painel lateral, insights de mercado, lista de observação de tokens DEX
-• 10 idiomas e cores de alta/baixa conforme a região
-• Cotações em tempo real mais rápidas e confiáveis (corrigidos os preços desatualizados ao reabrir e as atualizações ao vivo da Binance)
+Novidades da versão 3.1.0
+• Visual renovado (dá para voltar ao visual anterior nas configurações) e tema que segue o sistema
+• Novos alertas: novas listagens em corretoras coreanas, variação de 24 h e limites do prêmio kimchi
+• Insights de futuros: maiores e menores taxas de financiamento, liquidações da última hora
+• Tendências: moedas em alta, notícias de cripto e desbloqueios de tokens
+• Card para compartilhar: compartilhe o retorno da carteira como imagem, sem valores
+• Sincronização de conta opcional, somente leitura, para importar seus ativos
+• Guia rápido de configuração na primeira instalação

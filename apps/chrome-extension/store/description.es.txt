@@ -33,11 +33,13 @@ Gráficos de velas de 1 minuto a 1 mes para cada exchange, directamente en la ve
 La interfaz usa el idioma de tu navegador, y puedes cambiarlo cuando quieras en la configuración.
 
 🔒 Privacidad
-COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión.
+De forma predeterminada, COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión. La sincronización de cuenta opcional usa una clave API de solo lectura que tú introduces; la clave se guarda solo en tu navegador y solo se envía a ese exchange.
 
-Novedades de la versión 3.0.0
-• Seis exchanges nuevos, para un total de nueve
-• Portafolio con ganancias/pérdidas en vivo y 15 monedas de visualización
-• Insignia de precio en la barra de herramientas, modo de panel lateral, análisis del mercado, lista de seguimiento de tokens DEX
-• 10 idiomas y colores de subida/bajada según la región
-• Precios en tiempo real más rápidos y confiables (se corrigieron los precios desactualizados al reabrir y las actualizaciones en vivo de Binance)
+Novedades de la versión 3.1.0
+• Diseño renovado (puedes volver al aspecto anterior en la configuración) y un tema que sigue al sistema
+• Nuevas alertas: nuevos listados en exchanges coreanos, variación de 24 h y umbrales de prima kimchi
+• Análisis de futuros: tasas de financiación más altas y más bajas, liquidaciones de la última hora
+• Tendencias: monedas en tendencia, noticias cripto y desbloqueos de tokens
+• Tarjeta para compartir: comparte la rentabilidad de tu portafolio como imagen, sin montos
+• Sincronización de cuenta opcional de solo lectura para importar tus activos
+• Guía rápida de configuración en la primera instalación

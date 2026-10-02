@@ -33,11 +33,13 @@ Candlestick charts from 1 minute to 1 month for every exchange, right inside the
 The interface follows your browser language, and you can switch it any time in settings.
 
 🔒 Privacy
-COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required.
+By default COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required. Optional account sync uses a read-only API key that you enter; the key is stored only in your browser and is sent only to that exchange.
 
-What's new in 3.0.0
-• Six new exchanges, for nine in total
-• Portfolio with live profit/loss, 15 display currencies
-• Toolbar price badge, side panel mode, market insights, DEX token watchlist
-• 10 languages and region-based up/down colors
-• Faster, more reliable real-time prices (fixed stale prices on reopen and Binance live updates)
+What's new in 3.1.0
+• Refreshed design (switch back to the previous look in settings) and a theme that follows your system
+• New alerts: new listings on Korean exchanges, 24h price change, and kimchi premium thresholds
+• Futures insights: top and bottom funding rates, liquidations in the last hour
+• Trends: trending coins, crypto news and token unlocks
+• Share card: share your portfolio return as an image, without amounts
+• Optional read-only account sync to import your holdings
+• Quick setup guide on first install

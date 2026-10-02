@@ -33,11 +33,13 @@ Biểu đồ nến từ 1 phút đến 1 tháng cho mọi sàn, ngay trong cửa
 Giao diện tự động theo ngôn ngữ của trình duyệt, và bạn có thể đổi ngôn ngữ bất cứ lúc nào trong phần cài đặt.
 
 🔒 Quyền riêng tư
-COMO chỉ đọc dữ liệu thị trường công khai từ API của các sàn và API giá. Tiện ích không đọc các trang bạn truy cập, còn cài đặt, cảnh báo và danh mục của bạn được lưu ngay trong trình duyệt. Không cần tài khoản hay đăng nhập.
+Theo mặc định, COMO chỉ đọc dữ liệu thị trường công khai từ API của các sàn và API giá. Tiện ích không đọc các trang bạn truy cập, còn cài đặt, cảnh báo và danh mục của bạn được lưu ngay trong trình duyệt. Không cần tài khoản hay đăng nhập. Tính năng đồng bộ tài khoản (tùy chọn) dùng khóa API chỉ đọc do bạn nhập; khóa chỉ được lưu trong trình duyệt của bạn và chỉ được gửi đến sàn đó.
 
-Có gì mới trong phiên bản 3.0.0
-• Thêm sáu sàn mới, nâng tổng số lên chín sàn
-• Danh mục đầu tư với lãi/lỗ trực tiếp, 15 loại tiền tệ hiển thị
-• Huy hiệu giá trên thanh công cụ, chế độ bảng bên, thông tin thị trường, danh sách theo dõi token DEX
-• 10 ngôn ngữ và màu tăng/giảm theo khu vực
-• Giá thời gian thực nhanh và ổn định hơn (đã sửa lỗi giá cũ khi mở lại và lỗi cập nhật trực tiếp của Binance)
+Có gì mới trong phiên bản 3.1.0
+• Thiết kế mới (có thể quay lại giao diện cũ trong cài đặt) và chủ đề theo hệ thống
+• Cảnh báo mới: niêm yết mới trên các sàn Hàn Quốc, biến động giá 24 giờ và ngưỡng kimchi premium
+• Thông tin hợp đồng tương lai: funding rate cao nhất và thấp nhất, thanh lý trong một giờ qua
+• Xu hướng: coin thịnh hành, tin tức crypto và mở khóa token
+• Thẻ chia sẻ: chia sẻ lợi nhuận danh mục dưới dạng hình ảnh, không hiện số tiền
+• Đồng bộ tài khoản chỉ đọc (tùy chọn) để nhập tài sản đang nắm giữ
+• Hướng dẫn thiết lập nhanh khi cài đặt lần đầu

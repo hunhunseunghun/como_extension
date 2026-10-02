@@ -33,11 +33,13 @@ Her borsa için 1 dakikadan 1 aya kadar mum grafikleri, doğrudan açılır penc
 Arayüz tarayıcınızın dilini kullanır ve dili istediğiniz zaman ayarlardan değiştirebilirsiniz.
 
 🔒 Gizlilik
-COMO yalnızca borsa ve fiyat API'lerinden herkese açık piyasa verilerini okur. Ziyaret ettiğiniz sayfaları okumaz; ayarlarınız, alarmlarınız ve portföyünüz tarayıcınızda kalır. Hesap veya giriş gerekmez.
+COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piyasa verilerini okur. Ziyaret ettiğiniz sayfaları okumaz; ayarlarınız, alarmlarınız ve portföyünüz tarayıcınızda kalır. Hesap veya giriş gerekmez. İsteğe bağlı hesap senkronizasyonu, girdiğiniz salt okunur API anahtarını kullanır; anahtar yalnızca tarayıcınızda saklanır ve yalnızca ilgili borsaya gönderilir.
 
-3.0.0 sürümündeki yenilikler
-• Altı yeni borsa, toplamda dokuz borsa
-• Canlı kâr/zarar ve 15 görüntüleme para birimiyle portföy
-• Araç çubuğu fiyat rozeti, yan panel modu, piyasa analizleri, DEX token izleme listesi
-• 10 dil ve bölgeye göre yükseliş/düşüş renkleri
-• Daha hızlı ve daha güvenilir anlık fiyatlar (yeniden açılışta eski fiyat sorunu ve Binance canlı güncellemeleri düzeltildi)
+3.1.0 sürümündeki yenilikler
+• Yenilenen tasarım (eski görünüme ayarlardan dönebilirsiniz) ve sistemi takip eden tema
+• Yeni alarmlar: Kore borsalarında yeni listelemeler, 24 saatlik fiyat değişimi ve kimchi primi eşikleri
+• Vadeli işlem analizleri: en yüksek ve en düşük fonlama oranları, son bir saatteki tasfiyeler
+• Trendler: trend coinler, kripto haberleri ve token kilit açılışları
+• Paylaşım kartı: portföy getirinizi tutar göstermeden görsel olarak paylaşın
+• Varlıklarınızı içe aktarmak için isteğe bağlı salt okunur hesap senkronizasyonu
+• İlk kurulumda hızlı ayar rehberi

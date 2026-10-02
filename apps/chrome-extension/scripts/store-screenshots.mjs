@@ -62,7 +62,7 @@ for (const language of languages) {
 
   const page = await context.newPage();
   await page.goto(popupUrl);
-  // 와이드 화면, 언어, 거래소(바이낸스), 데모 보유 자산·DEX 목록을 미리 넣는다.
+  // 와이드 화면, 언어, 거래소(바이낸스), 데모 보유 자산을 미리 넣는다.
   await page.evaluate(
     ([lang]) =>
       new Promise(resolve =>
@@ -72,6 +72,7 @@ for (const language of languages) {
             wideSize: true,
             upDownColors: lang === 'ko' ? 'red-up' : 'green-up',
             activeExchangePlatform: 'binance',
+            onboardingPending: false, // 첫 실행 안내가 화면을 덮지 않게 한다
             portfolio: [
               { id: '1', exchange: 'binance', market: 'BTCUSDT', quantity: 0.25, avgPrice: 62000 },
               { id: '2', exchange: 'coinbase', market: 'ETHUSD', quantity: 3, avgPrice: 2100 },
