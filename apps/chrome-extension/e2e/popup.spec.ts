@@ -10,11 +10,29 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     });
   });
 
+  test('새로 설치하면 첫 실행 안내로 관심 코인과 배지를 고른다', async ({ popup }) => {
+    const onboarding = popup.getByTestId('onboarding');
+    await expect(onboarding).toBeVisible();
+    await onboarding.getByRole('button', { name: '다음' }).click();
+    await onboarding.getByRole('button', { name: '다음' }).click();
+    await onboarding.getByRole('button', { name: '시작하기' }).click();
+    await expect(onboarding).toHaveCount(0);
+    const stored = await popup.evaluate(() => chrome.storage.local.get(['favoriteCoins', 'badgeSettings', 'onboardingPending']));
+    expect(stored.favoriteCoins.upbit).toEqual(expect.arrayContaining(['KRW-BTC', 'KRW-ETH']));
+    expect(stored.badgeSettings).toEqual({ enabled: true, exchange: 'upbit', market: 'KRW-BTC' });
+    expect(stored.onboardingPending).toBe(false);
+    // 이후 테스트가 고정 행 없이 돌도록 관심 코인을 비운다.
+    await popup.evaluate(() => chrome.storage.local.set({ favoriteCoins: {} }));
+    await popup.reload();
+    await expect(onboarding).toHaveCount(0);
+  });
+
   test('업비트 시세가 로드되고 실시간으로 갱신된다', async ({ popup }) => {
     await expect(rows(popup).nth(5)).toBeVisible();
     await expectLiveUpdates(popup);
-    const rate = await popup.locator('span:has(> span:text-is(" KRW"))').first().innerText();
-    expect(Number.parseFloat(rate)).toBeGreaterThan(0);
+    // 새 프로필에서는 환율을 받아오기 전에 팝업이 먼저 열려 잠시 0으로 보인다.
+    const rate = popup.locator('span:has(> span:text-is(" KRW"))').first();
+    await expect.poll(async () => Number.parseFloat(await rate.innerText()), { timeout: 15_000 }).toBeGreaterThan(0);
   });
 
   test('툴바 배지에 기본 종목(업비트 BTC) 가격을 표시한다', async ({ extContext }) => {
@@ -22,6 +40,26 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await expect
       .poll(() => worker.evaluate(() => chrome.action.getBadgeText({})), { timeout: 15_000 })
       .toMatch(/^\d+(\.\d)?M$/);
+  });
+
+  test('업비트 원화 마켓이 새로 생기면 신규 상장 알림을 보낸다', async ({ extContext }) => {
+    const [worker] = extContext.serviceWorkers();
+    const created = await worker.evaluate(async () => {
+      const notifications: string[] = [];
+      const original = chrome.notifications.create;
+      // 실제 알림 대신 만들어진 알림 ID를 모은다.
+      (chrome.notifications as unknown as { create: (id: string) => void }).create = id => notifications.push(id);
+      // KRW-BTC가 아직 없던 것처럼 기준 목록을 바꿔 두고 비교를 한 번 돌린다.
+      const markets: { market: string }[] = await (await fetch('https://api.upbit.com/v1/market/all')).json();
+      const known = markets.map(m => m.market).filter(m => m.startsWith('KRW-') && m !== 'KRW-BTC');
+      await chrome.storage.local.set({ listingAlerts: true, knownKrwMarkets: { upbit: known } });
+      await chrome.alarms.create('listingCheck', { when: Date.now() + 100 });
+      for (let i = 0; i < 50 && !notifications.length; i++) await new Promise(r => setTimeout(r, 200));
+      chrome.notifications.create = original;
+      await chrome.alarms.create('listingCheck', { periodInMinutes: 5 });
+      return notifications;
+    });
+    expect(created).toContain('upbit:KRW-BTC:listing');
   });
 
   test('빗썸 전체 종목이 로드된다 (414 회귀)', async ({ popup }) => {
@@ -190,6 +228,92 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await popup.reload();
     await expect(rows(popup).nth(5)).toBeVisible();
     await expect(popup.getByTestId('review-prompt')).toHaveCount(0);
+  });
+
+  test('변동률·김프 알림 규칙을 등록하고 삭제한다', async ({ popup }) => {
+    await popup.locator('button:has(svg.lucide-bell)').click();
+    const content = popup.locator('[data-radix-popper-content-wrapper]');
+    await content.getByRole('tab', { name: '변동률' }).click();
+    const change = content.getByTestId('alert-rules-change');
+    await expect(change.getByRole('button', { name: '추가' })).toBeEnabled({ timeout: 10_000 });
+    await change.getByRole('button', { name: '추가' }).click();
+    await expect(change.getByTestId('alert-rule')).toHaveCount(1);
+    await expect(change.getByTestId('alert-rule')).toContainText('KRW-BTC');
+
+    await content.getByRole('tab', { name: '김프' }).click();
+    const kimchi = content.getByTestId('alert-rules-kimchi');
+    await kimchi.getByRole('button', { name: '추가' }).click();
+    await expect(kimchi.getByTestId('alert-rule')).toHaveCount(1);
+    await expect(kimchi.getByTestId('alert-rule')).toContainText('BTC');
+
+    const rules = await popup.evaluate(() => chrome.storage.local.get('alertRules'));
+    expect(rules.alertRules.map((rule: { type: string }) => rule.type)).toEqual(['change', 'kimchi']);
+    await kimchi.getByTestId('alert-rule').getByRole('button').click();
+    await content.getByRole('tab', { name: '변동률' }).click();
+    await change.getByTestId('alert-rule').getByRole('button').click();
+    await expect(popup.evaluate(() => chrome.storage.local.get('alertRules'))).resolves.toEqual({ alertRules: [] });
+    await popup.keyboard.press('Escape');
+  });
+
+  test('변동률 규칙이 기준을 넘으면 백그라운드가 알림을 보낸다', async ({ extContext }) => {
+    const [worker] = extContext.serviceWorkers();
+    const created = await worker.evaluate(async () => {
+      const notifications: string[] = [];
+      const original = chrome.notifications.create;
+      (chrome.notifications as unknown as { create: (id: string) => void }).create = id => notifications.push(id);
+      // 0.0001%면 거의 모든 종목이 넘는다. 10초 주기 확인을 기다린다.
+      await chrome.storage.local.set({
+        alertRules: [{ id: 'e2e', type: 'change', exchange: 'upbit', market: 'KRW-BTC', threshold: 0.0001 }],
+        alertRuleState: {},
+      });
+      for (let i = 0; i < 75 && !notifications.length; i++) await new Promise(r => setTimeout(r, 200));
+      chrome.notifications.create = original;
+      await chrome.storage.local.set({ alertRules: [], alertRuleState: {} });
+      return notifications;
+    });
+    expect(created).toEqual(['upbit:KRW-BTC:rule-e2e']);
+  });
+
+  test('인사이트 선물·트렌드 탭에 펀딩비·청산·트렌딩 코인을 보여준다', async ({ popup }) => {
+    await popup.getByRole('button', { name: '시장 인사이트' }).click();
+    const content = popup.locator('[data-radix-popper-content-wrapper]');
+    await content.getByRole('tab', { name: '선물' }).click();
+    await expect(content.getByTestId('derivatives')).toContainText(/[+-]\d\.\d{4}%/, { timeout: 15_000 });
+    await content.getByRole('tab', { name: '트렌드' }).click();
+    await expect(content.getByTestId('trending').locator('button').first()).toBeVisible({ timeout: 15_000 });
+    await expect(content.getByRole('button', { name: '뉴스 보기 (사이트 접근 허용)' })).toBeVisible();
+    await popup.screenshot({ path: test.info().outputPath('insights-trends.png') });
+    await content.getByRole('tab', { name: '개요' }).click();
+    await content.getByTestId('share-card').click();
+    await expect(content.getByTestId('share-card')).toContainText(/복사됨|저장됨/);
+    await popup.keyboard.press('Escape');
+  });
+
+  test('거래소 계정 연동은 잘못된 키면 오류를 보여주고 키를 지울 수 있다', async ({ popup }) => {
+    await popup.getByRole('button', { name: '보유 자산' }).click();
+    const sync = popup.locator('[data-radix-popper-content-wrapper]').getByTestId('account-sync');
+    await sync.getByRole('button', { name: /거래소 계정 연동/ }).click();
+    await sync.getByRole('button', { name: /바이낸스/ }).click();
+    await sync.getByPlaceholder('API key').fill('invalid');
+    await sync.getByPlaceholder('Secret key').fill('invalid');
+    await sync.getByRole('button', { name: '키 저장하고 불러오기' }).click();
+    await expect(sync).toContainText('불러오지 못했어요', { timeout: 15_000 });
+    await sync.getByRole('button', { name: '키 삭제' }).click();
+    await expect(popup.evaluate(() => chrome.storage.local.get('exchangeApiKeys'))).resolves.toEqual({ exchangeApiKeys: {} });
+    await popup.keyboard.press('Escape');
+  });
+
+  test('디자인 버전을 v1·v2로 바꾸고 다시 열어도 유지된다', async ({ popup }) => {
+    await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v2');
+    await popup.getByRole('button', { name: '설정' }).click();
+    await popup.locator('[data-radix-popper-content-wrapper]').getByRole('button', { name: '클래식 (v1)' }).click();
+    await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v1');
+    await popup.reload();
+    await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v1');
+    await popup.getByRole('button', { name: '설정' }).click();
+    await popup.locator('[data-radix-popper-content-wrapper]').getByRole('button', { name: '새 디자인 (v2)' }).click();
+    await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v2');
+    await popup.keyboard.press('Escape');
   });
 
   test('영어로 전환하면 UI와 숫자 단위가 바뀌고 다시 열어도 유지된다', async ({ popup }) => {

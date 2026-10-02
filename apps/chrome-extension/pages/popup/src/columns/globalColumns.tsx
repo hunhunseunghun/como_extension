@@ -79,7 +79,7 @@ export const getGlobalColumns = (
                 className={
                   row.getIsPinned()
                     ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                    : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
                 }
                 onClick={toggleFavorite}
               />
@@ -87,11 +87,11 @@ export const getGlobalColumns = (
           )}
           <div className="text-left">
             <div className="flex gap-[2px]">
-              <a href={tradeURL} target="_blank" className="hover:text-gray-400">
+              <a href={tradeURL} target="_blank" className="hover:text-fg-faint">
                 {removeMarket}
               </a>
             </div>
-            <span className="text-[11px] text-gray-500 font-medium">{symbol}</span>
+            <span className="text-cap text-fg-subtle font-medium">{symbol}</span>
           </div>
         </div>
       );
@@ -111,7 +111,7 @@ export const getGlobalColumns = (
     header: () => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-5 w-12 text-[10px] font-semibold gap-1 hover:cursor-pointer">
+          <Button variant="outline" className="h-5 w-12 text-cap-s font-semibold gap-1 hover:cursor-pointer">
             <span>{getTimeframes(t).find(tf => tf.value === timeframe)?.label}</span>
             <ChevronDown className="size-2" />
           </Button>
@@ -122,7 +122,7 @@ export const getGlobalColumns = (
               <DropdownMenuItem
                 key={value}
                 textValue={label}
-                className="gap-1 px-1 py-1  items-left text-xs hover:cursor-pointer"
+                className="gap-1 px-1 py-1 items-left text-body-s hover:cursor-pointer"
                 onSelect={() => setTimeframe(value)}>
                 <span>{label}</span>
               </DropdownMenuItem>
@@ -153,7 +153,7 @@ export const getGlobalColumns = (
     id: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-[10px] font-bold underline-offset-2">{t('currentPrice')}</span>
+        <span className="text-cap-s font-bold underline-offset-2">{t('currentPrice')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -185,7 +185,7 @@ export const getGlobalColumns = (
               : `${exchangeMarketType === 'INR' ? '₹' : '$'}${formattedPrice.includes('e') ? lastPrice.toFixed(8) : formattedPrice}`}
           </span>
           {exchangeMarketType !== 'BTC' && secondaryValue !== null && (
-            <span className="text-[10px] text-gray-500">
+            <span className="text-cap-s text-fg-subtle">
               {formatFiat(secondaryValue, displayCurrency, t('numberLocale'))}
             </span>
           )}
@@ -214,7 +214,7 @@ export const getGlobalColumns = (
             {`${value > 0 ? '+' : ''}${value.toFixed(2)}`}%
           </span>
           {exchangeMarketType !== 'BTC' && (
-            <span className="text-[10px] text-gray-500">
+            <span className="text-cap-s text-fg-subtle">
               {formattedPriceChange.includes('e') ? priceChange.toFixed(8) : formattedPriceChange}
             </span>
           )}
@@ -246,11 +246,11 @@ export const getGlobalColumns = (
           className={`flex flex-col items-end ${value < 0 ? 'text-down' : value > 0 ? 'text-up' : 'text-black-500'} font-medium`}>
           <span>{value.toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
-            <span className="text-[10px] text-gray-500">
+            <span className="text-cap-s text-fg-subtle">
               {highestPrice > 1 ? highestPrice?.toFixed(2) : String(highestPrice).replace(/\.?0+$/, '')}
             </span>
           ) : (
-            <span className="text-[10px] text-gray-500">{Number(highestPrice)?.toFixed(8)}</span>
+            <span className="text-cap-s text-fg-subtle">{Number(highestPrice)?.toFixed(8)}</span>
           )}
         </div>
       );
@@ -279,11 +279,11 @@ export const getGlobalColumns = (
           className={`flex flex-col items-end ${value > 0 ? 'text-up' : value < 0 ? 'text-down' : 'text-black-500'} font-medium`}>
           <span>+{value.toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
-            <span className="text-[10px] text-gray-500">
+            <span className="text-cap-s text-fg-subtle">
               {lowestPrice > 1 ? lowestPrice?.toFixed(2) : String(lowestPrice).replace(/\.?0+$/, '')}
             </span>
           ) : (
-            <span className="text-[10px] text-gray-500">{lowestPrice?.toFixed(8)}</span>
+            <span className="text-cap-s text-fg-subtle">{lowestPrice?.toFixed(8)}</span>
           )}
         </div>
       );

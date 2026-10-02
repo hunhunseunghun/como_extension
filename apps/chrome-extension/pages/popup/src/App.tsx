@@ -44,6 +44,7 @@ import { PortfolioPopover } from '@/components/PortfolioPopover';
 import { InsightsPopover } from '@/components/InsightsPopover';
 import { DexWatchlistPopover } from '@/components/DexWatchlistPopover';
 import { ReviewPrompt } from '@/components/ReviewPrompt';
+import { Onboarding } from '@/components/Onboarding';
 import { useI18n } from '@/i18n';
 import { FiatRates, MarketContext, MarketStats } from '@/lib/market';
 import { Search, Loader2 } from 'lucide-react';
@@ -300,7 +301,7 @@ const App = () => {
   return (
     <MarketContext.Provider value={marketContext}>
       <ChartProvider>
-        <ThemeProvider defaultTheme="light" storageKey="como-ui-theme">
+        <ThemeProvider defaultTheme="system" storageKey="como-ui-theme">
           <div
             className={`flex-col ${isSidePanel ? 'w-screen h-screen' : wideSize ? 'w-[800px] h-[600px]' : 'w-[420px] h-[430px]'} overflow-hidden`}>
             <nav className="flex-shrink-0 p-1">
@@ -310,7 +311,7 @@ const App = () => {
                 </section>
                 <section>
                   {maxChangeRateCoin.market && !wideSize && (
-                    <div className="relative flex justify-center items-end h-6 text-[10px] font-semibold gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                    <div className="relative flex justify-center items-end h-6 text-cap-s font-semibold gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
                       <img src={fireLogo} className="h-4 w-4" />
                       <div className="flex items-center gap-0.5">
                         <span>{maxChangeRateCoin.market}</span>
@@ -321,7 +322,7 @@ const App = () => {
                         {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
                       </span>
 
-                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                         {t('topGainer')}
                       </span>
                     </div>
@@ -352,24 +353,24 @@ const App = () => {
                     setExchangeMarketType={setExchangeMarketType}
                     setRowPinning={setRowPinning}
                   />
-                  <div className="relative flex justify-center items-center h-6 w-15 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                  <div className="relative flex justify-center items-center h-6 w-15 text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
                     <span>Total</span>
                     <span className="w-[17px]">{table.getRowModel().rows.length}</span>
-                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                       {t('marketCount')}
                     </span>
                   </div>
-                  <div className="relative flex justify-center items-center h-6 w-16 text-[10px] gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
+                  <div className="relative flex justify-center items-center h-6 w-16 text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
                     <span>
                       {exchangeRateUSD}
-                      <span className="text-neutral-400"> KRW</span>
+                      <span className="text-fg-faint"> KRW</span>
                     </span>
-                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                       {t('exchangeRateSource')}
                     </span>
                   </div>
                   {maxChangeRateCoin.market && wideSize && (
-                    <div className="relative flex justify-center items-center h-6  ml-[2px] text-[10px] font-semibold gap-0.5 border-transparent border-1 rounded-md group hover:cursor-default">
+                    <div className="relative flex justify-center items-center h-6 ml-[2px] text-cap-s font-semibold gap-0.5 border-transparent border-1 rounded-md group hover:cursor-default">
                       <img src={fireLogo} className="h-4 w-4" />
                       <div className="flex items-center gap-0.5">
                         <span>{maxChangeRateCoin.market}</span>
@@ -380,7 +381,7 @@ const App = () => {
                         {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
                       </span>
 
-                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
                         {t('topGainer')}
                       </span>
                     </div>
@@ -391,12 +392,12 @@ const App = () => {
                 </section>
                 <section className="relative items-center flex">
                   <Input
-                    className="h-6 w-30 pl-4 py-2 text-[10px] text-neutral-400 placeholder:text-neutral-400 border"
+                    className="h-6 w-30 pl-4 py-2 text-cap-s text-fg-faint placeholder:text-fg-placeholder border"
                     placeholder={` ${t('searchPlaceholder')}`}
                     value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
                     onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
                   />
-                  <Search className="absolute size-[11px] left-1 top-[7px] text-neutral-500 pointer-events-none" />
+                  <Search className="absolute size-[11px] left-1 top-[7px] text-fg-subtle pointer-events-none" />
                 </section>
               </div>
             </nav>
@@ -404,9 +405,9 @@ const App = () => {
               className={`relative ${isSidePanel ? '' : wideSize ? 'h-[535px]' : 'h-[365px]'}`}
               style={isSidePanel ? { height: panelSize.height - 65 } : undefined}>
               {/* TableHeader */}
-              <div ref={headerRef} className="sticky top-0 z-50 bg-zinc-200 dark:bg-zinc-800 overflow-x-hidden">
-                <Table className="table-fixed text-xs w-full">
-                  <TableHeader className="h-7.5 text-[10px] font-extrabold">
+              <div ref={headerRef} className="sticky top-0 z-50 bg-neutral-weak overflow-x-hidden">
+                <Table className="table-fixed text-body-s w-full">
+                  <TableHeader className="h-7.5 text-cap-s font-extrabold">
                     {table.getHeaderGroups().map(headerGroup => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map(header => {
@@ -419,7 +420,7 @@ const App = () => {
                                 minWidth: adjustedWidth,
                                 maxWidth: adjustedWidth,
                               }}
-                              className="h-7.5 border-transparent text-stone-800 dark:text-gray-400 hover:cursor-pointer">
+                              className="h-7.5 border-transparent text-fg-muted hover:cursor-pointer">
                               {header.isPlaceholder
                                 ? null
                                 : flexRender(header.column.columnDef.header, header.getContext())}
@@ -437,17 +438,17 @@ const App = () => {
                 className={`overflow-y-scroll overflow-x-hidden light-scrollbar dark-scrollbar ${isSidePanel ? '' : wideSize ? 'h-[500px]' : 'h-[330px]'}`}
                 style={isSidePanel ? { height: panelSize.height - 100 } : undefined}>
                 <div style={{ height: `${virtualizer.getTotalSize()}px` }}>
-                  <Table className="table-fixed text-xs w-full">
+                  <Table className="table-fixed text-body-s w-full">
                     <TableBody>
                       {isLoading || !Object.keys(tickers).length ? (
                         <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
-                          <Loader2 className={'w-5 h-5 animate-spin text-gray-500 hover:bg-transparent'} />
+                          <Loader2 className={'w-5 h-5 animate-spin text-fg-subtle hover:bg-transparent'} />
                         </div>
                       ) : (
                         <>
                           {table.getTopRows()?.map(row => (
                             <TableRow
-                              className="border-transparent sticky bg-gray-100 dark:bg-gray-800 z-48"
+                              className="border-transparent sticky bg-layer-raised z-48"
                               key={row.id}
                               data-state={row.getIsSelected() && 'selected'}>
                               {row.getVisibleCells().map(cell => {
@@ -505,6 +506,11 @@ const App = () => {
                 </div>
               </div>
               <ReviewPrompt />
+              <Onboarding
+                exchangePlatform={exchangePlatform}
+                setExchangePlatform={setExchangePlatform}
+                setFavoriteCoins={setFavoriteCoins}
+              />
             </main>
           </div>
         </ThemeProvider>

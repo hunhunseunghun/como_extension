@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
     // <div className="relative w-full">
-    <table ref={ref} className={cn('w-full caption-bottom text-sm border-spacing-y-1', className)} {...props} />
+    <table ref={ref} className={cn('w-full caption-bottom text-title-s border-spacing-y-1', className)} {...props} />
     // </div>
   ),
 );
@@ -71,7 +71,7 @@ TableCell.displayName = 'TableCell';
 
 const TableCaption = React.forwardRef<HTMLTableCaptionElement, React.HTMLAttributes<HTMLTableCaptionElement>>(
   ({ className, ...props }, ref) => (
-    <caption ref={ref} className={cn('mt-4 text-sm text-muted-foreground', className)} {...props} />
+    <caption ref={ref} className={cn('mt-4 text-title-s text-muted-foreground', className)} {...props} />
   ),
 );
 TableCaption.displayName = 'TableCaption';

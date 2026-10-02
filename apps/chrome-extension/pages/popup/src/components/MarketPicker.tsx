@@ -39,7 +39,7 @@ export const MarketPicker = ({ exchange, onExchangeChange, market, onMarketChang
             type="button"
             title={t(labelKey)}
             aria-pressed={exchange === key}
-            className={`p-0.5 rounded hover:cursor-pointer ${exchange === key ? 'ring-1 ring-neutral-400' : 'opacity-60'}`}
+            className={`p-0.5 rounded hover:cursor-pointer ${exchange === key ? 'ring-1 ring-stroke-strong' : 'opacity-60'}`}
             onClick={() => onExchangeChange(key)}>
             <img src={logo} className="size-4" />
           </button>
@@ -47,7 +47,7 @@ export const MarketPicker = ({ exchange, onExchangeChange, market, onMarketChang
       </div>
       <Input
         list={listId}
-        className="h-6 px-1 text-[10px]"
+        className="h-6 px-1 text-cap-s"
         placeholder={isGlobalExchange(exchange) ? 'BTCUSDT' : 'KRW-BTC'}
         value={market}
         onChange={event => onMarketChange(event.target.value)}

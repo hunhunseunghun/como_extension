@@ -44,7 +44,7 @@ export function MarketTypeDropDown({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="h-6 w-15 text-[10px] font-semibold gap-1 hover:cursor-pointer">
+        <Button variant="outline" className="h-6 w-15 text-cap-s font-semibold gap-1 hover:cursor-pointer">
           <span>{exchangeMarketType}</span>
           <ChevronDown className="size-2.5" />
         </Button>
@@ -55,7 +55,7 @@ export function MarketTypeDropDown({
             <DropdownMenuItem
               key={type}
               onClick={() => dropdownSeletedHandler(type)}
-              className="gap-1 px-1 py-1 text-xs hover:cursor-pointer">
+              className="gap-1 px-1 py-1 text-body-s hover:cursor-pointer">
               {type}
             </DropdownMenuItem>
           ))}

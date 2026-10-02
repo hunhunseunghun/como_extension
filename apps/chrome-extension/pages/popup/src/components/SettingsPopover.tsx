@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Moon, PanelRight, Settings, Sun } from 'lucide-react';
+import { Monitor, Moon, PanelRight, Settings, Sun } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MarketPicker } from '@/components/MarketPicker';
 import { useAllTickers } from '@/hooks/useAllTickers';
 import { FIAT_CURRENCIES, LANGUAGES, useI18n, type DisplayCurrency, type Language } from '@/i18n';
-import { BADGE_STORAGE_KEY, BadgeSettings, defaultBadgeSettings, isSidePanelView } from '@/lib/settings';
+import {
+  BADGE_STORAGE_KEY,
+  BadgeSettings,
+  defaultBadgeSettings,
+  isListingAlertsDefault,
+  isSidePanelView,
+  LISTING_ALERTS_STORAGE_KEY,
+} from '@/lib/settings';
 
 
 const selectClass =
-  'h-6 rounded-md border bg-background px-1 text-[10px] hover:cursor-pointer dark:bg-neutral-900 dark:border-neutral-700';
+  'h-6 rounded-md border bg-background px-1 text-cap-s hover:cursor-pointer';
 
 export const CurrencySelect = () => {
   const { t, currency, setCurrency } = useI18n();
@@ -31,7 +38,7 @@ export const CurrencySelect = () => {
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div className="flex items-center justify-between gap-2 py-1">
-    <span className="text-neutral-500">{label}</span>
+    <span className="text-fg-subtle">{label}</span>
     {children}
   </div>
 );
@@ -43,11 +50,12 @@ type SettingsPopoverProps = {
 
 export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopoverProps) => {
   const { t, language, setLanguage, upDownColors, setUpDownColors } = useI18n();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, designVersion, setDesignVersion } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const prices = useAllTickers(isOpen);
   const [badge, setBadge] = useState<BadgeSettings | null>(null);
   const [badgeMarketInput, setBadgeMarketInput] = useState('');
+  const [listingAlerts, setListingAlerts] = useState<boolean | null>(null);
   const canOpenSidePanel = typeof chrome !== 'undefined' && !!chrome.sidePanel?.open && !isSidePanelView();
 
   useEffect(() => {
@@ -56,6 +64,9 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
       const value = stored ?? defaultBadgeSettings(language);
       setBadge(value);
       setBadgeMarketInput(value.market);
+    });
+    chrome.storage.local.get(LISTING_ALERTS_STORAGE_KEY, result => {
+      setListingAlerts((result?.[LISTING_ALERTS_STORAGE_KEY] as boolean | undefined) ?? null);
     });
     // 언어가 바뀌어도 이미 저장한 배지 설정은 유지한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,12 +102,12 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
             className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
             <Settings strokeWidth={2} className="size-3.5 p-0" />
           </Button>
-          <span className="absolute right-0 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+          <span className="absolute right-0 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
             {t('settings')}
           </span>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-2 text-[11px] bg-background dark:bg-background border border-neutral-200 dark:border-neutral-800">
+      <PopoverContent className="w-72 p-2 text-cap bg-background border border-stroke-weak">
         <div className="font-semibold mb-1">{t('settings')}</div>
 
         <Row label={t('language')}>
@@ -130,7 +141,7 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
                 variant={upDownColors === value ? 'default' : 'outline'}
                 aria-label={value === 'green-up' ? t('greenUp') : t('redUp')}
                 aria-pressed={upDownColors === value}
-                className="h-6 px-1.5 text-[10px] hover:cursor-pointer"
+                className="h-6 px-1.5 text-cap-s hover:cursor-pointer"
                 onClick={() => setUpDownColors(value)}>
                 <span className={upDownColors === value ? '' : upClass}>▲</span>
                 <span className={upDownColors === value ? '' : downClass}>▼</span>
@@ -145,16 +156,33 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
               [
                 ['light', Sun],
                 ['dark', Moon],
+                ['system', Monitor],
               ] as const
             ).map(([value, Icon]) => (
               <Button
                 key={value}
                 variant={theme === value ? 'default' : 'outline'}
-                aria-label={value === 'light' ? t('themeLight') : t('themeDark')}
+                aria-label={t(value === 'light' ? 'themeLight' : value === 'dark' ? 'themeDark' : 'themeSystem')}
                 aria-pressed={theme === value}
                 className="h-6 w-7 p-0 hover:cursor-pointer"
                 onClick={() => setTheme(value)}>
                 <Icon className="size-3.5" />
+              </Button>
+            ))}
+          </div>
+        </Row>
+
+        <Row label={t('designVersion')}>
+          <div className="flex gap-1">
+            {(['v1', 'v2'] as const).map(value => (
+              <Button
+                key={value}
+                variant={designVersion === value ? 'default' : 'outline'}
+                aria-label={t(value === 'v1' ? 'designV1' : 'designV2')}
+                aria-pressed={designVersion === value}
+                className="h-6 px-1.5 text-cap-s hover:cursor-pointer"
+                onClick={() => setDesignVersion(value)}>
+                {value}
               </Button>
             ))}
           </div>
@@ -167,6 +195,19 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
             className="hover:cursor-pointer"
             checked={favoriteFunc}
             onChange={event => setFavoriteFunc(event.target.checked)}
+          />
+        </Row>
+
+        <Row label={t('listingAlerts')}>
+          <input
+            type="checkbox"
+            aria-label={t('listingAlerts')}
+            className="hover:cursor-pointer"
+            checked={listingAlerts ?? isListingAlertsDefault(language)}
+            onChange={event => {
+              setListingAlerts(event.target.checked);
+              chrome.storage.local.set({ [LISTING_ALERTS_STORAGE_KEY]: event.target.checked });
+            }}
           />
         </Row>
 
@@ -197,7 +238,7 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
         {canOpenSidePanel && (
           <Button
             variant="outline"
-            className="w-full h-7 mt-2 text-[11px] gap-1 hover:cursor-pointer"
+            className="w-full h-7 mt-2 text-cap gap-1 hover:cursor-pointer"
             onClick={openSidePanel}>
             <PanelRight className="size-3.5" />
             {t('openSidePanel')}

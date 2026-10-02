@@ -51,7 +51,7 @@ export const MarketDropdown = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="h-6 w-20 text-[10px] font-semibold gap-1 hover:cursor-pointer">
+        <Button variant="outline" className="h-6 w-20 text-cap-s font-semibold gap-1 hover:cursor-pointer">
           <img src={selectedPlatform.logo} className="size-3" />
           <span>{t(selectedPlatform.labelKey)}</span>
           <ChevronDown className="size-2.5" />
@@ -62,7 +62,7 @@ export const MarketDropdown = ({
           {exchangeList.map(({ key, labelKey, logo }) => (
             <DropdownMenuItem
               key={key}
-              className="gap-1 px-1 py-1 items-left text-xs hover:cursor-pointer"
+              className="gap-1 px-1 py-1 items-left text-body-s hover:cursor-pointer"
               onClick={() => dropdownSeletedHandler(key)}>
               <img src={logo} className="size-4" />
               <span>{t(labelKey)}</span>

@@ -9,7 +9,8 @@ const DAY = 24 * 60 * 60 * 1000;
 // 스토어마다 리뷰 페이지 주소가 다르다. 주소를 모르는 브라우저에서는 묻지 않는다.
 const getReviewUrl = () => {
   const userAgent = navigator.userAgent;
-  if (userAgent.includes('Whale')) return null;
+  if (userAgent.includes('Whale')) return 'https://store.whale.naver.com/detail/gbjlmpnhijdgcobpfpgeiepdfegdhkgl';
+  // Edge Add-ons에는 아직 등록하지 않았다.
   if (userAgent.includes('Edg/')) return null;
   return 'https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok/reviews';
 };
@@ -48,12 +49,12 @@ export const ReviewPrompt = () => {
 
   return (
     <div
-      className="absolute bottom-2 left-2 right-2 z-[60] flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-[11px] shadow-lg"
+      className="absolute bottom-2 left-2 right-2 z-[60] flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-cap shadow-lg"
       data-testid="review-prompt">
       <Star className="size-4 shrink-0 text-yellow-400 fill-yellow-400" />
       <span className="flex-1">{t('reviewAsk')}</span>
       <Button
-        className="h-6 px-2 text-[10px] hover:cursor-pointer"
+        className="h-6 px-2 text-cap-s hover:cursor-pointer"
         onClick={() => {
           chrome.tabs.create({ url: reviewUrl });
           update({ reviewed: true });

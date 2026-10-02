@@ -17,6 +17,9 @@ import { ChevronDown, Bell, X, HelpCircle } from 'lucide-react';
 import { getRegExp } from 'korean-regexp';
 import { useI18n } from '@/i18n';
 import { EXCHANGES } from '@/constants/exchanges';
+import { AlertRulesPanel } from '@/components/AlertRulesPanel';
+
+type AlertTab = 'price' | 'change' | 'kimchi';
 
 type ExchangeTicker = {
   exchange: string;
@@ -68,6 +71,7 @@ export const PriceNotiPopover = () => {
     [exchange: string]: { [ticker: string]: PriceDeadbandPair[] };
   }>({});
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [tab, setTab] = useState<AlertTab>('price');
 
   // 전체 티커는 메시지 응답으로 받는다. 별도 'popup' 포트를 열면 App의 포트를 백그라운드에서 덮어쓴다.
   useEffect(() => {
@@ -127,7 +131,7 @@ export const PriceNotiPopover = () => {
       const uniqueValue = `${ticker.exchange}:${ticker.market}`;
       return (
         <CommandItem
-          className="text-[10px] hover:bg-muted"
+          className="text-cap-s hover:bg-muted"
           key={uniqueValue}
           value={uniqueValue}
           onMouseDown={e => {
@@ -246,208 +250,233 @@ export const PriceNotiPopover = () => {
             <Button variant="outline" size="icon" className="relatvie w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
               <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
             </Button>
-            <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+            <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
               {t('alertTitle')}
             </span>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-70 p-2 bg-background dark:bg-background border border-neutral-200 dark:border-neutral-800 shadow-[0_10px_38px_-10px_rgba(22,_23,_24,_0.35),_0_10px_20px_-15px_rgba(22,_23,_24,_0.2)] dark:shadow-[0_10px_38px_-10px_rgba(0,_0,_0,_0.35),_0_10px_20px_-15px_rgba(0,_0,_0,_0.2)]">
-          <div>
-            <Command shouldFilter={false} className="w-full bg-background dark:bg-background">
-              <div className="relative">
-                <section className="flex w-full border rounded-md gap-1">
-                  <CommandInput
-                    className="w-full h-6 p-0 gap-1 text-[11px] border-none text-neutral-400 pl-4 focus-visible:ring-0"
-                    placeholder={t('searchPlaceholder')}
-                    value={searchValue}
-                    onValueChange={value => {
-                      setSearchValue(value);
-                      setIsCommandOpen(true);
-                    }}
-                    onClick={() => setIsCommandOpen(!isCommandOpen)}
-                  />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-6 w-10 text-[11px] font-semibold gap-1 border-transparent hover:cursor-pointer">
-                        <img src={exchangePlatform.logo} className="size-3" />
-                        <ChevronDown className="size-2.5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="relative left-0 p-1 data-[side=bottom]:slide-in-from-top-2">
-                      <DropdownMenuGroup>
-                        {Object.values(exchangesData).map(({ key, logo }) => (
-                          <DropdownMenuItem
-                            key={key}
-                            className="w-7.5 px-1 py-1 justify-center items-center text-xs hover:cursor-pointer"
-                            onClick={() => setExchangePlatform(exchangesData[key as keyof typeof exchangesData])}>
-                            <img src={logo} className="size-3.5" />
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </section>
-                {isCommandOpen && (
-                  <CommandList className="absolute top-6.5 left-0 w-full max-h-70 overflow-y-auto bg-background z-50 light-scrollbar dark-scrollbar text-[10px]">
-                    {isLoading ? (
-                      <CommandEmpty>Loading...</CommandEmpty>
-                    ) : filteredTickers.length === 0 ? (
-                      <CommandEmpty>No results</CommandEmpty>
-                    ) : (
-                      <CommandGroup className="text-[10px] font-semibold">
-                        {filteredTickers.map(ticker => renderTickerItem(ticker))}
-                      </CommandGroup>
-                    )}
-                  </CommandList>
-                )}
-              </div>
-              <section className="flex flex-col p-2 gap-1">
-                <div className="flex items-center h-7.5 text-[13px] bg-background gap-1 p-1">
-                  {selectedTicker?.market && (
-                    <div className="flex items-center font-semibold gap-1">
-                      <img
-                        src={exchangesData[selectedTicker.exchange as keyof typeof exchangesData]?.logo}
-                        alt={`${selectedTicker.exchange} logo`}
-                        className="size-3.5"
-                      />
-                      {language === 'ko' && selectedTicker.koreanName
-                        ? `${selectedTicker.koreanName} (${selectedTicker.market})`
-                        : selectedTicker.market}
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative flex text-[12px] bg-muted border-none p-1">
-                  <Label className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px]">{t('targetPrice')}</Label>
-                  <Input
-                    type="text"
-                    value={targetPrice.toLocaleString('en-US')}
-                    onChange={e => {
-                      const value = e.target.value.replace(/,/g, '');
-                      setTargetPrice(Number(value) || 0);
-                    }}
-                    className="w-full h-6 text-right font-semibold focus:outline-none appearance-none border-none bg-transparent"
-                  />
-                </div>
-
-                <div className="relative flex text-[12px] bg-muted border-none p-1">
-                  <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Label className="text-[10px]">{t('deadband')}</Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="size-3 text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200" />
-                        </TooltipTrigger>
-                        <TooltipContent className="w-[180px]">
-                          <div>{t('deadbandHelp1')}</div>
-                          <div>{t('deadbandHelp2')}</div>
-                          <div>{t('deadbandHelp3')}</div>
-                          <div>{t('deadbandHelp4')}</div>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="flex items-center w-full">
-                    <Input
-                      type="number"
-                      value={deadBand}
-                      onChange={e => {
-                        const value = Math.min(100, Math.max(0, Number(e.target.value) || 0));
-                        setDeadBand(value);
-                      }}
-                      className="w-full h-6 text-right pr-5 font-semibold focus:outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      min={0}
-                      max={100}
-                      step={1}
-                    />
-                    <span className="absolute right-7 text-[11px] text-neutral-500">%</span>
-                    <div className="flex flex-col h-6">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-3 w-6 p-0 hover:bg-transparent"
-                        onClick={() => setDeadBand(prev => Math.min(100, prev + 1))}>
-                        <ChevronDown className="h-2.5 w-2.5 rotate-180" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-3 w-6 p-0 hover:bg-transparent"
-                        onClick={() => setDeadBand(prev => Math.max(0, prev - 1))}>
-                        <ChevronDown className="h-2.5 w-2.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {errorMessage && <div className="text-[10px] text-red-500 mt-1">{errorMessage}</div>}
-
-                <Button
-                  variant="outline"
-                  onClick={handleSetPriceAlert}
-                  className="mt-2 h-7 text-[11px] hover:cursor-pointer">
-                  {t('addAlert')}
-                </Button>
-              </section>
-            </Command>
+        <PopoverContent className="w-70 p-2 bg-background border border-stroke-weak shadow-[0_10px_38px_-10px_rgba(22,_23,_24,_0.35),_0_10px_20px_-15px_rgba(22,_23,_24,_0.2)] dark:shadow-[0_10px_38px_-10px_rgba(0,_0,_0,_0.35),_0_10px_20px_-15px_rgba(0,_0,_0,_0.2)]">
+          <div className="flex gap-1 mb-2" role="tablist">
+            {(
+              [
+                ['price', 'alertTabPrice'],
+                ['change', 'alertTabChange'],
+                ['kimchi', 'alertTabKimchi'],
+              ] as const
+            ).map(([value, label]) => (
+              <Button
+                key={value}
+                role="tab"
+                aria-selected={tab === value}
+                variant={tab === value ? 'default' : 'outline'}
+                className="h-6 flex-1 px-1 text-cap-s hover:cursor-pointer"
+                onClick={() => setTab(value)}>
+                {t(label)}
+              </Button>
+            ))}
           </div>
-          <section>
-            <div className="font-semibold mt-1">{t('allAlerts')}</div>
-            <div className="h-[200px] overflow-y-auto light-scrollbar dark-scrollbar">
-              {Object.keys(allPriceAlerts).length > 0 ? (
-                <Accordion type="single" collapsible className="w-full text-[11px] mt-1">
-                  {Object.entries(allPriceAlerts).map(([exchange, tickers]) =>
-                    tickers && typeof tickers === 'object'
-                      ? Object.entries(tickers).map(([ticker, pairs]) =>
-                          Array.isArray(pairs) && pairs.length > 0 ? (
-                            <AccordionItem
-                              key={`${exchange}-${ticker}`}
-                              value={`${exchange}-${ticker}`}
-                              className="border-none">
-                              <AccordionTrigger className="text-[11px] py-1.5 hover:no-underline">
-                                <div className="flex items-center gap-1">
-                                  <img
-                                    src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
-                                    alt={`${exchange} logo`}
-                                    className="size-3"
-                                  />
-                                  <span>{ticker}</span>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="text-[11px]">
-                                <ul className="ml-4">
-                                  {pairs.map((pair, index) =>
-                                    pair && typeof pair === 'object' && pair.price !== undefined ? (
-                                      <li key={index} className="flex items-center justify-between py-0.5">
-                                        <span>
-                                          {pair.price.toLocaleString('en-US')} ({t('deadband')}:{' '}
-                                          {(pair.deadband * 100).toFixed(2)}%)
-                                        </span>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-4 w-4 p-0 hover:bg-transparent"
-                                          onClick={() => handleDeletePriceAlert(exchange, ticker, pair.price)}>
-                                          <X className="h-3 w-3" />
-                                        </Button>
-                                      </li>
-                                    ) : null,
-                                  )}
-                                </ul>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ) : null,
-                        )
-                      : null,
+          {tab !== 'price' ? (
+            <AlertRulesPanel kind={tab} />
+          ) : (
+            <>
+              <div>
+                <Command shouldFilter={false} className="w-full bg-background">
+                  <div className="relative">
+                    <section className="flex w-full border rounded-md gap-1">
+                      <CommandInput
+                        className="w-full h-6 p-0 gap-1 text-cap border-none text-fg-faint pl-4 focus-visible:ring-0"
+                        placeholder={t('searchPlaceholder')}
+                        value={searchValue}
+                        onValueChange={value => {
+                          setSearchValue(value);
+                          setIsCommandOpen(true);
+                        }}
+                        onClick={() => setIsCommandOpen(!isCommandOpen)}
+                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="h-6 w-10 text-cap font-semibold gap-1 border-transparent hover:cursor-pointer">
+                            <img src={exchangePlatform.logo} className="size-3" />
+                            <ChevronDown className="size-2.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="relative left-0 p-1 data-[side=bottom]:slide-in-from-top-2">
+                          <DropdownMenuGroup>
+                            {Object.values(exchangesData).map(({ key, logo }) => (
+                              <DropdownMenuItem
+                                key={key}
+                                className="w-7.5 px-1 py-1 justify-center items-center text-body-s hover:cursor-pointer"
+                                onClick={() => setExchangePlatform(exchangesData[key as keyof typeof exchangesData])}>
+                                <img src={logo} className="size-3.5" />
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </section>
+                    {isCommandOpen && (
+                      <CommandList className="absolute top-6.5 left-0 w-full max-h-70 overflow-y-auto bg-background z-50 light-scrollbar dark-scrollbar text-cap-s">
+                        {isLoading ? (
+                          <CommandEmpty>Loading...</CommandEmpty>
+                        ) : filteredTickers.length === 0 ? (
+                          <CommandEmpty>No results</CommandEmpty>
+                        ) : (
+                          <CommandGroup className="text-cap-s font-semibold">
+                            {filteredTickers.map(ticker => renderTickerItem(ticker))}
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    )}
+                  </div>
+                  <section className="flex flex-col p-2 gap-1">
+                    <div className="flex items-center h-7.5 text-body bg-background gap-1 p-1">
+                      {selectedTicker?.market && (
+                        <div className="flex items-center font-semibold gap-1">
+                          <img
+                            src={exchangesData[selectedTicker.exchange as keyof typeof exchangesData]?.logo}
+                            alt={`${selectedTicker.exchange} logo`}
+                            className="size-3.5"
+                          />
+                          {language === 'ko' && selectedTicker.koreanName
+                            ? `${selectedTicker.koreanName} (${selectedTicker.market})`
+                            : selectedTicker.market}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="relative flex text-body-s bg-muted border-none p-1">
+                      <Label className="absolute left-2 top-1/2 -translate-y-1/2 text-cap-s">{t('targetPrice')}</Label>
+                      <Input
+                        type="text"
+                        value={targetPrice.toLocaleString('en-US')}
+                        onChange={e => {
+                          const value = e.target.value.replace(/,/g, '');
+                          setTargetPrice(Number(value) || 0);
+                        }}
+                        className="w-full h-6 text-right font-semibold focus:outline-none appearance-none border-none bg-transparent"
+                      />
+                    </div>
+
+                    <div className="relative flex text-body-s bg-muted border-none p-1">
+                      <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                        <Label className="text-cap-s">{t('deadband')}</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="size-3 text-fg-subtle hover:text-fg-muted" />
+                            </TooltipTrigger>
+                            <TooltipContent className="w-[180px]">
+                              <div>{t('deadbandHelp1')}</div>
+                              <div>{t('deadbandHelp2')}</div>
+                              <div>{t('deadbandHelp3')}</div>
+                              <div>{t('deadbandHelp4')}</div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <div className="flex items-center w-full">
+                        <Input
+                          type="number"
+                          value={deadBand}
+                          onChange={e => {
+                            const value = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                            setDeadBand(value);
+                          }}
+                          className="w-full h-6 text-right pr-5 font-semibold focus:outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          min={0}
+                          max={100}
+                          step={1}
+                        />
+                        <span className="absolute right-7 text-cap text-fg-subtle">%</span>
+                        <div className="flex flex-col h-6">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-3 w-6 p-0 hover:bg-transparent"
+                            onClick={() => setDeadBand(prev => Math.min(100, prev + 1))}>
+                            <ChevronDown className="h-2.5 w-2.5 rotate-180" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-3 w-6 p-0 hover:bg-transparent"
+                            onClick={() => setDeadBand(prev => Math.max(0, prev - 1))}>
+                            <ChevronDown className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {errorMessage && <div className="text-cap-s text-red-500 mt-1">{errorMessage}</div>}
+
+                    <Button
+                      variant="outline"
+                      onClick={handleSetPriceAlert}
+                      className="mt-2 h-7 text-cap hover:cursor-pointer">
+                      {t('addAlert')}
+                    </Button>
+                  </section>
+                </Command>
+              </div>
+              <section>
+                <div className="font-semibold mt-1">{t('allAlerts')}</div>
+                <div className="h-[200px] overflow-y-auto light-scrollbar dark-scrollbar">
+                  {Object.keys(allPriceAlerts).length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full text-cap mt-1">
+                      {Object.entries(allPriceAlerts).map(([exchange, tickers]) =>
+                        tickers && typeof tickers === 'object'
+                          ? Object.entries(tickers).map(([ticker, pairs]) =>
+                              Array.isArray(pairs) && pairs.length > 0 ? (
+                                <AccordionItem
+                                  key={`${exchange}-${ticker}`}
+                                  value={`${exchange}-${ticker}`}
+                                  className="border-none">
+                                  <AccordionTrigger className="text-cap py-1.5 hover:no-underline">
+                                    <div className="flex items-center gap-1">
+                                      <img
+                                        src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
+                                        alt={`${exchange} logo`}
+                                        className="size-3"
+                                      />
+                                      <span>{ticker}</span>
+                                    </div>
+                                  </AccordionTrigger>
+                                  <AccordionContent className="text-cap">
+                                    <ul className="ml-4">
+                                      {pairs.map((pair, index) =>
+                                        pair && typeof pair === 'object' && pair.price !== undefined ? (
+                                          <li key={index} className="flex items-center justify-between py-0.5">
+                                            <span>
+                                              {pair.price.toLocaleString('en-US')} ({t('deadband')}:{' '}
+                                              {(pair.deadband * 100).toFixed(2)}%)
+                                            </span>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-4 w-4 p-0 hover:bg-transparent"
+                                              onClick={() => handleDeletePriceAlert(exchange, ticker, pair.price)}>
+                                              <X className="h-3 w-3" />
+                                            </Button>
+                                          </li>
+                                        ) : null,
+                                      )}
+                                    </ul>
+                                  </AccordionContent>
+                                </AccordionItem>
+                              ) : null,
+                            )
+                          : null,
+                      )}
+                    </Accordion>
+                  ) : (
+                    <div className="text-cap mt-1">{t('noAlerts')}</div>
                   )}
-                </Accordion>
-              ) : (
-                <div className="text-[11px] mt-1">{t('noAlerts')}</div>
-              )}
-            </div>
-          </section>
+                </div>
+              </section>
+            </>
+          )}
         </PopoverContent>
       </Popover>
     </div>

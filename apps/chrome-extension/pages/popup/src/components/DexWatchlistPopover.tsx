@@ -61,20 +61,20 @@ const PairRow = ({ pair, action }: { pair: DexPair; action: React.ReactNode }) =
       {pair.info?.imageUrl ? (
         <img src={pair.info.imageUrl} className="size-4 rounded-full" />
       ) : (
-        <span className="size-4 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+        <span className="size-4 rounded-full bg-neutral-weak-pressed" />
       )}
-      <a href={pair.url} target="_blank" className="flex-1 min-w-0 hover:text-gray-400">
+      <a href={pair.url} target="_blank" className="flex-1 min-w-0 hover:text-fg-faint">
         <div className="font-semibold truncate">
           {pair.baseToken.symbol}
-          <span className="font-normal text-neutral-400">/{pair.quoteToken.symbol}</span>
+          <span className="font-normal text-fg-faint">/{pair.quoteToken.symbol}</span>
         </div>
-        <div className="text-[9px] text-neutral-400 truncate">
+        <div className="text-cap-xs text-fg-faint truncate">
           {pair.chainId} · {pair.dexId} · {t('liquidity')} {compactUsd(pair.liquidity?.usd, locale)}
         </div>
       </a>
       <div className="text-right">
         <div>{pair.priceUsd ? formatFiat(Number(pair.priceUsd), 'USD', locale) : '-'}</div>
-        <div className={`text-[10px] ${change == null ? '' : change >= 0 ? 'text-up' : 'text-down'}`}>
+        <div className={`text-cap-s ${change == null ? '' : change >= 0 ? 'text-up' : 'text-down'}`}>
           {change == null ? '-' : `${change > 0 ? '+' : ''}${change.toFixed(2)}%`}
         </div>
       </div>
@@ -157,12 +157,12 @@ export const DexWatchlistPopover = () => {
             className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
             <Sprout strokeWidth={2} className="size-3.5 p-0" />
           </Button>
-          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
             {t('dexWatchlist')}
           </span>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-2 text-[11px] bg-background dark:bg-background border border-neutral-200 dark:border-neutral-800">
+      <PopoverContent className="w-80 p-2 text-cap bg-background border border-stroke-weak">
         <div className="font-semibold mb-1">{t('dexWatchlist')}</div>
         <form
           className="flex gap-1 mb-1"
@@ -171,7 +171,7 @@ export const DexWatchlistPopover = () => {
             search();
           }}>
           <Input
-            className="h-6 px-1 text-[10px]"
+            className="h-6 px-1 text-cap-s"
             placeholder={t('dexSearchPlaceholder')}
             value={query}
             onChange={event => setQuery(event.target.value)}
@@ -181,7 +181,7 @@ export const DexWatchlistPopover = () => {
           </Button>
         </form>
 
-        {isSearching && <div className="text-neutral-400 py-1">{t('searching')}</div>}
+        {isSearching && <div className="text-fg-faint py-1">{t('searching')}</div>}
         {!!results.length && (
           <div className="rounded-md border px-1 mb-2 max-h-40 overflow-y-auto" data-testid="dex-results">
             {results.map(pair => (
@@ -189,7 +189,7 @@ export const DexWatchlistPopover = () => {
                 key={`${pair.chainId}:${pair.pairAddress}`}
                 pair={pair}
                 action={
-                  <Button className="h-5 px-1.5 text-[10px] hover:cursor-pointer" onClick={() => addPair(pair)}>
+                  <Button className="h-5 px-1.5 text-cap-s hover:cursor-pointer" onClick={() => addPair(pair)}>
                     {t('add')}
                   </Button>
                 }
@@ -199,7 +199,7 @@ export const DexWatchlistPopover = () => {
         )}
 
         <div className="max-h-56 overflow-y-auto" data-testid="dex-watchlist">
-          {!watchlist.length && <div className="text-neutral-400 py-2">{t('dexEmpty')}</div>}
+          {!watchlist.length && <div className="text-fg-faint py-2">{t('dexEmpty')}</div>}
           {watchlist.map(item => {
             const pair = pairs[item.pairAddress.toLowerCase()];
             const remove = (
@@ -215,7 +215,7 @@ export const DexWatchlistPopover = () => {
             return pair ? (
               <PairRow key={item.pairAddress} pair={pair} action={remove} />
             ) : (
-              <div key={item.pairAddress} className="flex justify-between py-1 text-neutral-400">
+              <div key={item.pairAddress} className="flex justify-between py-1 text-fg-faint">
                 {item.symbol} · {item.chainId}
                 {remove}
               </div>

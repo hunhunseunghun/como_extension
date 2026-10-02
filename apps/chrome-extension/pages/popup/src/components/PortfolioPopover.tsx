@@ -10,8 +10,18 @@ import { useAllTickers } from '@/hooks/useAllTickers';
 import { useI18n } from '@/i18n';
 import { convertFiat, formatFiat, useMarket } from '@/lib/market';
 import { ExchangePlatform } from '@/types';
+import { ShareButton } from '@/components/ShareButton';
+import { AccountSync, type SyncExchange, type SyncedHolding } from '@/components/AccountSync';
 
-type Holding = { id: string; exchange: ExchangePlatform; market: string; quantity: number; avgPrice: number };
+// source: 거래소 API로 불러온 항목('upbit-api' 등). 다시 동기화하면 같은 source 항목만 바꾼다.
+type Holding = {
+  id: string;
+  exchange: ExchangePlatform;
+  market: string;
+  quantity: number;
+  avgPrice: number;
+  source?: string;
+};
 type Quote = 'KRW' | 'USD' | 'INR';
 
 const STORAGE_KEY = 'portfolio';
@@ -80,6 +90,19 @@ export const PortfolioPopover = () => {
   );
   const totalPnl = totals.value - totals.cost;
 
+  const handleSynced = (syncExchange: SyncExchange, synced: SyncedHolding[]) => {
+    const source = `${syncExchange}-api`;
+    saveHoldings([
+      ...holdings.filter(holding => holding.source !== source),
+      ...synced.map((item, index) => ({
+        id: `${source}-${Date.now()}-${index}`,
+        exchange: syncExchange,
+        ...item,
+        source,
+      })),
+    ]);
+  };
+
   const handleAdd = () => {
     const qty = Number(quantity);
     const avg = avgPrice.trim() ? Number(avgPrice) : selectedPrice;
@@ -108,12 +131,12 @@ export const PortfolioPopover = () => {
             className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
             <Wallet strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
           </Button>
-          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-xs text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
             {t('portfolio')}
           </span>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-2 text-[11px] bg-background dark:bg-background border border-neutral-200 dark:border-neutral-800">
+      <PopoverContent className="w-80 p-2 text-cap bg-background border border-stroke-weak">
         <div className="flex justify-between items-center mb-1">
           <span className="font-semibold">{t('portfolio')}</span>
           <CurrencySelect />
@@ -121,17 +144,38 @@ export const PortfolioPopover = () => {
 
         <div className="rounded-md border p-1.5 mb-2" data-testid="portfolio-total">
           <div className="flex justify-between">
-            <span className="text-neutral-500">{t('totalValue')}</span>
+            <span className="text-fg-subtle">{t('totalValue')}</span>
             <span className="font-semibold">{formatFiat(totals.value, currency, locale)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-neutral-500">{t('totalPnl')}</span>
+            <span className="text-fg-subtle">{t('totalPnl')}</span>
             <span className={`font-semibold ${pnlColor(totalPnl)}`}>
               {formatFiat(totalPnl, currency, locale)}
               {totals.cost > 0 && ` (${formatPercent((totalPnl / totals.cost) * 100)})`}
             </span>
           </div>
-          {totals.incomplete && <div className="text-[10px] text-neutral-400">{t('portfolioIncomplete')}</div>}
+          {totals.incomplete && <div className="text-cap-s text-fg-faint">{t('portfolioIncomplete')}</div>}
+          <div className="flex justify-end">
+            <ShareButton
+              disabled={!rows.length || totals.cost <= 0}
+              build={() => {
+                const rate = (totalPnl / totals.cost) * 100;
+                return {
+                  title: t('sharePortfolioTitle'),
+                  headline: formatPercent(rate),
+                  headlineTone: rate > 0 ? 'up' : rate < 0 ? 'down' : 'neutral',
+                  lines: [...rows]
+                    .sort((a, b) => (b.pnlRate ?? 0) - (a.pnlRate ?? 0))
+                    .slice(0, 4)
+                    .map(row => ({
+                      label: getCoin(row.holding.exchange, row.holding.market),
+                      value: row.pnlRate != null ? formatPercent(row.pnlRate) : '-',
+                      tone: (row.pnlRate ?? 0) > 0 ? 'up' : (row.pnlRate ?? 0) < 0 ? 'down' : 'neutral',
+                    })),
+                };
+              }}
+            />
+          </div>
         </div>
 
         <MarketPicker
@@ -147,7 +191,7 @@ export const PortfolioPopover = () => {
           <Input
             type="number"
             min="0"
-            className="h-6 px-1 text-[10px]"
+            className="h-6 px-1 text-cap-s"
             placeholder={t('quantity')}
             value={quantity}
             onChange={event => setQuantity(event.target.value)}
@@ -155,20 +199,20 @@ export const PortfolioPopover = () => {
           <Input
             type="number"
             min="0"
-            className="h-6 px-1 text-[10px]"
+            className="h-6 px-1 text-cap-s"
             placeholder={selectedPrice ? String(selectedPrice) : t('avgPrice')}
             title={t('avgPrice')}
             value={avgPrice}
             onChange={event => setAvgPrice(event.target.value)}
           />
-          <Button className="h-6 px-2 text-[10px] hover:cursor-pointer" onClick={handleAdd}>
+          <Button className="h-6 px-2 text-cap-s hover:cursor-pointer" onClick={handleAdd}>
             {t('add')}
           </Button>
         </div>
-        {errorMessage && <div className="text-red-500 text-[10px] mb-1">{errorMessage}</div>}
+        {errorMessage && <div className="text-red-500 text-cap-s mb-1">{errorMessage}</div>}
 
         <div className="max-h-48 overflow-y-auto">
-          {!rows.length && <div className="text-neutral-400 py-2">{t('noHoldings')}</div>}
+          {!rows.length && <div className="text-fg-faint py-2">{t('noHoldings')}</div>}
           {rows.map(({ holding, quote, price, value, pnl, pnlRate }) => (
             <div
               key={holding.id}
@@ -178,16 +222,19 @@ export const PortfolioPopover = () => {
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">
                   {getCoin(holding.exchange, holding.market)}{' '}
-                  <span className="text-neutral-400 font-normal">× {holding.quantity}</span>
+                  <span className="text-fg-faint font-normal">× {holding.quantity}</span>
+                  {holding.source && (
+                    <span className="ml-1 rounded-sm bg-neutral-weak px-1 text-cap-xs font-normal">API</span>
+                  )}
                 </div>
-                <div className="text-[10px] text-neutral-400 truncate">
+                <div className="text-cap-s text-fg-faint truncate">
                   {t('avgPrice')} {formatFiat(holding.avgPrice, quote, locale)} ·{' '}
                   {price ? formatFiat(price, quote, locale) : '-'}
                 </div>
               </div>
               <div className="text-right">
                 <div>{value !== null ? formatFiat(value, quote, locale) : '-'}</div>
-                <div className={`text-[10px] ${pnl !== null ? pnlColor(pnl) : ''}`}>
+                <div className={`text-cap-s ${pnl !== null ? pnlColor(pnl) : ''}`}>
                   {pnl !== null && pnlRate !== null
                     ? `${formatFiat(pnl, quote, locale)} (${formatPercent(pnlRate)})`
                     : '-'}
@@ -204,6 +251,7 @@ export const PortfolioPopover = () => {
             </div>
           ))}
         </div>
+        <AccountSync onSynced={handleSynced} />
       </PopoverContent>
     </Popover>
   );

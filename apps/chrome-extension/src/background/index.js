@@ -166,6 +166,155 @@ chrome.notifications.onClicked.addListener(notificationId => {
   chrome.notifications.clear(notificationId);
 });
 
+// 신규 상장 알림: 업비트·빗썸의 KRW 마켓 목록을 주기적으로 비교해 새로 생긴 마켓을 알린다.
+// 공지 API 대신 이미 허용된 market/all을 쓰므로 호스트 권한을 늘리지 않는다.
+const LISTING_SOURCES = {
+  upbit: 'https://api.upbit.com/v1/market/all',
+  bithumb: 'https://api.bithumb.com/v1/market/all',
+};
+const LISTING_SETTING_KEY = 'listingAlerts';
+const KNOWN_MARKETS_KEY = 'knownKrwMarkets';
+const LISTING_TEXT = {
+  ko: '원화 마켓 신규 상장',
+  en: 'New KRW market listing',
+  es: 'Nuevo listado en el mercado KRW',
+  pt: 'Nova listagem no mercado KRW',
+  vi: 'Niêm yết mới trên thị trường KRW',
+  tr: 'KRW pazarında yeni listeleme',
+  id: 'Listing baru di pasar KRW',
+  ja: 'ウォン市場に新規上場',
+  zh: '韩元市场新上币',
+  hi: 'KRW बाज़ार में नई लिस्टिंग',
+};
+
+// 설정이 없으면 한국어 사용자에게만 켠다. 팝업의 기본값(isListingAlertsDefault)과 같은 규칙이다.
+const isListingAlertsEnabled = stored => stored ?? getLanguage() === 'ko';
+
+async function checkNewListings() {
+  const result = await chrome.storage.local.get([LISTING_SETTING_KEY, KNOWN_MARKETS_KEY]);
+  const known = result[KNOWN_MARKETS_KEY] || {};
+  const notify = isListingAlertsEnabled(result[LISTING_SETTING_KEY]);
+  const next = { ...known };
+
+  for (const [exchange, url] of Object.entries(LISTING_SOURCES)) {
+    let markets;
+    try {
+      const response = await fetch(url);
+      markets = (await response.json()).filter(market => market.market?.startsWith('KRW-'));
+    } catch (error) {
+      console.warn(error);
+      continue;
+    }
+    const previous = known[exchange];
+    // 일시적으로 목록이 짧게 오면 기준을 덮어쓰지 않는다.
+    if (!markets.length || (previous && markets.length < previous.length * 0.8)) continue;
+    next[exchange] = markets.map(market => market.market);
+    if (!previous || !notify) continue;
+
+    const added = markets.filter(market => !previous.includes(market.market));
+    // 한꺼번에 많이 생기면 상장이 아니라 목록 형식 변화로 보고 알리지 않는다.
+    if (added.length > 5) continue;
+    added.forEach(market => {
+      const name = getLanguage() === 'ko' ? market.korean_name : market.english_name;
+      chrome.notifications.create(`${exchange}:${market.market}:listing`, {
+        type: 'basic',
+        iconUrl: 'como-logo.png',
+        title: `${name || market.market} (${market.market.slice(4)}) · ${exchange.toUpperCase()}`,
+        message: LISTING_TEXT[getLanguage()],
+      });
+    });
+  }
+  chrome.storage.local.set({ [KNOWN_MARKETS_KEY]: next });
+}
+
+// 변동률·김프 알림 규칙. 지정가 알림과 따로 저장하고, 백그라운드가 받는 전 거래소 시세로 10초마다 확인한다.
+//   change: { id, type: 'change', exchange, market, threshold }  24시간 등락률 절댓값이 threshold(%) 이상이면 하루 한 번
+//   kimchi: { id, type: 'kimchi', exchange: 'upbit'|'bithumb', coin, above?, below? }  김프가 기준을 넘으면 한 번, 0.3%p 되돌아오면 다시 무장
+const RULES_KEY = 'alertRules';
+const RULE_STATE_KEY = 'alertRuleState';
+const KIMCHI_REARM_GAP = 0.3;
+const RULE_TEXT = {
+  ko: { change: '24시간 변동', kimchiAbove: '김프 상단 도달', kimchiBelow: '김프 하단 도달' },
+  en: { change: '24h move', kimchiAbove: 'Kimchi premium above', kimchiBelow: 'Kimchi premium below' },
+  es: { change: 'Movimiento 24 h', kimchiAbove: 'Prima kimchi por encima', kimchiBelow: 'Prima kimchi por debajo' },
+  pt: { change: 'Variação 24 h', kimchiAbove: 'Prêmio kimchi acima', kimchiBelow: 'Prêmio kimchi abaixo' },
+  vi: { change: 'Biến động 24h', kimchiAbove: 'Kimchi premium vượt trên', kimchiBelow: 'Kimchi premium xuống dưới' },
+  tr: { change: '24s hareket', kimchiAbove: 'Kimchi primi üstünde', kimchiBelow: 'Kimchi primi altında' },
+  id: { change: 'Pergerakan 24 jam', kimchiAbove: 'Kimchi premium di atas', kimchiBelow: 'Kimchi premium di bawah' },
+  ja: { change: '24時間変動', kimchiAbove: 'キムチプレミアム上限到達', kimchiBelow: 'キムチプレミアム下限到達' },
+  zh: { change: '24小时涨跌', kimchiAbove: '泡菜溢价达到上限', kimchiBelow: '泡菜溢价达到下限' },
+  hi: { change: '24 घंटे की चाल', kimchiAbove: 'किमची प्रीमियम ऊपर', kimchiBelow: 'किमची प्रीमियम नीचे' },
+};
+const ruleCache = { rules: [], state: {} };
+chrome.storage.local.get([RULES_KEY, RULE_STATE_KEY], result => {
+  ruleCache.rules = result[RULES_KEY] || [];
+  ruleCache.state = result[RULE_STATE_KEY] || {};
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes[RULES_KEY]) ruleCache.rules = changes[RULES_KEY].newValue || [];
+  if (changes[RULE_STATE_KEY]) ruleCache.state = changes[RULE_STATE_KEY].newValue || {};
+});
+
+const formatPercent = value => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+
+function checkAlertRules() {
+  if (!ruleCache.rules.length) return;
+  const text = RULE_TEXT[getLanguage()] ?? RULE_TEXT.en;
+  const state = { ...ruleCache.state };
+  let changed = false;
+  let kimchi = null;
+  const notify = (id, exchange, market, title, message) => {
+    chrome.notifications.create(`${exchange}:${market}:rule-${id}`, { type: 'basic', iconUrl: 'como-logo.png', title, message });
+    chrome.storage.local.set({ alertFiredAt: Date.now() });
+  };
+
+  for (const rule of ruleCache.rules) {
+    const current = { ...state[rule.id] };
+    if (rule.type === 'change') {
+      const ticker = allExchangesTickers[rule.exchange]?.[rule.market];
+      if (!ticker?.currentPrice || current.firedOn === CURRENT_DATE) continue;
+      const rate = ticker.changeRate ?? 0;
+      if (Math.abs(rate) < rule.threshold) continue;
+      notify(rule.id, rule.exchange, rule.market, `${rule.market} ${formatPercent(rate)} · ${rule.exchange.toUpperCase()}`, `${text.change} ≥ ${rule.threshold}%`);
+      current.firedOn = CURRENT_DATE;
+    } else if (rule.type === 'kimchi') {
+      kimchi ??= computeKimchiPremium().items;
+      const market = `KRW-${rule.coin}`;
+      const premium = kimchi[`${rule.exchange}:${market}`]?.premium;
+      if (premium == null) continue;
+      const title = `${rule.coin} ${formatPercent(premium)} · ${rule.exchange.toUpperCase()}`;
+      if (rule.above != null) {
+        if (current.aboveFired !== true && premium >= rule.above) {
+          notify(rule.id, rule.exchange, market, title, `${text.kimchiAbove} (${rule.above}%)`);
+          current.aboveFired = true;
+        } else if (current.aboveFired && premium < rule.above - KIMCHI_REARM_GAP) current.aboveFired = false;
+      }
+      if (rule.below != null) {
+        if (current.belowFired !== true && premium <= rule.below) {
+          notify(rule.id, rule.exchange, market, title, `${text.kimchiBelow} (${rule.below}%)`);
+          current.belowFired = true;
+        } else if (current.belowFired && premium > rule.below + KIMCHI_REARM_GAP) current.belowFired = false;
+      }
+    }
+    if (JSON.stringify(current) !== JSON.stringify(state[rule.id] ?? {})) {
+      state[rule.id] = current;
+      changed = true;
+    }
+  }
+  if (changed) {
+    ruleCache.state = state;
+    chrome.storage.local.set({ [RULE_STATE_KEY]: state });
+  }
+}
+setInterval(checkAlertRules, 10_000);
+
+chrome.alarms.create('listingCheck', { periodInMinutes: 5 });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'listingCheck') checkNewListings();
+});
+checkNewListings();
+
 // 툴바 배지: 고른 종목의 가격을 4글자 안으로 줄여 보여주고, 등락에 따라 배경색을 바꾼다.
 const BADGE_STORAGE_KEY = 'badgeSettings';
 let badgeSettings = null;
@@ -313,6 +462,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'getSpreads') {
     sendResponse(computeSpreads({ includeKrw: message.includeKrw !== false }));
   }
+  if (message.action === 'getKimchiPremium') {
+    sendResponse(computeKimchiPremium());
+  }
+  if (message.action === 'getDerivatives') {
+    sendResponse({ funding: derivatives.value, liquidations: summarizeLiquidations() });
+  }
+  if (message.action === 'getTrending') {
+    sendResponse(trending.value ?? []);
+  }
+  if (message.action === 'syncExchangeAccount') {
+    syncExchangeAccount(message.exchange).then(sendResponse);
+    return true;
+  }
   if (message.action === 'getAllExchangesTickers') {
     sendResponse(Object.values(allExchangesTickers).flatMap(tickers => Object.values(tickers)));
   }
@@ -323,6 +485,8 @@ let updatedVersion = '';
 chrome.runtime.onInstalled.addListener(details => {
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     chrome.runtime.setUninstallURL('https://walla.my/v/a6J0FV5gUKCyzupMaG71');
+    // 새로 설치한 사용자에게만 첫 실행 안내(Onboarding)를 보여 준다. 업데이트한 사용자는 이미 설정을 마쳤다.
+    chrome.storage.local.set({ onboardingPending: true });
   }
   if (details.reason === 'update') {
     updatedVersion = details?.previousVersion || null;
@@ -1286,8 +1450,146 @@ const polledData = [
   }),
 ];
 
+// 파생 지표: 바이낸스 USDT 무기한 선물의 펀딩비 순위(1분마다)와 강제 청산 스트림(최근 1시간 누적).
+const FUNDING_LIST_SIZE = 5;
+const derivatives = new PolledData('derivatives', 60 * 1000, async () => {
+  const list = await fetchJson('https://fapi.binance.com/fapi/v1/premiumIndex');
+  const rates = list
+    .filter(item => item.symbol.endsWith('USDT') && item.lastFundingRate !== '')
+    .map(item => ({ symbol: item.symbol, rate: Number(item.lastFundingRate), nextFundingTime: item.nextFundingTime }))
+    .filter(item => Number.isFinite(item.rate))
+    .sort((a, b) => b.rate - a.rate);
+  return { highest: rates.slice(0, FUNDING_LIST_SIZE), lowest: rates.slice(-FUNDING_LIST_SIZE).reverse(), updatedAt: Date.now() };
+});
+derivatives.post = () => {}; // 팝업이 열 때 메시지로 받아 간다.
+
+const LIQUIDATION_WINDOW = 60 * 60 * 1000;
+const liquidations = [];
+let liquidationSocket = null;
+function connectLiquidations() {
+  // 심볼마다 1초에 최대 1건(가장 큰 청산)만 오는 스냅샷 스트림이라 가볍다.
+  // 예전 /ws 경로는 연결은 되지만 메시지를 보내지 않는다. 시장 데이터 스트림은 /market/ws를 쓴다.
+  liquidationSocket = new WebSocket('wss://fstream.binance.com/market/ws/!forceOrder@arr');
+  liquidationSocket.onmessage = event => {
+    try {
+      const order = JSON.parse(event.data)?.o;
+      if (!order) return;
+      const usd = Number(order.ap) * Number(order.z || order.q);
+      if (!Number.isFinite(usd)) return;
+      // 매도 체결 = 롱 포지션 청산, 매수 체결 = 숏 포지션 청산
+      liquidations.push({ symbol: order.s, side: order.S === 'SELL' ? 'long' : 'short', usd, price: Number(order.ap), time: order.T });
+      const cutoff = Date.now() - LIQUIDATION_WINDOW;
+      while (liquidations.length && liquidations[0].time < cutoff) liquidations.shift();
+      if (liquidations.length > 5000) liquidations.splice(0, liquidations.length - 5000);
+    } catch (error) {
+      console.warn(error);
+    }
+  };
+  liquidationSocket.onclose = () => setTimeout(connectLiquidations, 5000);
+  liquidationSocket.onerror = () => liquidationSocket?.close();
+}
+const startedAt = Date.now();
+function summarizeLiquidations() {
+  const cutoff = Date.now() - LIQUIDATION_WINDOW;
+  const recent = liquidations.filter(item => item.time >= cutoff);
+  const sum = side => recent.filter(item => item.side === side).reduce((total, item) => total + item.usd, 0);
+  return {
+    longUsd: sum('long'),
+    shortUsd: sum('short'),
+    count: recent.length,
+    largest: [...recent].sort((a, b) => b.usd - a.usd).slice(0, 5),
+    // 서비스 워커가 시작한 지 1시간이 안 됐으면 그만큼만 모은 값이다.
+    windowMs: Math.min(LIQUIDATION_WINDOW, Date.now() - startedAt),
+  };
+}
+
+// 트렌딩 코인: CoinGecko 검색 상위(10분마다)
+const trending = new PolledData('trending', 10 * 60 * 1000, async () => {
+  const data = await fetchJson('https://api.coingecko.com/api/v3/search/trending');
+  return (data?.coins ?? []).slice(0, 10).map(({ item }) => ({
+    id: item.id,
+    symbol: item.symbol,
+    name: item.name,
+    thumb: item.thumb,
+    rank: item.market_cap_rank,
+    change24h: item.data?.price_change_percentage_24h?.usd ?? null,
+  }));
+});
+trending.post = () => {};
+
+// 거래소 계정 연동(읽기 전용): 사용자가 넣은 API 키로 잔고만 조회한다. 키는 이 기기의 storage.local에만 있고 다른 곳으로 보내지 않는다.
+const ACCOUNT_KEYS_STORAGE = 'exchangeApiKeys'; // { upbit?: { accessKey, secretKey }, binance?: { apiKey, secretKey } }
+const encoder = new TextEncoder();
+const base64Url = bytes =>
+  btoa(String.fromCharCode(...new Uint8Array(bytes)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+const hmacSha256 = async (secret, message) => {
+  const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return crypto.subtle.sign('HMAC', key, encoder.encode(message));
+};
+const toHex = bytes => [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+
+const ACCOUNT_LOADERS = {
+  // 업비트: JWT(HS256) { access_key, nonce }. 평균 매수가(avg_buy_price)를 함께 준다.
+  async upbit({ accessKey, secretKey }) {
+    const header = base64Url(encoder.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+    const payload = base64Url(encoder.encode(JSON.stringify({ access_key: accessKey, nonce: crypto.randomUUID() })));
+    const signature = base64Url(await hmacSha256(secretKey, `${header}.${payload}`));
+    const response = await fetch('https://api.upbit.com/v1/accounts', {
+      headers: { Authorization: `Bearer ${header}.${payload}.${signature}`, Accept: 'application/json' },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error?.message || `upbit ${response.status}`);
+    return data
+      .filter(item => item.currency !== 'KRW' && item.unit_currency === 'KRW')
+      .map(item => ({
+        market: `KRW-${item.currency}`,
+        quantity: Number(item.balance) + Number(item.locked),
+        avgPrice: Number(item.avg_buy_price) || null,
+      }))
+      .filter(item => item.quantity > 0);
+  },
+  // 바이낸스: HMAC-SHA256 서명 쿼리. 평균 매수가는 주지 않는다.
+  async binance({ apiKey, secretKey }) {
+    const query = `timestamp=${Date.now()}&recvWindow=10000&omitZeroBalances=true`;
+    const signature = toHex(await hmacSha256(secretKey, query));
+    const response = await fetch(`https://api.binance.com/api/v3/account?${query}&signature=${signature}`, {
+      headers: { 'X-MBX-APIKEY': apiKey, Accept: 'application/json' },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.msg || `binance ${response.status}`);
+    return (data.balances ?? [])
+      .filter(item => !['USDT', 'USDC', 'FDUSD', 'BUSD'].includes(item.asset))
+      .map(item => ({ market: `${item.asset}USDT`, quantity: Number(item.free) + Number(item.locked), avgPrice: null }))
+      .filter(item => item.quantity > 0 && allExchangesTickers.binance[item.market]);
+  },
+};
+
+async function syncExchangeAccount(exchange) {
+  const keys = (await chrome.storage.local.get(ACCOUNT_KEYS_STORAGE))[ACCOUNT_KEYS_STORAGE]?.[exchange];
+  if (!keys || !ACCOUNT_LOADERS[exchange]) return { ok: false, error: 'noKeys' };
+  try {
+    const holdings = await ACCOUNT_LOADERS[exchange](keys);
+    // 평균 매수가가 없으면 지금 가격으로 둔다(손익 0에서 시작).
+    return {
+      ok: true,
+      holdings: holdings.map(item => ({
+        ...item,
+        avgPrice: item.avgPrice ?? allExchangesTickers[exchange][item.market]?.currentPrice ?? 0,
+      })),
+    };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
 async function initialize() {
   activeExchange = await loadActiveExchange();
+  derivatives.start();
+  trending.start();
+  connectLiquidations();
   const initial = getExchangeInstance(activeExchange);
   if (initial) initial.setPopupActive(true);
 

@@ -188,8 +188,8 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     if (!chartRef.current) {
       // 설정한 상승·하락 색(CSS 변수)을 캔들에도 쓴다.
       const rootStyle = getComputedStyle(document.documentElement);
-      const upColor = rootStyle.getPropertyValue('--color-up').trim() || '#ef4444';
-      const downColor = rootStyle.getPropertyValue('--color-down').trim() || '#3b82f6';
+      const upColor = rootStyle.getPropertyValue('--como-up').trim() || '#ef4444';
+      const downColor = rootStyle.getPropertyValue('--como-down').trim() || '#3b82f6';
       chartRef.current = createChart(chartContainer, {
         width: TOOLTIP_WIDTH,
         height: TOOLTIP_HEIGHT,

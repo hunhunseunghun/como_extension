@@ -24,6 +24,11 @@
     "https://fapi.binance.com/*",
     "https://api.dexscreener.com/*"
   ],
+  "optional_host_permissions": [
+    "https://www.coindesk.com/*",
+    "https://www.blockmedia.co.kr/*",
+    "https://defillama-datasets.llama.fi/*"
+  ],
   "background": {
     "service_worker": "background.iife.js",
     "type": "module"

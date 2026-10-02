@@ -11,3 +11,7 @@ export const defaultBadgeSettings = (language: Language): BadgeSettings =>
     : { enabled: true, exchange: 'binance', market: 'BTCUSDT' };
 
 export const isSidePanelView = () => new URLSearchParams(window.location.search).get('view') === 'sidepanel';
+
+// 신규 상장 알림: 설정이 없으면 한국어 사용자에게만 켠다. 백그라운드(isListingAlertsEnabled)와 같은 규칙이다.
+export const LISTING_ALERTS_STORAGE_KEY = 'listingAlerts';
+export const isListingAlertsDefault = (language: Language) => language === 'ko';

@@ -76,7 +76,12 @@ export const ko = {
   theme: '테마',
   themeLight: '라이트 모드',
   themeDark: '다크 모드',
+  themeSystem: '시스템 설정 따르기',
+  designVersion: '디자인',
+  designV1: '클래식 (v1)',
+  designV2: '새 디자인 (v2)',
   favoritePin: '즐겨찾기 상단 고정',
+  listingAlerts: '신규 상장 알림 (업비트·빗썸 원화)',
   greenUp: '초록 상승 · 빨강 하락',
   redUp: '빨강 상승 · 파랑 하락',
 
@@ -100,6 +105,69 @@ export const ko = {
   reviewAsk: 'COMO가 도움이 되셨나요? 리뷰를 남겨 주시면 큰 힘이 됩니다.',
   reviewRate: '리뷰 남기기',
   reviewLater: '나중에',
+
+  // 변동률·김프 알림
+  alertTabPrice: '지정가',
+  alertTabChange: '변동률',
+  alertTabKimchi: '김프',
+  changeThreshold: '24시간 변동률 기준 (%)',
+  changeRuleHelp: '24시간 등락률이 기준을 넘으면 하루에 한 번 알려요.',
+  kimchiAboveLabel: '이상 (%)',
+  kimchiBelowLabel: '이하 (%)',
+  kimchiRuleHelp: '김프가 기준에 닿으면 알리고, 0.3%p 되돌아오면 다시 알릴 준비를 해요.',
+  addRule: '추가',
+  noRules: '등록한 알림이 없습니다.',
+  coinSymbol: '코인 (예: BTC)',
+  currentValue: '현재',
+
+  // 첫 실행 안내
+  onboardingTitle: 'COMO 시작하기',
+  onboardingStep1: '주로 쓰는 거래소를 고르세요',
+  onboardingStep2: '관심 코인을 고르면 맨 위에 고정돼요',
+  onboardingStep3: '툴바 아이콘에 가격을 띄울 코인',
+  onboardingNoBadge: '표시 안 함',
+  onboardingNext: '다음',
+  onboardingDone: '시작하기',
+  onboardingSkip: '건너뛰기',
+
+  // 인사이트: 파생·트렌드
+  insightsOverview: '개요',
+  insightsDerivatives: '선물',
+  insightsTrends: '트렌드',
+  fundingRanking: '펀딩비 순위 (바이낸스 선물)',
+  fundingHighest: '높은 순',
+  fundingLowest: '낮은 순',
+  fundingHint: '양수면 롱이 숏에게, 음수면 숏이 롱에게 8시간마다 지불해요.',
+  liquidations: '강제 청산',
+  lastMinutes: '최근 {n}분',
+  liqLong: '롱',
+  liqShort: '숏',
+  noLiquidations: '아직 모인 청산이 없어요.',
+  trendingCoins: '지금 많이 찾는 코인',
+  news: '뉴스',
+  allowNews: '뉴스 보기 (사이트 접근 허용)',
+  unlocks: '토큰 언락·발행 규모',
+  allowUnlocks: '언락 데이터 보기 (사이트 접근 허용)',
+  unlocksHint: '최근 7일·30일 동안 새로 풀린 물량의 달러 가치예요. 앞으로의 일정이 아니에요.',
+
+  // 공유 카드
+  share: '공유',
+  shareCard: '공유 이미지 만들기 (금액 제외)',
+  shareCopied: '복사됨',
+  shareDownloaded: '저장됨',
+  sharePortfolioTitle: '내 포트폴리오 수익률',
+  shareMarketTitle: '지금 암호화폐 시장',
+
+  // 거래소 계정 연동(읽기 전용)
+  accountSync: '거래소 계정 연동 (읽기 전용 · 선택)',
+  saveAndSync: '키 저장하고 불러오기',
+  syncNow: '보유 코인 다시 불러오기',
+  syncing: '불러오는 중…',
+  removeKeys: '키 삭제',
+  syncDone: '{n}개 코인을 불러왔어요.',
+  syncFailed: '불러오지 못했어요',
+  accountSyncHintUpbit: '업비트 Open API에서 \'자산조회\'만 켠 키를 만들고, 허용 IP에 지금 쓰는 IP를 등록하세요. 키는 이 기기에만 저장되고 잔고 조회 외에는 쓰지 않아요.',
+  accountSyncHintBinance: '바이낸스 API 관리에서 \'읽기\'만 허용한 키를 만드세요(거래·출금 끄기). 평균 매수가는 받을 수 없어 불러온 시점 가격으로 둬요. 키는 이 기기에만 저장돼요.',
 };
 
 export type MessageKey = keyof typeof ko;

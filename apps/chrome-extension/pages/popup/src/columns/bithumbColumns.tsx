@@ -73,7 +73,7 @@ export const getBithumbColumns = (
                 className={
                   row.getIsPinned()
                     ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                    : 'size-3 text-gray-400 hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
                 }
                 onClick={toggleFavorite}
               />
@@ -85,12 +85,12 @@ export const getBithumbColumns = (
               <a
                 href={`https://www.bithumb.com/react/trade/order/${splitMarket.length && splitMarket[1] + '-' + splitMarket[0]}`}
                 target="_blank"
-                className="hover:text-gray-400">
+                className="hover:text-fg-faint">
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
               {bithumbRow.market_warning !== 'NONE' && <WarningIcon text={t('warningShort')} />}
             </div>
-            <span className="text-[11px] text-gray-500 font-medium">
+            <span className="text-cap text-fg-subtle font-medium">
               {splitMarket.length && splitMarket[1] + '/' + splitMarket[0]}
             </span>
           </div>
@@ -116,7 +116,7 @@ export const getBithumbColumns = (
     header: () => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-5 w-12 text-[10px] font-semibold gap-1 hover:cursor-pointer">
+          <Button variant="outline" className="h-5 w-12 text-cap-s font-semibold gap-1 hover:cursor-pointer">
             <span>{getTimeframes(t).find(tf => tf.value === timeframe)?.label}</span>
             <ChevronDown className="size-2" />
           </Button>
@@ -127,7 +127,7 @@ export const getBithumbColumns = (
               <DropdownMenuItem
                 key={value}
                 textValue={label}
-                className="gap-1 px-1 py-1  items-left text-xs hover:cursor-pointer"
+                className="gap-1 px-1 py-1 items-left text-body-s hover:cursor-pointer"
                 onSelect={() => setTimeframe(value)}>
                 <span>{label}</span>
               </DropdownMenuItem>
@@ -157,7 +157,7 @@ export const getBithumbColumns = (
     accessorKey: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-[10px] font-bold underline-offset-2">{t('currentPrice')}</span>
+        <span className="text-cap-s font-bold underline-offset-2">{t('currentPrice')}</span>
         <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
       </div>
     ),
@@ -176,7 +176,7 @@ export const getBithumbColumns = (
           {exchangeMarketType === 'KRW' && (
             <>
               <span>{valueKRW?.toLocaleString()}</span>
-              <span className="text-[10px] text-gray-500">
+              <span className="text-cap-s text-fg-subtle">
                 {secondaryValue !== null && formatFiat(secondaryValue, secondaryCurrency, t('numberLocale'))}
               </span>
             </>
@@ -207,7 +207,7 @@ export const getBithumbColumns = (
             }`}>
             {`${row.original.change === 'RISE' ? '+' : ''}${value}%`}
           </span>
-          {exchangeMarketType !== 'BTC' && <span className="text-[10px] text-gray-500">{signedChangePrice}</span>}
+          {exchangeMarketType !== 'BTC' && <span className="text-cap-s text-fg-subtle">{signedChangePrice}</span>}
         </div>
       );
     },
@@ -229,9 +229,9 @@ export const getBithumbColumns = (
         <div className="flex flex-col items-end text-down font-medium">
           <span>-{value}%</span>
           {exchangeMarketType !== 'BTC' ? (
-            <span className="text-[10px] text-gray-500">{highestPrice}</span>
+            <span className="text-cap-s text-fg-subtle">{highestPrice}</span>
           ) : (
-            <span className="text-[10px] text-gray-500">{row.original.highest_52_week_price.toFixed(8)}</span>
+            <span className="text-cap-s text-fg-subtle">{row.original.highest_52_week_price.toFixed(8)}</span>
           )}
         </div>
       );
@@ -253,9 +253,9 @@ export const getBithumbColumns = (
         <div className="flex flex-col items-end text-up font-medium">
           <span>+{value}%</span>
           {exchangeMarketType !== 'BTC' ? (
-            <span className="text-[10px] text-gray-500">{lowestPrice?.toLocaleString()}</span>
+            <span className="text-cap-s text-fg-subtle">{lowestPrice?.toLocaleString()}</span>
           ) : (
-            <span className="text-[10px] text-gray-500">{lowestPrice?.toFixed(8)}</span>
+            <span className="text-cap-s text-fg-subtle">{lowestPrice?.toFixed(8)}</span>
           )}
         </div>
       );
