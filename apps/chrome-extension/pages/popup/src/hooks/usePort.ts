@@ -14,7 +14,7 @@ type TickerMap = { [key: string]: TickerTypes };
 
 export const usePort = (
   setTickers: React.Dispatch<React.SetStateAction<TickerMap>>,
-  setExchangePlatform: React.Dispatch<React.SetStateAction<ExchangePlatform>>,
+  setExchangePlatform: (exchange: ExchangePlatform) => void,
   setExchangeRateUSD: React.Dispatch<React.SetStateAction<number>>,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
   updatedVersionHandler: (data: string) => void,
@@ -97,6 +97,8 @@ export const usePort = (
             setIsLoading(false);
             break;
           case 'activeExchange':
+            // 거래소가 바뀌면 이전 거래소의 쌓인 틱을 버린다.
+            clearPending();
             setExchangePlatform(data);
             setIsLoading(false);
             break;

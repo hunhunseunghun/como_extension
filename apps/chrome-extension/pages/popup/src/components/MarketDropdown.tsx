@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
-import { UpbitTicker, BithumbTicker, BinanceTicker, ExchangePlatform } from '@/types';
-import { RowPinningState } from '@tanstack/react-table';
+import { ExchangePlatform } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,38 +13,20 @@ import { useI18n } from '@/i18n';
 import { EXCHANGES, EXCHANGE_LIST } from '@/constants/exchanges';
 
 
-type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
-
 interface MarketDropdownProps {
   exchangePlatform: ExchangePlatform;
+  // 거래소 전환(시세·고정 행 초기화, 백그라운드 알림)은 App이 맡는다.
   setExchangePlatform: (platform: ExchangePlatform) => void;
-  setIsLoading: (loading: boolean) => void;
-  setTickers: React.Dispatch<React.SetStateAction<{ [key: string]: TickerTypes }>>;
-  setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
 }
 
 export const MarketDropdown = ({
   exchangePlatform,
   setExchangePlatform,
-  setIsLoading,
-  setRowPinning,
-  setTickers,
 }: MarketDropdownProps) => {
   const { t } = useI18n();
   const exchangeList = EXCHANGE_LIST;
   const selectedPlatform = EXCHANGES[exchangePlatform] || EXCHANGES.upbit;
 
-  useEffect(() => {
-    chrome.runtime.sendMessage({ action: 'changeExchange', exchange: exchangePlatform });
-    setIsLoading(true);
-    setTickers({});
-  }, [exchangePlatform]);
-
-  const dropdownSeletedHandler = (key: ExchangePlatform) => {
-    const initRowPinning: RowPinningState = { top: [], bottom: [] };
-    setExchangePlatform(key);
-    setRowPinning(initRowPinning);
-  };
 
   return (
     <DropdownMenu>
@@ -63,7 +43,7 @@ export const MarketDropdown = ({
             <DropdownMenuItem
               key={key}
               className="gap-1 px-1 py-1 items-left text-body-s hover:cursor-pointer"
-              onClick={() => dropdownSeletedHandler(key)}>
+              onClick={() => setExchangePlatform(key)}>
               <img src={logo} className="size-4" />
               <span>{t(labelKey)}</span>
             </DropdownMenuItem>

@@ -54,21 +54,17 @@ export const getGlobalColumns = (
       const removeMarket = splitGlobalSymbol(symbol).base;
 
       const tradeURL = getGlobalTradeUrl(exchange, symbol);
-      const savedCoins = favoriteCoins?.[exchange]?.join(',') || '';
+      const isFavorite = (favoriteCoins?.[exchange] ?? []).includes(symbol);
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
-        setFavoriteCoins(prev => {
-          const updated = { ...prev };
-          if (savedCoins.includes(symbol)) {
-            updated[exchange] = updated[exchange].filter(coin => coin !== symbol);
-            row.pin(false); // 고정 해제
-          } else {
-            updated[exchange] = [...updated[exchange], symbol];
-            row.pin('top'); // 상단 고정
-          }
-          return updated;
-        });
+        setFavoriteCoins(prev => ({
+          ...prev,
+          [exchange]: isFavorite
+            ? prev[exchange].filter(coin => coin !== symbol)
+            : [...prev[exchange], symbol],
+        }));
+        row.pin(isFavorite ? false : 'top');
       };
 
       return (
@@ -149,7 +145,8 @@ export const getGlobalColumns = (
     size: 60,
   },
   {
-    accessorFn: row => (row.c ? row.c : row.lastPrice),
+    // 거래소 API 값은 문자열이라 숫자로 바꿔 정렬한다.
+    accessorFn: row => Number(row.c ? row.c : row.lastPrice),
     id: 'trade_price',
     header: ({ column }) => (
       <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -178,7 +175,7 @@ export const getGlobalColumns = (
           key={cell.id}
           flashKey={cell.id}
           bidAskStatus={bidAskStatus ? bidAskStatus : ''}
-          className={'flex flex-col items-end font-medium'}>
+          className={'flex flex-col items-end font-medium whitespace-nowrap'}>
           <span>
             {exchangeMarketType === 'BTC'
               ? lastPrice.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })
@@ -195,7 +192,7 @@ export const getGlobalColumns = (
     enableHiding: false,
   },
   {
-    accessorFn: row => (row.P ? (row.P as string) : (row.priceChangePercent as string)),
+    accessorFn: row => Number(row.P ? row.P : row.priceChangePercent),
     id: 'signed_change_rate',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -209,7 +206,7 @@ export const getGlobalColumns = (
       const formattedPriceChange = row.original.priceChange?.replace(/\.?0+$/, '');
 
       return (
-        <div className="flex flex-col items-end font-medium">
+        <div className="flex flex-col items-end font-medium whitespace-nowrap">
           <span className={`${priceChange > 0 ? 'text-up' : priceChange < 0 ? 'text-down' : ''}`}>
             {`${value > 0 ? '+' : ''}${value.toFixed(2)}`}%
           </span>
@@ -291,7 +288,7 @@ export const getGlobalColumns = (
   },
 
   {
-    accessorFn: row => (row.q ? (row.q as string) : (row.quoteVolume as string)),
+    accessorFn: row => Number(row.q ? row.q : row.quoteVolume),
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -316,13 +313,13 @@ export const getGlobalColumns = (
         case 'USD':
         case 'INR':
           return (
-            <div className="flex flex-col items-end font-medium p-2">
+            <div className="flex flex-col items-end font-medium p-2 whitespace-nowrap">
               <span>{formatCurrencyUS(value)}</span>
             </div>
           );
         case 'BTC':
           return (
-            <div className="flex justify-end font-medium p-2">
+            <div className="flex justify-end font-medium p-2 whitespace-nowrap">
               <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );

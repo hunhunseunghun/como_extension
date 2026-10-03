@@ -48,21 +48,17 @@ export const getBithumbColumns = (
       const splitMarket = row.original.market?.split('-');
       const bithumbRow = row.original as { market_warning?: 'NONE' | 'CAUTION' };
       const market = row.original.market;
-      const savedCoins = favoriteCoins?.bithumb?.join(',') || '';
+      const isFavorite = (favoriteCoins?.bithumb ?? []).includes(market);
 
       const toggleFavorite = () => {
         if (!row.getCanPin()) return; // 고정 불가능 시 무시
-        setFavoriteCoins(prev => {
-          const updated = { ...prev };
-          if (savedCoins.includes(market)) {
-            updated.bithumb = updated.bithumb.filter(coin => coin !== market);
-            row.pin(false); // 고정 해제
-          } else {
-            updated.bithumb = [...updated.bithumb, market];
-            row.pin('top'); // 상단 고정
-          }
-          return updated;
-        });
+        setFavoriteCoins(prev => ({
+          ...prev,
+          bithumb: isFavorite
+            ? prev.bithumb.filter(coin => coin !== market)
+            : [...prev.bithumb, market],
+        }));
+        row.pin(isFavorite ? false : 'top');
       };
 
       return (
@@ -173,7 +169,7 @@ export const getBithumbColumns = (
           key={cell.id}
           flashKey={cell.id}
           bidAskStatus={row.original.ask_bid ? row.original.ask_bid : ''}
-          className={'flex flex-col items-end font-medium'}>
+          className={'flex flex-col items-end font-medium whitespace-nowrap'}>
           {exchangeMarketType === 'KRW' && (
             <>
               <span>{valueKRW?.toLocaleString()}</span>
@@ -189,7 +185,8 @@ export const getBithumbColumns = (
     enableHiding: false,
   },
   {
-    accessorFn: row => (row.signed_change_rate * 100).toFixed(2),
+    // 정렬이 숫자 기준이 되도록 숫자로 둔다(문자열이면 음수끼리 순서가 뒤집힌다).
+    accessorFn: row => row.signed_change_rate * 100,
     id: 'signed_change_rate',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -198,10 +195,10 @@ export const getBithumbColumns = (
       </div>
     ),
     cell: ({ row, getValue }) => {
-      const value = String(getValue() as number);
+      const value = (getValue() as number).toFixed(2);
       const signedChangePrice = row.original.signed_change_price?.toLocaleString();
       return (
-        <div className="flex flex-col items-end font-medium">
+        <div className="flex flex-col items-end font-medium whitespace-nowrap">
           <span
             className={`${
               row.original.change === 'RISE' ? 'text-up' : row.original.change === 'FALL' ? 'text-down' : ''
@@ -215,7 +212,7 @@ export const getBithumbColumns = (
     enableHiding: false,
   },
   {
-    accessorFn: row => (((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100).toFixed(2),
+    accessorFn: row => ((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100,
     id: 'highest_52_week_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -224,7 +221,7 @@ export const getBithumbColumns = (
       </div>
     ),
     cell: ({ getValue, row }) => {
-      const value = String(getValue());
+      const value = (getValue() as number).toFixed(2);
       const highestPrice = row.original.highest_52_week_price?.toLocaleString();
       return (
         <div className="flex flex-col items-end text-down font-medium">
@@ -239,7 +236,7 @@ export const getBithumbColumns = (
     },
   },
   {
-    accessorFn: row => (((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100).toFixed(2),
+    accessorFn: row => ((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100,
     id: 'lowest_52_week_diff',
     header: ({ column }) => (
       <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
@@ -248,7 +245,7 @@ export const getBithumbColumns = (
       </div>
     ),
     cell: ({ getValue, row }) => {
-      const value = String(getValue());
+      const value = (getValue() as number).toFixed(2);
       const lowestPrice = row.original.lowest_52_week_price;
       return (
         <div className="flex flex-col items-end text-up font-medium">
@@ -286,13 +283,13 @@ export const getBithumbColumns = (
       switch (exchangeMarketType) {
         case 'KRW':
           return (
-            <div className="flex justify-end font-medium p-2">
+            <div className="flex justify-end font-medium p-2 whitespace-nowrap">
               <span>{formatCurrencyKR(value)}</span>
             </div>
           );
         case 'BTC':
           return (
-            <div className="flex justify-end font-medium p-2">
+            <div className="flex justify-end font-medium p-2 whitespace-nowrap">
               <span>{value >= 1 ? value.toFixed(2) : value.toFixed(5)}</span>
             </div>
           );

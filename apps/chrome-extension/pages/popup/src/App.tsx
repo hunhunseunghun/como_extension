@@ -120,9 +120,30 @@ const App = () => {
     setCoinNameKR(language === 'ko');
   }, [language]);
 
+  // 화면의 거래소를 바꾼다. 백그라운드가 알려준 거래소(처음 연결, 다른 창에서 변경)도 이 경로를 탄다.
+  // 이전 거래소의 시세와 고정 행은 비운다. 고정 행이 남아 있으면 새 표에서 그 행을 찾지 못해 화면이 멈춘다.
+  const exchangeRef = useRef(exchangePlatform);
+  const changeExchange = useCallback((exchange: ExchangePlatform) => {
+    if (exchange === exchangeRef.current) return;
+    exchangeRef.current = exchange;
+    setRowPinning({ top: [], bottom: [] });
+    setTickers({});
+    setIsLoading(true);
+    setExchangePlatform(exchange);
+  }, []);
+
+  // 사용자가 고른 거래소만 백그라운드에 알린다. 첫 렌더의 기본값(upbit)을 보내면 저장된 거래소를 덮어쓴다.
+  const selectExchange = useCallback(
+    (exchange: ExchangePlatform) => {
+      changeExchange(exchange);
+      chrome.runtime.sendMessage({ action: 'changeExchange', exchange });
+    },
+    [changeExchange],
+  );
+
   usePort(
     setTickers,
-    setExchangePlatform,
+    changeExchange,
     setExchangeRateUSD,
     setIsLoading,
     updatedVersionHandler,
@@ -259,8 +280,8 @@ const App = () => {
   const chartColumnWidth = wideSize ? 62 : 48; // 차트 열 고정 너비
   const remainingWidth = viewportWidth - chartColumnWidth; // 나머지 열이 사용할 너비
   const nonChartColumns = table.getAllColumns().filter(col => col.id !== 'candlestick_chart');
-  // 종목명 열은 이름과 마켓 코드(예: WAXP/KRW)가 한 줄에 들어가도록 조금 더 넓게, 나머지는 균등하게 나눈다.
-  const columnWeight = (columnId: string) => (columnId === 'market' ? 1.2 : 1);
+  // 와이드·넓은 화면에서는 종목명 열을 조금 더 넓게 준다. 좁은 팝업에서 넓히면 가격 칸(예: ₩113,963,380)이 두 줄로 꺾인다.
+  const columnWeight = (columnId: string) => (columnId === 'market' && viewportWidth >= 600 ? 1.2 : 1);
   const totalWeight = nonChartColumns.reduce((sum, col) => sum + columnWeight(col.id), 0);
 
   const getColumnWidth = (columnId: string) =>
@@ -345,13 +366,7 @@ const App = () => {
               </div>
               <div className="flex justify-between mx-auto w-full px-1 py-1">
                 <section className="flex gap-1">
-                  <MarketDropdown
-                    exchangePlatform={exchangePlatform}
-                    setExchangePlatform={setExchangePlatform}
-                    setIsLoading={setIsLoading}
-                    setTickers={setTickers}
-                    setRowPinning={setRowPinning}
-                  />
+                  <MarketDropdown exchangePlatform={exchangePlatform} setExchangePlatform={selectExchange} />
                   <MarketTypeDropDown
                     exchangePlatform={exchangePlatform}
                     exchangeMarketType={exchangeMarketType}
@@ -514,7 +529,7 @@ const App = () => {
               <ReviewPrompt />
               <Onboarding
                 exchangePlatform={exchangePlatform}
-                setExchangePlatform={setExchangePlatform}
+                setExchangePlatform={selectExchange}
                 setFavoriteCoins={setFavoriteCoins}
               />
             </main>

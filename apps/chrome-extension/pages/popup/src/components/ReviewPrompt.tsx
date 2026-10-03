@@ -50,7 +50,7 @@ export const ReviewPrompt = () => {
 
   return (
     <div
-      className="absolute bottom-2 left-2 right-2 z-[60] flex items-center gap-2 rounded-md border bg-layer-floating px-2 py-1.5 text-cap shadow-lg"
+      className="absolute bottom-2 left-2 right-2 z-[49] flex items-center gap-2 rounded-md border bg-layer-floating px-2 py-1.5 text-cap shadow-lg"
       data-testid="review-prompt">
       <Star className="size-4 shrink-0 text-star fill-star" />
       <span className="flex-1">{t('reviewAsk')}</span>

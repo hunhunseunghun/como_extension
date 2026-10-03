@@ -181,7 +181,7 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
   });
 
   test('설정: 배지 종목·상승 색을 바꿀 수 있다', async ({ popup, extContext }) => {
-    await popup.getByRole('button', { name: '설정' }).click();
+    await popup.getByRole('button', { name: '설정', exact: true }).click();
     const content = popup.locator('[data-radix-popper-content-wrapper]');
     await content.getByTitle('바이낸스').click();
     await content.getByPlaceholder('BTCUSDT').fill('ETHUSDT');
@@ -213,6 +213,44 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await expect(panel.locator('button:has(svg.lucide-maximize), button:has(svg.lucide-minimize)')).toHaveCount(0);
     await panel.screenshot({ path: test.info().outputPath('sidepanel.png') });
     await panel.close();
+  });
+
+  test('사이드 패널을 연 채로 팝업을 열고 닫아도 사이드 패널 시세가 계속 갱신된다', async ({ extContext, extensionId, popup }) => {
+    const panel = await extContext.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/popup/index.html?view=sidepanel`);
+    await expect(rows(panel).nth(5)).toBeVisible();
+
+    // 한쪽에서 거래소를 바꾸면 다른 쪽도 같은 거래소로 맞춰진다.
+    await switchExchange(panel, '업비트', '빗썸');
+    await expect(popup.getByRole('button', { name: '빗썸' }).first()).toBeVisible();
+    await expect(rows(popup).nth(5)).toBeVisible();
+    await switchExchange(popup, '빗썸', '업비트');
+    await expect(panel.getByRole('button', { name: '업비트' }).first()).toBeVisible();
+    await expect(rows(panel).nth(5)).toBeVisible();
+
+    // 팝업을 하나 더 열었다 닫는다.
+    const extra = await extContext.newPage();
+    await extra.goto(`chrome-extension://${extensionId}/popup/index.html`);
+    await expect(rows(extra).nth(5)).toBeVisible();
+    await extra.close();
+
+    await expectLiveUpdates(panel);
+    await panel.close();
+  });
+
+  test('이름이 겹치는 종목도 즐겨찾기할 수 있다', async ({ popup }) => {
+    // KRW-BTCX가 즐겨찾기에 있어도 KRW-BTC는 즐겨찾기가 아니다.
+    await popup.evaluate(() => chrome.storage.local.set({ favoriteCoins: { upbit: ['KRW-BTCX'] } }));
+    await popup.reload();
+    const search = popup.getByPlaceholder(/BTC/).first();
+    await search.fill('BTC');
+    const btcRow = rows(popup).filter({ has: popup.locator('a[href$="CRIX.UPBIT.KRW-BTC"]') });
+    await btcRow.locator('svg.lucide-star').click({ timeout: 15_000 });
+    await expect
+      .poll(async () => (await popup.evaluate(() => chrome.storage.local.get('favoriteCoins'))).favoriteCoins.upbit)
+      .toEqual(['KRW-BTCX', 'KRW-BTC']);
+    await popup.evaluate(() => chrome.storage.local.set({ favoriteCoins: {} }));
+    await popup.reload();
   });
 
   test('충분히 사용하면 리뷰를 한 번 요청한다', async ({ popup }) => {
@@ -305,19 +343,19 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
 
   test('디자인 버전을 v1·v2로 바꾸고 다시 열어도 유지된다', async ({ popup }) => {
     await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v2');
-    await popup.getByRole('button', { name: '설정' }).click();
+    await popup.getByRole('button', { name: '설정', exact: true }).click();
     await popup.locator('[data-radix-popper-content-wrapper]').getByRole('button', { name: '클래식 (v1)' }).click();
     await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v1');
     await popup.reload();
     await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v1');
-    await popup.getByRole('button', { name: '설정' }).click();
+    await popup.getByRole('button', { name: '설정', exact: true }).click();
     await popup.locator('[data-radix-popper-content-wrapper]').getByRole('button', { name: '새 디자인 (v2)' }).click();
     await expect(popup.locator('html')).toHaveAttribute('data-ds', 'v2');
     await popup.keyboard.press('Escape');
   });
 
   test('영어로 전환하면 UI와 숫자 단위가 바뀌고 다시 열어도 유지된다', async ({ popup }) => {
-    await popup.getByRole('button', { name: '설정' }).click();
+    await popup.getByRole('button', { name: '설정', exact: true }).click();
     await popup.locator('[data-radix-popper-content-wrapper]').getByLabel('언어').selectOption('en');
     await popup.keyboard.press('Escape');
     await expect(popup.locator('thead')).toContainText('Price');

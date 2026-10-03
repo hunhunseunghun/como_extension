@@ -72,13 +72,13 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
     const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
 
     if (deadband === 0) {
-      if (crossedUp || crossedDown) sendNotification(exchange, ticker, currentPrice, alertPrice);
+      if (crossedUp || crossedDown) sendNotification(exchange, ticker, currentPrice, alertPrice, crossedUp);
       return;
     }
 
     if (!tickerTriggered[alertPrice]) {
       if (crossedUp || crossedDown) {
-        sendNotification(exchange, ticker, currentPrice, alertPrice);
+        sendNotification(exchange, ticker, currentPrice, alertPrice, crossedUp);
         tickerTriggered[alertPrice] = true;
         changed = true;
       }
@@ -119,13 +119,14 @@ const getLanguage = () => {
   return NOTIFICATION_TEXT[language] ? language : 'en';
 };
 
-function sendNotification(exchange, ticker, currentPrice, alertPrice) {
+// 방향은 가격 비교로 다시 구하지 않는다. 올라오다 목표가에 딱 닿으면(현재가 = 목표가) 하향으로 잘못 표시된다.
+function sendNotification(exchange, ticker, currentPrice, alertPrice, crossedUp) {
   const notificationId = `${exchange}:${ticker}:${alertPrice}`;
   chrome.notifications.create(notificationId, {
     type: 'basic',
     iconUrl: 'como-logo.png',
     title: `${alertPrice > 10 ? alertPrice.toLocaleString('en-US') : alertPrice} ${ticker} ${exchange.toUpperCase()}`,
-    message: `${ticker} ${NOTIFICATION_TEXT[getLanguage()][currentPrice > alertPrice ? 'up' : 'down']}`,
+    message: `${ticker} ${NOTIFICATION_TEXT[getLanguage()][crossedUp ? 'up' : 'down']}`,
   });
   // 알림이 실제로 울린 시점은 리뷰 요청 조건으로 쓴다.
   chrome.storage.local.set({ alertFiredAt: Date.now() });
@@ -418,8 +419,9 @@ function deletePriceAlert(exchange, ticker, priceToDelete, response) {
     let deadbandSettings = result.deadbandSettings || {};
 
     // priceAlerts에서 삭제
-    const updatedPairs = alerts[exchange][ticker].filter(pair => pair.price !== priceToDelete);
-    alerts[exchange][ticker] = updatedPairs;
+    // 이미 지워진 알림이어도 팝업이 응답을 기다리며 멈추지 않게 빈 목록으로 처리한다.
+    const updatedPairs = (alerts[exchange]?.[ticker] ?? []).filter(pair => pair.price !== priceToDelete);
+    alerts[exchange] = { ...alerts[exchange], [ticker]: updatedPairs };
 
     // deadbandSettings에서 삭제
     if (deadbandSettings[exchange]?.[ticker]?.[priceToDelete]) {
@@ -1366,6 +1368,11 @@ async function handleExchangeChange(exchange) {
   const prev = getExchangeInstance(activeExchange);
   if (prev) prev.setPopupActive(false);
 
+  activeExchange = exchange;
+  // 다른 창도 같은 거래소로 맞춘다. 한쪽만 바뀌면 다른 창은 오지 않는 시세를 기다리며 멈춘다.
+  // 화면은 거래소가 바뀌면 시세를 비우므로, 새 거래소 시세보다 먼저 보낸다.
+  if (activePort) activePort.postMessage({ type: 'activeExchange', data: exchange });
+
   const next = getExchangeInstance(exchange);
   if (next) {
     next.setPopupActive(true);
@@ -1389,6 +1396,22 @@ const exchanges = {
   coindcx: new CoindcxData(),
 };
 
+// 팝업과 사이드 패널이 동시에 열릴 수 있어 연결된 화면 모두에 보낸다.
+// activePort는 연결된 화면이 하나라도 있으면 broadcastPort, 없으면 null이다.
+const popupPorts = new Set();
+const broadcastPort = {
+  name: 'popup',
+  postMessage(message) {
+    popupPorts.forEach(port => {
+      try {
+        port.postMessage(message);
+      } catch (error) {
+        popupPorts.delete(port);
+      }
+    });
+  },
+  onDisconnect: { addListener() {} },
+};
 let activePort = null;
 let maxChangeRateIntervalId = null;
 
@@ -1605,36 +1628,38 @@ async function initialize() {
 chrome.runtime.onConnect.addListener(port => {
   if (!port || port.name !== 'popup') return;
 
-  activePort = port;
-  exchangeRateManager.port = port;
+  popupPorts.add(port);
+  activePort = broadcastPort;
+  exchangeRateManager.port = broadcastPort;
 
   if (exchangeRateManager.exchangeRateUSD) {
     port.postMessage({ type: 'exchangeRateUSD', data: exchangeRateManager.exchangeRateUSD });
   }
   polledData.forEach(data => data.post(port));
 
+  // 화면은 거래소가 바뀌면 시세를 비우므로, 거래소를 시세 스냅샷보다 먼저 알린다.
+  port.postMessage({ type: 'activeExchange', data: activeExchange });
+
   const active = getExchangeInstance(activeExchange);
   if (active) active.connectPopup(activePort);
 
-  if (activePort) {
-    activePort.postMessage({ type: 'updatedVersion', data: updatedVersion });
-  }
+  port.postMessage({ type: 'updatedVersion', data: updatedVersion });
 
   port.onDisconnect.addListener(() => {
-    if (activePort !== port) return;
+    popupPorts.delete(port);
+    if (popupPorts.size) return;
     activePort = null;
     exchangeRateManager.port = null;
+    Object.values(exchanges).forEach(exchange => {
+      if (exchange.port === broadcastPort) exchange.port = null;
+    });
     if (maxChangeRateIntervalId !== null) {
       clearInterval(maxChangeRateIntervalId);
       maxChangeRateIntervalId = null;
     }
   });
 
-  port.postMessage({ type: 'activeExchange', data: activeExchange });
-
-  if (maxChangeRateIntervalId !== null) {
-    clearInterval(maxChangeRateIntervalId);
-  }
+  if (maxChangeRateIntervalId !== null) return;
   maxChangeRateIntervalId = setInterval(() => {
     let maxRate = -Infinity;
     let maxTicker = { exchange: '', market: '', changeRate: 0 };
