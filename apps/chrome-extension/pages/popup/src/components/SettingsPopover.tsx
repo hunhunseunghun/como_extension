@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Monitor, Moon, PanelRight, Settings, Sun } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Download, Monitor, Moon, PanelRight, Settings, Sun, Upload } from 'lucide-react';
+import { exportBackup, importBackup } from '@/lib/backup';
 import { useTheme } from '@/components/ThemeProvider';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +20,8 @@ import { NativeSelect } from '@/components/ui/nativeSelect';
 import { Section, SettingRow } from '@/components/ui/section';
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
+
+const UPBIT_NOTICE_ORIGIN = 'https://api-manager.upbit.com/*';
 
 export const CurrencySelect = () => {
   const { t, currency, setCurrency } = useI18n();
@@ -44,11 +47,15 @@ type SettingsPopoverProps = {
 export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopoverProps) => {
   const { t, language, setLanguage, upDownColors, setUpDownColors } = useI18n();
   const { theme, setTheme, designVersion, setDesignVersion } = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
+  // 백업 복원을 위해 탭으로 열었을 때는 설정을 바로 펼친다.
+  const [isOpen, setIsOpen] = useState(() => new URLSearchParams(location.search).get('settings') === 'open');
   const prices = useAllTickers(isOpen);
   const [badge, setBadge] = useState<BadgeSettings | null>(null);
   const [badgeMarketInput, setBadgeMarketInput] = useState('');
   const [listingAlerts, setListingAlerts] = useState<boolean | null>(null);
+  const [backupError, setBackupError] = useState(false);
+  const [noticeAlerts, setNoticeAlerts] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const canOpenSidePanel = typeof chrome !== 'undefined' && !!chrome.sidePanel?.open && !isSidePanelView();
 
   useEffect(() => {
@@ -60,6 +67,11 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
     });
     chrome.storage.local.get(LISTING_ALERTS_STORAGE_KEY, result => {
       setListingAlerts((result?.[LISTING_ALERTS_STORAGE_KEY] as boolean | undefined) ?? null);
+    });
+    // 권한을 브라우저 설정에서 거둬 갔으면 꺼진 것으로 보여 준다.
+    chrome.storage.local.get('noticeAlerts', result => {
+      if (!result?.noticeAlerts) return;
+      chrome.permissions.contains({ origins: [UPBIT_NOTICE_ORIGIN] }, setNoticeAlerts);
     });
     // 언어가 바뀌어도 이미 저장한 배지 설정은 유지한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,6 +196,24 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
               }}
             />
           </SettingRow>
+          <SettingRow label={t('noticeAlerts')}>
+            <Switch
+              aria-label={t('noticeAlerts')}
+              checked={noticeAlerts}
+              onCheckedChange={checked => {
+                if (!checked) {
+                  setNoticeAlerts(false);
+                  chrome.storage.local.set({ noticeAlerts: false });
+                  return;
+                }
+                // 공지 API는 선택 권한이다. 켤 때 한 번 허락받는다.
+                chrome.permissions.request({ origins: [UPBIT_NOTICE_ORIGIN] }, granted => {
+                  setNoticeAlerts(granted);
+                  chrome.storage.local.set({ noticeAlerts: granted });
+                });
+              }}
+            />
+          </SettingRow>
           <SettingRow label={t('toolbarBadge')}>
             <Switch
               aria-label={t('toolbarBadge')}
@@ -205,6 +235,46 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
               />
             </div>
           )}
+        </Section>
+
+        <Section title={t('backupTitle')}>
+          <div className="flex gap-1 px-1 pb-1">
+            <Button variant="soft" className="h-control flex-1 gap-1 text-cap-s hover:cursor-pointer" onClick={exportBackup}>
+              <Download className="size-3" />
+              {t('backupExport')}
+            </Button>
+            <Button
+              variant="soft"
+              className="h-control flex-1 gap-1 text-cap-s hover:cursor-pointer"
+              onClick={() => {
+                // 툴바 팝업은 파일 선택 창이 뜨면 닫혀 버리므로, 탭으로 열어 거기서 고르게 한다.
+                if (chrome.extension?.getViews?.({ type: 'popup' }).includes(window)) {
+                  chrome.tabs.create({ url: chrome.runtime.getURL('popup/index.html?settings=open') });
+                  window.close();
+                  return;
+                }
+                fileInputRef.current?.click();
+              }}>
+              <Upload className="size-3" />
+              {t('backupImport')}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              data-testid="backup-file"
+              onChange={async event => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (!file) return;
+                if (await importBackup(file)) location.reload();
+                else setBackupError(true);
+              }}
+            />
+          </div>
+          {backupError && <p className="px-1 pb-1 text-cap-s text-fg-critical">{t('backupInvalid')}</p>}
+          <p className="px-1 pb-1 text-cap-s text-fg-faint">{t('backupHint')}</p>
         </Section>
 
         {canOpenSidePanel && (

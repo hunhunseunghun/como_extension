@@ -55,6 +55,8 @@ export const PortfolioPopover = () => {
   const [quantity, setQuantity] = useState('');
   const [avgPrice, setAvgPrice] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
   const locale = t('numberLocale');
 
   useEffect(() => {
@@ -96,13 +98,28 @@ export const PortfolioPopover = () => {
     const source = `${syncExchange}-api`;
     saveHoldings([
       ...holdings.filter(holding => holding.source !== source),
-      ...synced.map((item, index) => ({
-        id: `${source}-${Date.now()}-${index}`,
-        exchange: syncExchange,
-        ...item,
-        source,
-      })),
+      ...synced.map(({ avgEstimated, ...item }, index) => {
+        // 평균가를 주지 않는 거래소(바이낸스)는 다시 불러올 때 이전 평균가를 지킨다. 그러지 않으면 매번 손익이 0이 된다.
+        const previous = avgEstimated
+          ? holdings.find(holding => holding.source === source && holding.market === item.market)
+          : undefined;
+        return {
+          id: `${source}-${Date.now()}-${index}`,
+          exchange: syncExchange,
+          ...item,
+          avgPrice: previous?.avgPrice ?? item.avgPrice,
+          source,
+        };
+      }),
     ]);
+  };
+
+  // 평균가 직접 고치기. 거래소가 평균가를 주지 않거나(바이낸스) 잘못 입력했을 때 쓴다.
+  const commitAvgPrice = (id: string) => {
+    const next = Number(editValue);
+    setEditingId(null);
+    if (!(next > 0)) return;
+    saveHoldings(holdings.map(holding => (holding.id === id ? { ...holding, avgPrice: next } : holding)));
   };
 
   const handleAdd = () => {
@@ -138,7 +155,11 @@ export const PortfolioPopover = () => {
           </HoverHint>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-2 text-cap bg-background border border-stroke-weak">
+      <PopoverContent
+        className="w-80 p-2 text-cap bg-background border border-stroke-weak"
+        onEscapeKeyDown={event => {
+          if ((event.target as HTMLElement | null)?.closest?.('[data-editing="true"]')) event.preventDefault();
+        }}>
         <div className="flex justify-between items-center mb-1 px-1">
           <span className="text-title-s font-semibold">{t('portfolio')}</span>
           <CurrencySelect />
@@ -229,10 +250,36 @@ export const PortfolioPopover = () => {
                     <span className="ml-1 rounded-sm bg-neutral-weak px-1 text-cap-xs font-normal">API</span>
                   )}
                 </div>
-                <div className="num text-cap-s text-fg-faint truncate">
-                  {t('avgPrice')} {formatFiat(holding.avgPrice, quote, locale)} ·{' '}
-                  {price ? formatFiat(price, quote, locale) : '-'}
-                </div>
+                {editingId === holding.id ? (
+                  <Input
+                    type="number"
+                    min="0"
+                    autoFocus
+                    data-editing="true"
+                    aria-label={t('avgPrice')}
+                    className="h-5 px-1 text-cap-s"
+                    value={editValue}
+                    onChange={event => setEditValue(event.target.value)}
+                    onBlur={() => commitAvgPrice(holding.id)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') commitAvgPrice(holding.id);
+                      // Esc는 편집만 취소한다(팝오버는 onEscapeKeyDown에서 닫지 않음).
+                      if (event.key === 'Escape') setEditingId(null);
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="num block max-w-full text-left text-cap-s text-fg-faint truncate hover:cursor-pointer hover:text-fg-subtle"
+                    title={t('editAvgPrice')}
+                    onClick={() => {
+                      setEditingId(holding.id);
+                      setEditValue(String(holding.avgPrice));
+                    }}>
+                    {t('avgPrice')} {formatFiat(holding.avgPrice, quote, locale)} ·{' '}
+                    {price ? formatFiat(price, quote, locale) : '-'}
+                  </button>
+                )}
               </div>
               <div className="num text-right">
                 <div>{value !== null ? formatFiat(value, quote, locale) : '-'}</div>

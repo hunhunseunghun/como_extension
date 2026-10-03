@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { expect, expectLiveUpdates, rows, switchExchange, test, totalCount } from './fixtures';
 
 const errors: string[] = [];
@@ -52,9 +53,12 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
       // KRW-BTC가 아직 없던 것처럼 기준 목록을 바꿔 두고 비교를 한 번 돌린다.
       const markets: { market: string }[] = await (await fetch('https://api.upbit.com/v1/market/all')).json();
       const known = markets.map(m => m.market).filter(m => m.startsWith('KRW-') && m !== 'KRW-BTC');
-      await chrome.storage.local.set({ listingAlerts: true, knownKrwMarkets: { upbit: known } });
-      await chrome.alarms.create('listingCheck', { when: Date.now() + 100 });
-      for (let i = 0; i < 50 && !notifications.length; i++) await new Promise(r => setTimeout(r, 200));
+      // 시작 15초 뒤의 첫 확인과 겹치면 한쪽이 건너뛰므로(동시 실행 방지) 알림이 올 때까지 몇 번 다시 시도한다.
+      for (let attempt = 0; attempt < 4 && !notifications.length; attempt++) {
+        await chrome.storage.local.set({ listingAlerts: true, knownKrwMarkets: { upbit: known } });
+        await chrome.alarms.create('listingCheck', { when: Date.now() + 100 });
+        for (let i = 0; i < 30 && !notifications.length; i++) await new Promise(r => setTimeout(r, 200));
+      }
       chrome.notifications.create = original;
       await chrome.alarms.create('listingCheck', { periodInMinutes: 5 });
       return notifications;
@@ -145,6 +149,16 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await expect(total).toContainText(/￥|¥/);
     await content.getByLabel('표시 통화').selectOption('KRW');
 
+    // 평균가를 눌러 직접 고친다. Esc는 편집만 취소하고 팝오버는 그대로 둔다.
+    await content.getByTitle('눌러서 평균 매수가 수정').first().click();
+    await content.getByLabel('평균가').fill('1000');
+    await popup.keyboard.press('Escape');
+    await expect(content).toBeVisible();
+    await content.getByTitle('눌러서 평균 매수가 수정').first().click();
+    await content.getByLabel('평균가').fill('1000');
+    await popup.keyboard.press('Enter');
+    await expect(content.getByTestId('holding').first()).toContainText('₩1,000');
+
     // 다시 열어도 저장돼 있어야 한다.
     await popup.reload();
     await popup.getByRole('button', { name: '보유 자산' }).click();
@@ -154,11 +168,46 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await popup.keyboard.press('Escape');
   });
 
+  test('검색 결과가 없으면 안내를 보여준다', async ({ popup }) => {
+    const search = popup.getByLabel('코인 검색');
+    await search.fill('없는코인ZZZQ');
+    await expect(popup.locator('tbody')).toContainText('검색 결과가 없어요');
+    await search.fill('');
+    await expect(rows(popup).nth(5)).toBeVisible();
+  });
+
+  test('설정을 백업 파일로 내보내고 다시 불러온다', async ({ popup }) => {
+    await popup.evaluate(() =>
+      chrome.storage.local.set({ favoriteCoins: { upbit: ['KRW-ETH'] }, exchangeApiKeys: { upbit: { accessKey: 'a', secretKey: 'b' } } }),
+    );
+    await popup.getByRole('button', { name: '설정', exact: true }).click();
+    const download = popup.waitForEvent('download');
+    await popup.getByRole('button', { name: '내보내기' }).click();
+    const file = await (await download).path();
+    const backup = JSON.parse(fs.readFileSync(file, 'utf8'));
+    expect(backup.format).toBe('como-backup');
+    expect(backup.storage.favoriteCoins.upbit).toEqual(['KRW-ETH']);
+    // API 키는 백업에 담지 않는다.
+    expect(JSON.stringify(backup)).not.toContain('accessKey');
+
+    // 다른 값으로 바꾼 뒤 불러오면 백업 값으로 돌아온다. 잘못된 파일은 거부한다.
+    await popup.evaluate(() => chrome.storage.local.set({ favoriteCoins: {}, exchangeApiKeys: {} }));
+    await popup.getByTestId('backup-file').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{}') });
+    await expect(popup.getByText('COMO 백업 파일이 아니에요.')).toBeVisible();
+    await Promise.all([popup.waitForEvent('load'), popup.getByTestId('backup-file').setInputFiles(file)]);
+    const stored = await popup.evaluate(() => chrome.storage.local.get('favoriteCoins'));
+    expect(stored.favoriteCoins.upbit).toEqual(['KRW-ETH']);
+    await popup.evaluate(() => chrome.storage.local.set({ favoriteCoins: {} }));
+    await popup.reload();
+  });
+
   test('시장 인사이트에 시장 지표와 거래소 간 가격 차이를 보여준다', async ({ popup }) => {
     await popup.getByRole('button', { name: '시장 인사이트' }).click();
     const content = popup.locator('[data-radix-popper-content-wrapper]');
     await expect(content.getByTestId('market-stats')).toContainText(/\d+%/);
     await expect(content.getByTestId('spread').first()).toBeVisible();
+    // 김프 추이: 백그라운드가 시작할 때 한 점을 남기므로 차트나 수집 안내 중 하나가 보인다.
+    await expect(content.getByTestId('kimchi-trend')).toBeVisible();
     await popup.screenshot({ path: test.info().outputPath('insights.png') });
     await content.getByLabel('원화 거래소 포함').uncheck();
     await expect(content.getByTestId('spread').first()).toBeVisible();
@@ -203,6 +252,8 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await popup.locator('button:has(svg.lucide-maximize)').click();
     await popup.setViewportSize({ width: 800, height: 600 });
     await expect(popup.locator('span:text-is("김프")').locator('..')).toContainText(/BTC[\s\S]*%/);
+    // 테더 프리미엄도 함께 보여 준다.
+    await expect(popup.locator('span:text-is("김프")').locator('..')).toContainText(/USDT[\s\S]*%/);
   });
 
   test('사이드 패널 화면은 창 크기에 맞춰 그린다', async ({ extContext, extensionId }) => {
@@ -336,6 +387,8 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await sync.getByPlaceholder('Secret key').fill('invalid');
     await sync.getByRole('button', { name: '키 저장하고 불러오기' }).click();
     await expect(sync).toContainText('불러오지 못했어요', { timeout: 15_000 });
+    // 거래소 원문 오류 대신 번역된 안내를 보여준다.
+    await expect(sync).toContainText('키가 올바르지 않아요');
     await sync.getByRole('button', { name: '키 삭제' }).click();
     await expect(popup.evaluate(() => chrome.storage.local.get('exchangeApiKeys'))).resolves.toEqual({ exchangeApiKeys: {} });
     await popup.keyboard.press('Escape');

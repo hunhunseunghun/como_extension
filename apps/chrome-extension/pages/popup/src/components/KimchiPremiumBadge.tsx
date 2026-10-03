@@ -20,6 +20,8 @@ export const KimchiPremiumBadge = ({ kimchiPremium, exchangePlatform }: Props) =
       const item = kimchiPremium.items[`${exch}:KRW-${coin}`];
       if (item) out.push({ coin, premium: item.premium });
     }
+    const tether = kimchiPremium.tether?.[exch];
+    if (tether != null) out.push({ coin: 'USDT', premium: tether });
     return out;
   }, [kimchiPremium, exchangePlatform]);
 

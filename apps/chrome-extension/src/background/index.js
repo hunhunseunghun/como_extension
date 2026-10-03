@@ -172,6 +172,13 @@ const getTradeUrl = (exchange, market) => {
 };
 
 chrome.notifications.onClicked.addListener(notificationId => {
+  // 공지 알림: notice:<거래소>:<공지 id>
+  if (notificationId.startsWith('notice:')) {
+    const [, exchange, id] = notificationId.split(':');
+    if (exchange === 'upbit') chrome.tabs.create({ url: `https://upbit.com/service_center/notice?id=${id}` });
+    chrome.notifications.clear(notificationId);
+    return;
+  }
   const [exchange, market] = notificationId.split(':');
   const url = market && getTradeUrl(exchange, market);
   if (url) chrome.tabs.create({ url });
@@ -337,9 +344,73 @@ function checkAlertRules() {
 }
 setInterval(checkAlertRules, 10_000);
 
+// 업비트 거래 공지(신규 거래지원 예정, 유의 종목 지정·해제, 거래지원 종료) 알림.
+// 마켓 목록 비교는 거래가 열린 뒤에야 알 수 있어, 공지가 올라오는 즉시 알리는 쪽이 빠르다.
+// 공지 API는 선택 권한이라 설정에서 켤 때 사용자에게 권한을 받는다.
+const NOTICE_SETTING_KEY = 'noticeAlerts';
+const NOTICE_LAST_ID_KEY = 'lastUpbitNoticeId';
+const UPBIT_NOTICE_ORIGIN = 'https://api-manager.upbit.com/*';
+let noticeCheckRunning = false;
+
+async function checkUpbitNotices() {
+  if (noticeCheckRunning) return;
+  noticeCheckRunning = true;
+  try {
+    const result = await chrome.storage.local.get([NOTICE_SETTING_KEY, NOTICE_LAST_ID_KEY]);
+    if (!result[NOTICE_SETTING_KEY]) return;
+    if (!(await chrome.permissions.contains({ origins: [UPBIT_NOTICE_ORIGIN] }))) return;
+    const { data } = await fetchJson('https://api-manager.upbit.com/api/v1/announcements?os=web&page=1&per_page=20&category=trade');
+    const notices = data?.notices ?? [];
+    if (!notices.length) return;
+    const lastId = result[NOTICE_LAST_ID_KEY];
+    const maxId = Math.max(...notices.map(notice => notice.id));
+    // 처음 켰을 때는 지난 공지를 한꺼번에 알리지 않고 기준만 잡는다.
+    if (lastId != null) {
+      notices
+        .filter(notice => notice.id > lastId)
+        .slice(0, 5)
+        .forEach(notice => {
+          chrome.notifications.create(`notice:upbit:${notice.id}`, {
+            type: 'basic',
+            iconUrl: 'como-logo.png',
+            title: notice.title,
+            message: `UPBIT · ${NOTICE_TEXT[getLanguage()] ?? NOTICE_TEXT.en}`,
+          });
+        });
+    }
+    if (maxId !== lastId) await chrome.storage.local.set({ [NOTICE_LAST_ID_KEY]: maxId });
+  } catch (error) {
+    console.warn(error);
+  } finally {
+    noticeCheckRunning = false;
+  }
+}
+const NOTICE_TEXT = {
+  ko: '거래 공지',
+  en: 'Trading notice',
+  es: 'Aviso de trading',
+  pt: 'Aviso de negociação',
+  vi: 'Thông báo giao dịch',
+  tr: 'İşlem duyurusu',
+  id: 'Pengumuman trading',
+  ja: '取引のお知らせ',
+  zh: '交易公告',
+  hi: 'ट्रेडिंग सूचना',
+};
+
+chrome.alarms.create('noticeCheck', { periodInMinutes: 2 });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'noticeCheck') checkUpbitNotices();
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  // 켜자마자 기준 공지를 잡아 둔다.
+  if (area === 'local' && changes[NOTICE_SETTING_KEY]?.newValue) checkUpbitNotices();
+});
+
 chrome.alarms.create('listingCheck', { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(alarm => {
-  if (alarm.name === 'listingCheck') checkNewListings();
+  if (alarm.name === 'listingCheck') // 시작 직후 거래소 시세 요청과 겹쳐 업비트 요청 한도에 걸리지 않게 조금 늦춘다.
+setTimeout(checkNewListings, 15_000);
 });
 checkNewListings();
 
@@ -500,7 +571,7 @@ function deletePriceAlertNow(exchange, ticker, priceToDelete, response) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'openPopup') chrome.action.openPopup();
   if (message.action === 'changeExchange') handleExchangeChange(message.exchange);
-  if (message.action === 'getActiveExchange' && activePort) {
+  if (message.action === 'getActiveExchange' && activePort && activeExchange) {
     activePort.postMessage({ type: 'activeExchange', data: activeExchange });
   }
   if (message.action === 'setPriceAlert') {
@@ -744,19 +815,12 @@ class ExchangeData {
   async fetchInitialTickers() {
     try {
       // 마켓 전체를 한 URL에 넣으면 빗썸이 414(URI Too Long)로 거부하므로 나눠서 요청한다.
-      const chunks = [];
+      // 한꺼번에 보내면 업비트가 초당 요청 한도(429)로 일부를 거절해 스냅샷 전체가 비므로 차례로 보내고, 429면 잠시 뒤 다시 보낸다.
+      const responses = [];
       for (let i = 0; i < this.markets.length; i += TICKER_CHUNK_SIZE) {
-        chunks.push(this.markets.slice(i, i + TICKER_CHUNK_SIZE));
+        const chunk = this.markets.slice(i, i + TICKER_CHUNK_SIZE);
+        responses.push(await this.fetchTickerChunk(chunk));
       }
-      const responses = await Promise.all(
-        chunks.map(async chunk => {
-          const response = await fetch(`${this.apiUrl}/ticker?markets=${chunk.join(',')}`, {
-            headers: { Accept: 'application/json' },
-          });
-          if (!response.ok) throw new Error(`${this.name} ticker ${response.status}`);
-          return response.json();
-        }),
-      );
       this.setSnapshot(
         responses.flat().map(ticker => ({
           key: ticker.market,
@@ -770,6 +834,18 @@ class ExchangeData {
     } catch (error) {
       console.warn(error);
     }
+  }
+
+  async fetchTickerChunk(chunk, attempt = 0) {
+    const response = await fetch(`${this.apiUrl}/ticker?markets=${chunk.join(',')}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (response.status === 429 && attempt < 4) {
+      await new Promise(resolve => setTimeout(resolve, 300 * 2 ** attempt));
+      return this.fetchTickerChunk(chunk, attempt + 1);
+    }
+    if (!response.ok) throw new Error(`${this.name} ticker ${response.status}`);
+    return response.json();
   }
 
   // 업비트·빗썸 공통 구독/파싱
@@ -1669,6 +1745,16 @@ const fetchJson = async url => {
 };
 
 const polledData = [
+  // 입출금이 멈춘 코인. 빗썸만 공개 API로 준다(업비트는 인증이 필요하다). 멈춘 코인만 보내 메시지를 작게 둔다.
+  new PolledData('walletStatus', 10 * 60 * 1000, async () => {
+    const { status, data } = await fetchJson('https://api.bithumb.com/public/assetsstatus/ALL');
+    if (status !== '0000' || !data) return null;
+    const bithumb = {};
+    for (const [coin, { deposit_status: deposit, withdrawal_status: withdraw }] of Object.entries(data)) {
+      if (deposit !== 1 || withdraw !== 1) bithumb[coin] = { deposit: deposit === 1, withdraw: withdraw === 1 };
+    }
+    return { bithumb };
+  }),
   // USD 기준 166개 법정화폐 환율
   new PolledData('fiatRates', 6 * 60 * 60 * 1000, async () => {
     const data = await fetchJson('https://open.er-api.com/v6/latest/USD');
@@ -1771,6 +1857,47 @@ const hmacSha256 = async (secret, message) => {
 };
 const toHex = bytes => [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 
+// 거래소 오류를 팝업이 번역해 보여줄 수 있는 코드로 바꾼다. 원문은 detail로 함께 넘긴다.
+class AccountSyncError extends Error {
+  constructor(code, detail = '') {
+    super(detail || code);
+    this.code = code;
+    this.detail = detail;
+  }
+}
+
+const UPBIT_ERROR_CODES = {
+  no_authorization_ip: 'ip',
+  invalid_access_key: 'invalidKey',
+  jwt_verification: 'invalidKey',
+  expired_access_key: 'expired',
+  out_of_scope: 'permission',
+};
+// -2015: 키·IP·권한 중 하나가 맞지 않음, -2008/-2014/-1022: 없는 키·키 형식·서명 오류
+const BINANCE_ERROR_CODES = { '-2015': 'ip', '-2008': 'invalidKey', '-2014': 'invalidKey', '-1022': 'invalidKey' };
+
+// 바이낸스 키에 거래·출금·이체 권한이 하나라도 켜져 있으면 저장하지 않는다. 읽기 전용 안내만으로는 실수를 막지 못한다.
+async function assertBinanceReadOnly({ apiKey, secretKey }) {
+  const query = `timestamp=${Date.now()}&recvWindow=10000`;
+  const signature = toHex(await hmacSha256(secretKey, query));
+  const response = await fetch(`https://api.binance.com/sapi/v1/account/apiRestrictions?${query}&signature=${signature}`, {
+    headers: { 'X-MBX-APIKEY': apiKey, Accept: 'application/json' },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new AccountSyncError(BINANCE_ERROR_CODES[String(data?.code)] ?? 'unknown', data?.msg);
+  const dangerous = [
+    'enableWithdrawals',
+    'enableSpotAndMarginTrading',
+    'enableMargin',
+    'enableFutures',
+    'enableInternalTransfer',
+    'permitsUniversalTransfer',
+    'enableVanillaOptions',
+    'enablePortfolioMarginTrading',
+  ];
+  if (dangerous.some(key => data?.[key] === true)) throw new AccountSyncError('tradeKey');
+}
+
 const ACCOUNT_LOADERS = {
   // 업비트: JWT(HS256) { access_key, nonce }. 평균 매수가(avg_buy_price)를 함께 준다.
   async upbit({ accessKey, secretKey }) {
@@ -1781,7 +1908,9 @@ const ACCOUNT_LOADERS = {
       headers: { Authorization: `Bearer ${header}.${payload}.${signature}`, Accept: 'application/json' },
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data?.error?.message || `upbit ${response.status}`);
+    if (!response.ok) {
+      throw new AccountSyncError(UPBIT_ERROR_CODES[data?.error?.name] ?? 'unknown', data?.error?.message || `upbit ${response.status}`);
+    }
     return data
       .filter(item => item.currency !== 'KRW' && item.unit_currency === 'KRW')
       .map(item => ({
@@ -1793,13 +1922,14 @@ const ACCOUNT_LOADERS = {
   },
   // 바이낸스: HMAC-SHA256 서명 쿼리. 평균 매수가는 주지 않는다.
   async binance({ apiKey, secretKey }) {
+    await assertBinanceReadOnly({ apiKey, secretKey });
     const query = `timestamp=${Date.now()}&recvWindow=10000&omitZeroBalances=true`;
     const signature = toHex(await hmacSha256(secretKey, query));
     const response = await fetch(`https://api.binance.com/api/v3/account?${query}&signature=${signature}`, {
       headers: { 'X-MBX-APIKEY': apiKey, Accept: 'application/json' },
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data?.msg || `binance ${response.status}`);
+    if (!response.ok) throw new AccountSyncError(BINANCE_ERROR_CODES[String(data?.code)] ?? 'unknown', data?.msg || `binance ${response.status}`);
     return (data.balances ?? [])
       .filter(item => !['USDT', 'USDC', 'FDUSD', 'BUSD'].includes(item.asset))
       .map(item => ({ market: `${item.asset}USDT`, quantity: Number(item.free) + Number(item.locked), avgPrice: null }))
@@ -1807,21 +1937,33 @@ const ACCOUNT_LOADERS = {
   },
 };
 
+// 키는 '이 기기에 저장'을 끄면 storage.session(브라우저를 닫으면 지워짐)에, 켜면 storage.local에 둔다.
+async function loadAccountKeys(exchange) {
+  const [session, local] = await Promise.all([
+    chrome.storage.session.get(ACCOUNT_KEYS_STORAGE),
+    chrome.storage.local.get(ACCOUNT_KEYS_STORAGE),
+  ]);
+  return session[ACCOUNT_KEYS_STORAGE]?.[exchange] ?? local[ACCOUNT_KEYS_STORAGE]?.[exchange] ?? null;
+}
+
 async function syncExchangeAccount(exchange) {
-  const keys = (await chrome.storage.local.get(ACCOUNT_KEYS_STORAGE))[ACCOUNT_KEYS_STORAGE]?.[exchange];
-  if (!keys || !ACCOUNT_LOADERS[exchange]) return { ok: false, error: 'noKeys' };
+  const keys = await loadAccountKeys(exchange);
+  if (!keys || !ACCOUNT_LOADERS[exchange]) return { ok: false, code: 'noKeys' };
   try {
     const holdings = await ACCOUNT_LOADERS[exchange](keys);
-    // 평균 매수가가 없으면 지금 가격으로 둔다(손익 0에서 시작).
+    // 평균 매수가가 없으면 지금 가격으로 두고 avgEstimated로 표시한다. 팝업은 이미 있던 평균가를 유지한다.
     return {
       ok: true,
       holdings: holdings.map(item => ({
         ...item,
+        avgEstimated: item.avgPrice == null,
         avgPrice: item.avgPrice ?? allExchangesTickers[exchange][item.market]?.currentPrice ?? 0,
       })),
     };
   } catch (error) {
-    return { ok: false, error: String(error?.message || error) };
+    if (error instanceof AccountSyncError) return { ok: false, code: error.code, error: error.detail };
+    // fetch 자체가 실패하면 네트워크 문제다.
+    return { ok: false, code: error instanceof TypeError ? 'network' : 'unknown', error: String(error?.message || error) };
   }
 }
 
@@ -1833,6 +1975,11 @@ async function initialize() {
   connectLiquidations();
   const initial = getExchangeInstance(activeExchange);
   if (initial) initial.setPopupActive(true);
+  // 서비스 워커가 깨어나는 중에 화면이 먼저 연결됐으면, 활성 거래소를 이제 알려 주고 시세를 이어 준다.
+  if (activePort) {
+    activePort.postMessage({ type: 'activeExchange', data: activeExchange });
+    if (initial) initial.connectPopup(activePort);
+  }
 
   // 거래소 하나가 느리거나 실패해도 나머지는 바로 시작한다.
   polledData.forEach(data => data.start());
@@ -1864,7 +2011,8 @@ chrome.runtime.onConnect.addListener(port => {
   polledData.forEach(data => data.post(port));
 
   // 화면은 거래소가 바뀌면 시세를 비우므로, 거래소를 시세 스냅샷보다 먼저 알린다.
-  port.postMessage({ type: 'activeExchange', data: activeExchange });
+  // 아직 저장된 거래소를 읽는 중(activeExchange가 null)이면 initialize가 대신 알린다.
+  if (activeExchange) port.postMessage({ type: 'activeExchange', data: activeExchange });
 
   const active = getExchangeInstance(activeExchange);
   if (active) active.connectPopup(activePort);
@@ -1942,6 +2090,49 @@ async function refreshLiveUsdKrw() {
 refreshLiveUsdKrw();
 setInterval(refreshLiveUsdKrw, LIVE_FX_INTERVAL);
 
+// 김프 추이: 10분마다 BTC 김프(업비트·빗썸)와 테더 프리미엄을 7일치 기록한다.
+// 화면이 닫혀 소켓을 끊어 둔 동안에도 이어지도록 웹소켓 대신 REST로 가격을 받는다.
+const KIMCHI_HISTORY_KEY = 'kimchiHistory';
+const KIMCHI_HISTORY_MAX = 7 * 24 * 6;
+
+async function recordKimchiHistory() {
+  try {
+    if (!liveUsdKrw) await refreshLiveUsdKrw();
+    const usdRate = liveUsdKrw || exchangeRateManager.exchangeRateUSD;
+    if (!usdRate) return;
+    const [upbit, bithumb, binance] = await Promise.all([
+      fetchJson('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-USDT'),
+      fetchJson('https://api.bithumb.com/v1/ticker?markets=KRW-BTC'),
+      fetchJson('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
+    ]);
+    const btcUsdt = Number(binance?.price);
+    if (!btcUsdt) return;
+    const price = (list, market) => list?.find?.(item => item.market === market)?.trade_price;
+    const premium = krw => (krw ? Number(((krw / (btcUsdt * usdRate) - 1) * 100).toFixed(3)) : null);
+    const usdtKrw = price(upbit, 'KRW-USDT');
+    const point = {
+      t: Date.now(),
+      upbit: premium(price(upbit, 'KRW-BTC')),
+      bithumb: premium(price(bithumb, 'KRW-BTC')),
+      tether: usdtKrw ? Number(((usdtKrw / usdRate - 1) * 100).toFixed(3)) : null,
+    };
+    const history = (await chrome.storage.local.get(KIMCHI_HISTORY_KEY))[KIMCHI_HISTORY_KEY] ?? [];
+    await chrome.storage.local.set({ [KIMCHI_HISTORY_KEY]: [...history, point].slice(-KIMCHI_HISTORY_MAX) });
+  } catch (error) {
+    console.warn(error);
+  }
+}
+chrome.alarms.create('kimchiHistory', { periodInMinutes: 10 });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'kimchiHistory') recordKimchiHistory();
+});
+// 서비스 워커가 오래 쉬었다 깨어났으면 바로 한 점을 남긴다.
+chrome.storage.local.get(KIMCHI_HISTORY_KEY).then(result => {
+  const last = result[KIMCHI_HISTORY_KEY]?.at(-1);
+  // 시작 직후에는 거래소 시세 스냅샷 요청이 몰려 있어 잠시 뒤에 남긴다.
+  if (!last || Date.now() - last.t > 10 * 60_000) setTimeout(recordKimchiHistory, 30_000);
+});
+
 function computeKimchiPremium() {
   const usdRate = liveUsdKrw || exchangeRateManager.exchangeRateUSD;
   if (!usdRate) return { rate: usdRate, items: {} };
@@ -1970,7 +2161,13 @@ function computeKimchiPremium() {
       };
     }
   }
-  return { rate: usdRate, items };
+  // 테더 프리미엄: 원화로 산 USDT가 실제 달러 환율보다 얼마나 비싼지. 김프의 기준선으로 많이 본다.
+  const tether = {};
+  for (const krwExchange of ['upbit', 'bithumb']) {
+    const price = allExchangesTickers[krwExchange]?.['KRW-USDT']?.currentPrice;
+    if (price) tether[krwExchange] = (price / usdRate - 1) * 100;
+  }
+  return { rate: usdRate, items, tether };
 }
 
 // 거래소 간 가격 차이: 같은 코인을 USD로 환산해 가장 싼 곳과 비싼 곳의 차이를 구한다.

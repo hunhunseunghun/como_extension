@@ -115,6 +115,7 @@ export const usePort = (
             setIsLoading(false);
             break;
           case 'activeExchange':
+            if (!data) break;
             // 거래소가 바뀌면 이전 거래소의 쌓인 틱을 버린다.
             clearPending();
             setExchangePlatform(data);

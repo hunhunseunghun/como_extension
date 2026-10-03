@@ -177,4 +177,6 @@ export type KimchiPremiumItem = {
 export type KimchiPremium = {
   rate: number | null;
   items: Record<string, KimchiPremiumItem>;
+  // 거래소별 테더(KRW-USDT) 프리미엄(%)
+  tether?: Partial<Record<'upbit' | 'bithumb', number>>;
 };

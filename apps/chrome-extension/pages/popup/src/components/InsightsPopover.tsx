@@ -8,6 +8,7 @@ import { formatFiat, useMarket } from '@/lib/market';
 import type { ExchangePlatform } from '@/types';
 import { DerivativesPanel } from '@/components/insights/DerivativesPanel';
 import { TrendsPanel } from '@/components/insights/TrendsPanel';
+import { KimchiTrend } from '@/components/insights/KimchiTrend';
 import { ShareButton } from '@/components/ShareButton';
 import { HoverHint } from '@/components/ui/hoverHint';
 import { Segmented } from '@/components/ui/segmented';
@@ -143,6 +144,8 @@ export const InsightsPopover = () => {
                 </div>
               </div>
             </div>
+
+            <KimchiTrend />
 
             <div className="flex items-center justify-between mb-1">
               <span className="font-semibold">{t('spreads')}</span>

@@ -3,14 +3,27 @@ import { ChevronDown, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EXCHANGES } from '@/constants/exchanges';
-import { useI18n } from '@/i18n';
+import { useI18n, type MessageKey } from '@/i18n';
 
 export type SyncExchange = 'upbit' | 'binance';
-export type SyncedHolding = { market: string; quantity: number; avgPrice: number };
+// avgEstimated: 거래소가 평균 매수가를 주지 않아 불러온 시점 가격으로 채웠다(바이낸스).
+export type SyncedHolding = { market: string; quantity: number; avgPrice: number; avgEstimated?: boolean };
 
-// 백그라운드(syncExchangeAccount)와 같은 저장 키·형식이다. 키는 이 기기의 storage.local에만 둔다.
+// 백그라운드(syncExchangeAccount)와 같은 저장 키·형식이다.
+// '이 기기에 저장'을 켜면 storage.local, 끄면 storage.session(브라우저를 닫으면 지워짐)에 둔다.
 const KEYS_STORAGE = 'exchangeApiKeys';
 type StoredKeys = { upbit?: { accessKey: string; secretKey: string }; binance?: { apiKey: string; secretKey: string } };
+
+// 백그라운드가 돌려주는 오류 코드 → 안내 문구
+const SYNC_ERROR_MESSAGES: Record<string, MessageKey> = {
+  ip: 'syncErrorIp',
+  invalidKey: 'syncErrorInvalidKey',
+  expired: 'syncErrorExpired',
+  permission: 'syncErrorPermission',
+  tradeKey: 'syncErrorTradeKey',
+  network: 'syncErrorNetwork',
+  noKeys: 'syncErrorNoKeys',
+};
 
 type Props = { onSynced: (exchange: SyncExchange, holdings: SyncedHolding[]) => void };
 
@@ -20,6 +33,8 @@ export const AccountSync = ({ onSynced }: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const [exchange, setExchange] = useState<SyncExchange>('upbit');
   const [stored, setStored] = useState<StoredKeys>({});
+  const [sessionKeys, setSessionKeys] = useState<StoredKeys>({});
+  const [remember, setRemember] = useState(true);
   const [publicKey, setPublicKey] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [status, setStatus] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
@@ -27,13 +42,19 @@ export const AccountSync = ({ onSynced }: Props) => {
 
   useEffect(() => {
     chrome.storage.local.get(KEYS_STORAGE, result => setStored((result?.[KEYS_STORAGE] as StoredKeys) ?? {}));
+    chrome.storage.session.get(KEYS_STORAGE, result => setSessionKeys((result?.[KEYS_STORAGE] as StoredKeys) ?? {}));
   }, []);
 
-  const hasKeys = !!stored[exchange];
+  const hasKeys = !!(stored[exchange] ?? sessionKeys[exchange]);
 
   const saveKeys = (next: StoredKeys) => {
     setStored(next);
     chrome.storage.local.set({ [KEYS_STORAGE]: next });
+  };
+
+  const saveSessionKeys = (next: StoredKeys) => {
+    setSessionKeys(next);
+    chrome.storage.session.set({ [KEYS_STORAGE]: next });
   };
 
   const sync = () => {
@@ -41,13 +62,16 @@ export const AccountSync = ({ onSynced }: Props) => {
     setStatus(null);
     chrome.runtime.sendMessage(
       { action: 'syncExchangeAccount', exchange },
-      (response?: { ok: boolean; holdings?: SyncedHolding[]; error?: string }) => {
+      (response?: { ok: boolean; holdings?: SyncedHolding[]; code?: string; error?: string }) => {
         setIsSyncing(false);
         if (chrome.runtime.lastError || !response?.ok) {
+          const messageKey = response?.code ? SYNC_ERROR_MESSAGES[response.code] : undefined;
           setStatus({
             tone: 'error',
-            text: `${t('syncFailed')}: ${response?.error ?? chrome.runtime.lastError?.message ?? ''}`,
+            text: `${t('syncFailed')}: ${messageKey ? t(messageKey) : (response?.error ?? chrome.runtime.lastError?.message ?? '')}`,
           });
+          // 거래·출금이 가능한 키는 남겨 두지 않는다.
+          if (response?.code === 'tradeKey') removeKeys(false);
           return;
         }
         onSynced(exchange, response.holdings ?? []);
@@ -58,22 +82,37 @@ export const AccountSync = ({ onSynced }: Props) => {
 
   const handleSaveAndSync = () => {
     if (!publicKey.trim() || !secretKey.trim()) return;
-    const keys =
+    const entry =
       exchange === 'upbit'
-        ? { ...stored, upbit: { accessKey: publicKey.trim(), secretKey: secretKey.trim() } }
-        : { ...stored, binance: { apiKey: publicKey.trim(), secretKey: secretKey.trim() } };
-    saveKeys(keys);
+        ? { upbit: { accessKey: publicKey.trim(), secretKey: secretKey.trim() } }
+        : { binance: { apiKey: publicKey.trim(), secretKey: secretKey.trim() } };
+    // 고른 곳에만 두고 다른 쪽의 예전 키는 지운다.
+    const others = (keys: StoredKeys) => {
+      const next = { ...keys };
+      delete next[exchange];
+      return next;
+    };
+    if (remember) {
+      saveKeys({ ...stored, ...entry });
+      saveSessionKeys(others(sessionKeys));
+    } else {
+      saveSessionKeys({ ...sessionKeys, ...entry });
+      saveKeys(others(stored));
+    }
     setPublicKey('');
     setSecretKey('');
     // 저장이 끝난 뒤 백그라운드가 키를 읽도록 다음 틱에 동기화한다.
     setTimeout(sync, 0);
   };
 
-  const removeKeys = () => {
+  const removeKeys = (clearStatus = true) => {
     const next = { ...stored };
     delete next[exchange];
     saveKeys(next);
-    setStatus(null);
+    const nextSession = { ...sessionKeys };
+    delete nextSession[exchange];
+    saveSessionKeys(nextSession);
+    if (clearStatus) setStatus(null);
   };
 
   return (
@@ -102,7 +141,7 @@ export const AccountSync = ({ onSynced }: Props) => {
                 }}>
                 <img src={EXCHANGES[key].logo} className="size-3" />
                 {t(EXCHANGES[key].labelKey)}
-                {stored[key] && ' ✓'}
+                {(stored[key] ?? sessionKeys[key]) && ' ✓'}
               </Button>
             ))}
           </div>
@@ -111,7 +150,7 @@ export const AccountSync = ({ onSynced }: Props) => {
               <Button className="h-control flex-1 text-cap-s hover:cursor-pointer" disabled={isSyncing} onClick={sync}>
                 {isSyncing ? t('syncing') : t('syncNow')}
               </Button>
-              <Button variant="soft" className="h-control px-2 text-cap-s hover:cursor-pointer" onClick={removeKeys}>
+              <Button variant="soft" className="h-control px-2 text-cap-s hover:cursor-pointer" onClick={() => removeKeys()}>
                 {t('removeKeys')}
               </Button>
             </div>
@@ -134,6 +173,16 @@ export const AccountSync = ({ onSynced }: Props) => {
                 value={secretKey}
                 onChange={event => setSecretKey(event.target.value)}
               />
+              <label className="flex items-center gap-1 text-cap-s text-fg-subtle hover:cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="size-3 accent-(--como-fg-highlight)"
+                  checked={remember}
+                  onChange={event => setRemember(event.target.checked)}
+                />
+                {t('rememberKeys')}
+              </label>
+              {!remember && <p className="text-cap-s text-fg-faint">{t('rememberKeysOff')}</p>}
               <Button
                 className="h-control text-cap-s hover:cursor-pointer"
                 disabled={!publicKey.trim() || !secretKey.trim() || isSyncing}

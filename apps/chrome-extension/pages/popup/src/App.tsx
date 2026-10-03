@@ -36,6 +36,7 @@ import { SizeToggle } from '@/components/SizeToggle';
 import { MarketDropdown } from '@/components/MarketDropdown';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
+import { WhatsNew } from '@/components/WhatsNew';
 import { PriceNotiPopover as PriceNotiPopoverBase } from '@/components/PriceNotiPopover';
 import { KimchiPremiumBadge } from '@/components/KimchiPremiumBadge';
 import { SettingsPopover as SettingsPopoverBase } from '@/components/SettingsPopover';
@@ -53,6 +54,7 @@ import { ChartProvider } from './components/ChartToolTip';
 import fireLogo from '@/assets/icons/fire.svg';
 import comoLogo from '@/assets/icons/como-logo.png';
 import { HoverHint } from '@/components/ui/hoverHint';
+import { WalletStatusContext, type WalletStatus } from '@/lib/walletStatus';
 
 // 툴바 팝오버는 시세와 상관없으므로 시세가 바뀔 때마다 App과 함께 다시 그리지 않는다.
 const InsightsPopover = memo(InsightsPopoverBase);
@@ -97,6 +99,7 @@ const App = () => {
   });
   const [timeFrame, setTimeFrame] = useState<string>('1d');
   const [kimchiPremium, setKimchiPremium] = useState<KimchiPremium>({ rate: null, items: {} });
+  const [walletStatus, setWalletStatus] = useState<WalletStatus>({});
   const [fiatRates, setFiatRates] = useState<FiatRates>({});
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);
   const marketContext = useMemo(
@@ -107,6 +110,7 @@ const App = () => {
   const handleExtraMessage = useCallback((type: string, data: unknown) => {
     if (type === 'fiatRates') setFiatRates(data as FiatRates);
     if (type === 'marketStats') setMarketStats(data as MarketStats);
+    if (type === 'walletStatus') setWalletStatus(data as WalletStatus);
   }, []);
 
   const updatedVersionHandler = useCallback((newVersion: string) => {
@@ -421,6 +425,7 @@ const App = () => {
                 <section className="relative items-center flex">
                   <Input
                     className="h-6 w-30 pl-4 py-2 text-cap-s"
+                    aria-label={t('searchLabel')}
                     placeholder={` ${t('searchPlaceholder')}`}
                     value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
                     onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
@@ -466,12 +471,23 @@ const App = () => {
                 className={`overflow-y-scroll overflow-x-hidden light-scrollbar dark-scrollbar ${isSidePanel ? '' : wideSize ? 'h-[500px]' : 'h-[330px]'}`}
                 style={isSidePanel ? { height: panelSize.height - 100 } : undefined}>
                 <div style={{ height: `${virtualizer.getTotalSize()}px` }}>
+                  <WalletStatusContext.Provider value={walletStatus}>
                   <Table className="table-fixed text-body-s w-full">
                     <TableBody>
                       {isLoading || !Object.keys(tickers).length ? (
-                        <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
-                          <Loader2 className={'w-5 h-5 animate-spin text-fg-subtle hover:bg-transparent'} />
-                        </div>
+                        <tr>
+                          <td colSpan={table.getVisibleLeafColumns().length}>
+                            <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
+                              <Loader2 className={'w-5 h-5 animate-spin text-fg-subtle hover:bg-transparent'} />
+                            </div>
+                          </td>
+                        </tr>
+                      ) : !table.getRowModel().rows.length && columnFilters.length ? (
+                        <tr>
+                          <td colSpan={table.getVisibleLeafColumns().length} className="py-10 text-center text-body-s text-fg-subtle">
+                            {t('noSearchResults')}
+                          </td>
+                        </tr>
                       ) : (
                         <>
                           {table.getTopRows()?.map(row => (
@@ -531,9 +547,14 @@ const App = () => {
                       )}
                     </TableBody>
                   </Table>
+                  </WalletStatusContext.Provider>
                 </div>
               </div>
-              <ReviewPrompt />
+              {updatedVersion ? (
+                <WhatsNew updatedVersion={updatedVersion} onDismiss={() => setUpdatedVersion('')} />
+              ) : (
+                <ReviewPrompt />
+              )}
               <Onboarding
                 exchangePlatform={exchangePlatform}
                 setExchangePlatform={selectExchange}

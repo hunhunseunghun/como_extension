@@ -5,6 +5,7 @@ import { BithumbTicker, FavoriteCoins, MarketType } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
 import { getChosungRegExp, getNumberFormat } from '@/lib/format';
+import { WalletStatusBadge } from '@/lib/walletStatus';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
 import {
@@ -86,6 +87,7 @@ export const getBithumbColumns = (
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
               {bithumbRow.market_warning !== 'NONE' && <WarningIcon text={t('warningShort')} />}
+              <WalletStatusBadge exchange="bithumb" coin={splitMarket[1]} />
             </div>
             <span className="block truncate text-cap text-fg-subtle font-medium">
               {splitMarket.length && splitMarket[1] + '/' + splitMarket[0]}

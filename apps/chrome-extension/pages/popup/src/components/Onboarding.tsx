@@ -122,6 +122,8 @@ export const Onboarding = ({ exchangePlatform, setExchangePlatform, setFavoriteC
             })}
           </div>
         )}
+        {/* 마지막 단계에서 바로 써 볼 만한 기능을 짧게 알려 준다. */}
+        {step === 2 && <p className="mt-2 text-cap-s text-fg-subtle">{t('onboardingTip')}</p>}
 
         <div className="mt-3 flex justify-between">
           <Button
