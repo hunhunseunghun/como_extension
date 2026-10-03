@@ -71,7 +71,8 @@ const fallbackData: TickerTypes[] = [];
 const App = () => {
   const { language, t, currency } = useI18n();
   const [tickers, setTickers] = useState<{ [key: string]: TickerTypes }>({});
-  const [sorting, setSorting] = useState<SortingState>([]);
+  // 처음에는 현재가 높은 순. initialState에 두면 state.sorting([])에 덮여 적용되지 않는다.
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'trade_price', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
@@ -271,7 +272,6 @@ const App = () => {
     onColumnVisibilityChange: setColumnVisibility,
     onRowPinningChange: setRowPinning,
     state: { sorting, columnFilters, columnVisibility, rowPinning },
-    initialState: { sorting: [{ id: 'trade_price', desc: true }] },
     enableRowPinning: favoriteFunc,
     keepPinnedRows: true,
   });
