@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import '@/styles/App.css';
 import {
   UpbitTicker,
@@ -36,13 +36,13 @@ import { SizeToggle } from '@/components/SizeToggle';
 import { MarketDropdown } from '@/components/MarketDropdown';
 import { MarketTypeDropDown } from '@/components/MarketTypeDropDown';
 import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
-import { PriceNotiPopover } from '@/components/PriceNotiPopover';
+import { PriceNotiPopover as PriceNotiPopoverBase } from '@/components/PriceNotiPopover';
 import { KimchiPremiumBadge } from '@/components/KimchiPremiumBadge';
-import { SettingsPopover } from '@/components/SettingsPopover';
+import { SettingsPopover as SettingsPopoverBase } from '@/components/SettingsPopover';
 import { isSidePanelView } from '@/lib/settings';
-import { PortfolioPopover } from '@/components/PortfolioPopover';
-import { InsightsPopover } from '@/components/InsightsPopover';
-import { DexWatchlistPopover } from '@/components/DexWatchlistPopover';
+import { PortfolioPopover as PortfolioPopoverBase } from '@/components/PortfolioPopover';
+import { InsightsPopover as InsightsPopoverBase } from '@/components/InsightsPopover';
+import { DexWatchlistPopover as DexWatchlistPopoverBase } from '@/components/DexWatchlistPopover';
 import { ReviewPrompt } from '@/components/ReviewPrompt';
 import { Onboarding } from '@/components/Onboarding';
 import { useI18n } from '@/i18n';
@@ -53,6 +53,13 @@ import { ChartProvider } from './components/ChartToolTip';
 import fireLogo from '@/assets/icons/fire.svg';
 import comoLogo from '@/assets/icons/como-logo.png';
 import { HoverHint } from '@/components/ui/hoverHint';
+
+// 툴바 팝오버는 시세와 상관없으므로 시세가 바뀔 때마다 App과 함께 다시 그리지 않는다.
+const InsightsPopover = memo(InsightsPopoverBase);
+const DexWatchlistPopover = memo(DexWatchlistPopoverBase);
+const PortfolioPopover = memo(PortfolioPopoverBase);
+const PriceNotiPopover = memo(PriceNotiPopoverBase);
+const SettingsPopover = memo(SettingsPopoverBase);
 
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 const fallbackData: TickerTypes[] = [];

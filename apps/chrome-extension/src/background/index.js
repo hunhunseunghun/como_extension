@@ -20,12 +20,23 @@ const getKSTDate = () =>
 
 let CURRENT_DATE = getKSTDate();
 
+// 날짜가 바뀌었으면 CURRENT_DATE를 바꾸고 true를 돌려준다. 하루 한 번 규칙은 확인할 때마다 이걸 불러 자정 직후에도 바로 풀린다.
+function refreshCurrentDate() {
+  const date = getKSTDate();
+  if (date === CURRENT_DATE) return false;
+  CURRENT_DATE = date;
+  return true;
+}
+
+// 'yyyymmdd'에서 days일 전 날짜를 같은 형식으로 돌려준다(KST 날짜 문자열 기준, 시간대 변환 없음).
+function shiftDate(yyyymmdd, days) {
+  const date = new Date(Date.UTC(+yyyymmdd.slice(0, 4), +yyyymmdd.slice(4, 6) - 1, +yyyymmdd.slice(6, 8) - days));
+  return date.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
 chrome.alarms.create('updateDate', { periodInMinutes: 30 });
 chrome.alarms.onAlarm.addListener(alarm => {
-  if (alarm.name === 'updateDate') {
-    const date = getKSTDate();
-    if (date === CURRENT_DATE) return;
-    CURRENT_DATE = date;
+  if (alarm.name === 'updateDate' && refreshCurrentDate()) {
     // 서비스 워커가 날짜를 넘겨 살아 있으면 환율이 갱신되지 않으므로 날짜가 바뀔 때 다시 조회한다.
     exchangeRateManager.updateExchangeRate();
   }
@@ -36,7 +47,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
 const alertCache = { priceAlerts: {}, triggeredPrices: {}, deadbandSettings: {} };
 const ALERT_KEYS = Object.keys(alertCache);
 
-chrome.storage.local.get(ALERT_KEYS, result => {
+const alertsReady = chrome.storage.local.get(ALERT_KEYS).then(result => {
   ALERT_KEYS.forEach(key => {
     alertCache[key] = result[key] || {};
   });
@@ -108,7 +119,7 @@ const NOTIFICATION_TEXT = {
   hi: { up: 'पहुँचा (बढ़त)', down: 'पहुँचा (गिरावट)' },
 };
 let userLanguage = null;
-chrome.storage.local.get('language', result => {
+const languageReady = chrome.storage.local.get('language').then(result => {
   userLanguage = result.language || null;
 });
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -191,7 +202,20 @@ const LISTING_TEXT = {
 // 설정이 없으면 한국어 사용자에게만 켠다. 팝업의 기본값(isListingAlertsDefault)과 같은 규칙이다.
 const isListingAlertsEnabled = stored => stored ?? getLanguage() === 'ko';
 
+let listingCheckRunning = false;
 async function checkNewListings() {
+  // 시작 직후 확인과 알람이 겹치면 같은 상장을 두 번 알릴 수 있다.
+  if (listingCheckRunning) return;
+  listingCheckRunning = true;
+  try {
+    await languageReady;
+    await checkNewListingsOnce();
+  } finally {
+    listingCheckRunning = false;
+  }
+}
+
+async function checkNewListingsOnce() {
   const result = await chrome.storage.local.get([LISTING_SETTING_KEY, KNOWN_MARKETS_KEY]);
   const known = result[KNOWN_MARKETS_KEY] || {};
   const notify = isListingAlertsEnabled(result[LISTING_SETTING_KEY]);
@@ -247,7 +271,7 @@ const RULE_TEXT = {
   hi: { change: '24 घंटे की चाल', kimchiAbove: 'किमची प्रीमियम ऊपर', kimchiBelow: 'किमची प्रीमियम नीचे' },
 };
 const ruleCache = { rules: [], state: {} };
-chrome.storage.local.get([RULES_KEY, RULE_STATE_KEY], result => {
+const rulesReady = chrome.storage.local.get([RULES_KEY, RULE_STATE_KEY]).then(result => {
   ruleCache.rules = result[RULES_KEY] || [];
   ruleCache.state = result[RULE_STATE_KEY] || {};
 });
@@ -261,9 +285,12 @@ const formatPercent = value => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 
 function checkAlertRules() {
   if (!ruleCache.rules.length) return;
+  refreshCurrentDate();
   const text = RULE_TEXT[getLanguage()] ?? RULE_TEXT.en;
-  const state = { ...ruleCache.state };
-  let changed = false;
+  // 지운 규칙의 상태는 남기지 않는다.
+  const ruleIds = new Set(ruleCache.rules.map(rule => rule.id));
+  const state = Object.fromEntries(Object.entries(ruleCache.state).filter(([id]) => ruleIds.has(id)));
+  let changed = Object.keys(state).length !== Object.keys(ruleCache.state).length;
   let kimchi = null;
   const notify = (id, exchange, market, title, message) => {
     chrome.notifications.create(`${exchange}:${market}:rule-${id}`, { type: 'basic', iconUrl: 'como-logo.png', title, message });
@@ -321,7 +348,7 @@ const BADGE_STORAGE_KEY = 'badgeSettings';
 let badgeSettings = null;
 let upDownSetting = null;
 let lastBadge = '';
-chrome.storage.local.get([BADGE_STORAGE_KEY, 'upDownColors'], result => {
+const badgeReady = chrome.storage.local.get([BADGE_STORAGE_KEY, 'upDownColors']).then(result => {
   badgeSettings = result[BADGE_STORAGE_KEY] || null;
   upDownSetting = result.upDownColors || null;
 });
@@ -382,7 +409,36 @@ function updateBadge() {
   chrome.action.setTitle({ title });
 }
 
+// 저장·삭제를 한 번에 하나씩 처리한다. 빠르게 두 번 추가하거나 팝업·사이드 패널에서 동시에 추가하면
+// 둘 다 같은 옛 값을 읽고 덮어써 하나가 사라진다.
+let alertWriteQueue = Promise.resolve();
+function queueAlertWrite(task) {
+  alertWriteQueue = alertWriteQueue.then(() => new Promise(resolve => task(resolve))).catch(error => console.warn(error));
+}
+
+// 시세 틱이 저장 직후 옛 triggeredPrices를 다시 쓰지 않도록 저장 전에 메모리 캐시부터 바꾼다.
+function setAlertStorage(values, done) {
+  Object.entries(values).forEach(([key, value]) => {
+    if (key in alertCache) alertCache[key] = value;
+  });
+  chrome.storage.local.set(values, done);
+}
+
 function savePriceAlert(exchange, ticker, priceDeadbandPairs, response) {
+  queueAlertWrite(release => savePriceAlertNow(exchange, ticker, priceDeadbandPairs, result => {
+    response(result);
+    release();
+  }));
+}
+
+function deletePriceAlert(exchange, ticker, priceToDelete, response) {
+  queueAlertWrite(release => deletePriceAlertNow(exchange, ticker, priceToDelete, result => {
+    response(result);
+    release();
+  }));
+}
+
+function savePriceAlertNow(exchange, ticker, priceDeadbandPairs, response) {
   chrome.storage.local.get(['priceAlerts', 'triggeredPrices', 'deadbandSettings'], result => {
     let alerts = result.priceAlerts || {};
     let triggered = result.triggeredPrices || {};
@@ -407,13 +463,13 @@ function savePriceAlert(exchange, ticker, priceDeadbandPairs, response) {
       triggered[exchange][ticker] = {};
     }
 
-    chrome.storage.local.set({ priceAlerts: alerts, triggeredPrices: triggered, deadbandSettings }, () => {
+    setAlertStorage({ priceAlerts: alerts, triggeredPrices: triggered, deadbandSettings }, () => {
       response({ success: true, prices: existingPrices });
     });
   });
 }
 
-function deletePriceAlert(exchange, ticker, priceToDelete, response) {
+function deletePriceAlertNow(exchange, ticker, priceToDelete, response) {
   chrome.storage.local.get(['priceAlerts', 'deadbandSettings'], result => {
     let alerts = result.priceAlerts || {};
     let deadbandSettings = result.deadbandSettings || {};
@@ -434,7 +490,7 @@ function deletePriceAlert(exchange, ticker, priceToDelete, response) {
       }
     }
 
-    chrome.storage.local.set({ priceAlerts: alerts, deadbandSettings }, () => {
+    setAlertStorage({ priceAlerts: alerts, deadbandSettings }, () => {
       response({ success: true, prices: updatedPairs });
     });
   });
@@ -477,6 +533,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     syncExchangeAccount(message.exchange).then(sendResponse);
     return true;
   }
+  // 거래소별 연결 상태(점검·E2E용)
+  if (message.action === 'getConnectionStatus') {
+    sendResponse(
+      Object.fromEntries(
+        Object.entries(exchanges).map(([name, exchange]) => [
+          name,
+          { suspended: exchange.suspended, connected: exchange.socket?.readyState === WebSocket.OPEN || !!exchange.pollTimer },
+        ]),
+      ),
+    );
+  }
   if (message.action === 'getAllExchangesTickers') {
     sendResponse(Object.values(allExchangesTickers).flatMap(tickers => Object.values(tickers)));
   }
@@ -484,6 +551,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // 설치 및 업데이트 처리
 let updatedVersion = '';
+chrome.storage.local.get('updatedFromVersion').then(result => {
+  updatedVersion ||= result.updatedFromVersion || '';
+});
 chrome.runtime.onInstalled.addListener(details => {
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
     chrome.runtime.setUninstallURL('https://walla.my/v/a6J0FV5gUKCyzupMaG71');
@@ -492,11 +562,11 @@ chrome.runtime.onInstalled.addListener(details => {
   }
   if (details.reason === 'update') {
     updatedVersion = details?.previousVersion || null;
+    chrome.storage.local.set({ updatedFromVersion: updatedVersion });
   }
 });
 
-chrome.alarms.create('keepAlive', { periodInMinutes: 10 });
-chrome.alarms.onAlarm.addListener(() => {});
+chrome.alarms.clear('keepAlive');
 
 //  ExchangeRateManager 클래스
 class ExchangeRateManager {
@@ -552,9 +622,7 @@ class ExchangeRateManager {
         }
       }
 
-      const prevDate = new Date();
-      prevDate.setDate(prevDate.getDate() - (attempt + 1));
-      searchDate = prevDate.toISOString().slice(0, 10).replace(/-/g, '');
+      searchDate = shiftDate(CURRENT_DATE, attempt + 1);
     }
 
     throw new Error('No USD rate found in API');
@@ -593,6 +661,11 @@ class ExchangeRateManager {
 // 거래소별: fetchMarkets / fetchInitialTickers / getSubscriptions / parseMessage 만 구현한다.
 const TICKER_CHUNK_SIZE = 100;
 const HEARTBEAT_INTERVAL = 20000;
+// 이 시간 동안 메시지가 없으면 반쯤 끊긴 연결로 보고 다시 연결한다. 구독한 거래소는 모두 초 단위로 메시지를 보낸다.
+const STALE_SOCKET_MS = 60_000;
+// 시작할 때 마켓 목록을 못 받으면 30초부터 늘려 가며 최대 10분 간격으로 다시 시도한다.
+const START_RETRY_MIN_MS = 30_000;
+const START_RETRY_MAX_MS = 10 * 60_000;
 // OKX·Bybit는 종목별로 초당 수백~수천 건을 보내므로 해외 거래소 틱은 모아서 팝업에 전달한다.
 const GLOBAL_FORWARD_INTERVAL = 200;
 
@@ -617,6 +690,12 @@ class ExchangeData {
     this.heartbeatId = null;
     this.pendingTicks = {};
     this.forwardTimer = null;
+    this.lastMessageAt = 0;
+    // started: 마켓 목록과 첫 시세를 받았다. suspended: 화면이 닫혀 있고 쓰는 곳이 없어 연결을 끊어 뒀다.
+    this.started = false;
+    this.suspended = false;
+    this.startTimer = null;
+    this.startRetryDelay = START_RETRY_MIN_MS;
   }
 
   forwardTicks(updates) {
@@ -642,6 +721,7 @@ class ExchangeData {
     const store = allExchangesTickers[this.name];
     for (const { key, ticker, price, changeRate, volume = 0, koreanName = null } of entries) {
       if (!key) continue;
+      if (price) checkPriceAlerts(this.name, key, price);
       store[key] = {
         ...store[key],
         exchange: this.name,
@@ -726,13 +806,15 @@ class ExchangeData {
   }
 
   connectWebSocket() {
+    if (this.suspended) return;
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
-    if (this.socket) this.socket.close();
+    if (this.socket) this.dropSocket();
 
     const socket = new WebSocket(this.wsUrl);
     this.socket = socket;
 
     socket.onopen = () => {
+      this.lastMessageAt = Date.now();
       this.isReconnecting = false;
       this.currentReconnectDelay = this.initialReconnectDelay;
       // 일부 거래소(Bitget 등)는 초당 메시지 수를 제한하므로 구독 메시지를 나눠 보낸다.
@@ -750,6 +832,7 @@ class ExchangeData {
     };
 
     socket.onmessage = async event => {
+      this.lastMessageAt = Date.now();
       try {
         let data = event.data;
         if (data instanceof Blob) data = await data.text();
@@ -790,15 +873,42 @@ class ExchangeData {
     if (current) Object.assign(current, data);
   }
 
+  // 소켓을 이벤트 없이 닫는다. 닫힘 이벤트로 재연결이 또 걸리지 않게 핸들러를 먼저 뗀다.
+  dropSocket() {
+    const socket = this.socket;
+    this.socket = null;
+    clearInterval(this.heartbeatId);
+    if (!socket) return;
+    socket.onopen = socket.onclose = socket.onerror = socket.onmessage = null;
+    try {
+      socket.close();
+    } catch {
+      // 이미 닫힌 소켓
+    }
+  }
+
+  // 절전·네트워크 변경 뒤 반쯤 끊긴 연결은 onclose가 오지 않아 시세와 알림이 조용히 멈춘다.
+  checkStale() {
+    if (this.suspended || !this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+    if (Date.now() - this.lastMessageAt < STALE_SOCKET_MS) return;
+    this.dropSocket();
+    this.reconnectWebSocket();
+  }
+
   reconnectWebSocket() {
-    if (this.isReconnecting) {
+    if (this.isReconnecting || this.suspended) {
       return;
     }
 
     this.isReconnecting = true;
-    const delay = this.currentReconnectDelay;
+    // 네트워크가 돌아올 때 여러 거래소가 한꺼번에 다시 붙지 않도록 지연을 조금씩 흩뜨린다.
+    const delay = this.currentReconnectDelay * (0.8 + Math.random() * 0.4);
 
     setTimeout(() => {
+      if (this.suspended) {
+        this.isReconnecting = false;
+        return;
+      }
       if (this.socket && this.socket.readyState === WebSocket.OPEN) {
         this.isReconnecting = false;
         this.currentReconnectDelay = this.initialReconnectDelay;
@@ -812,11 +922,61 @@ class ExchangeData {
   }
 
   async start() {
-    this.markets = await this.fetchMarkets();
-    if (this.markets.length) {
-      await this.fetchInitialTickers();
+    if (this.suspended) return;
+    clearTimeout(this.startTimer);
+    const markets = await this.fetchMarkets();
+    if (!markets.length) {
+      // 처음에 한 번 실패했다고 이 거래소가 세션 내내 비어 있지 않게 다시 시도한다.
+      this.startTimer = setTimeout(() => this.start().catch(console.warn), this.startRetryDelay);
+      this.startRetryDelay = Math.min(this.startRetryDelay * 2, START_RETRY_MAX_MS);
+      return;
+    }
+    this.startRetryDelay = START_RETRY_MIN_MS;
+    this.markets = markets;
+    await this.fetchInitialTickers();
+    this.started = true;
+    this.connectWebSocket();
+  }
+
+  // 신규 상장 종목도 시세·지정가 알림을 받도록 마켓 목록을 주기적으로 다시 받는다. 바뀌었으면 스냅샷과 구독을 새로 한다.
+  async refreshMarkets() {
+    if (this.suspended || !this.started) return;
+    const markets = await this.fetchMarkets();
+    if (!markets.length) return;
+    const known = new Set(this.markets);
+    if (markets.length === this.markets.length && markets.every(market => known.has(market))) {
+      this.initialList = null;
+      return;
+    }
+    this.markets = markets;
+    await this.fetchInitialTickers();
+    if (this.socket) {
+      this.dropSocket();
       this.connectWebSocket();
     }
+  }
+
+  // 화면이 닫혀 있고 배지·알림에도 쓰지 않는 거래소는 연결을 끊어 배터리와 데이터를 아낀다.
+  suspend() {
+    if (this.suspended) return;
+    this.suspended = true;
+    clearTimeout(this.startTimer);
+    this.dropSocket();
+  }
+
+  async resume() {
+    if (!this.suspended) return;
+    this.suspended = false;
+    if (!this.started) {
+      await this.start();
+      return;
+    }
+    // 끊겨 있던 동안 바뀐 시세를 REST로 다시 받고 연결한다.
+    const markets = await this.fetchMarkets();
+    if (this.suspended) return;
+    if (markets.length) this.markets = markets;
+    await this.fetchInitialTickers();
+    this.connectWebSocket();
   }
 
   setPopupActive(active) {
@@ -904,7 +1064,7 @@ class UpbitData extends ExchangeData {
       return tickers.map(ticker => ticker.market);
     } catch (error) {
       console.warn(error);
-      return ['KRW-BTC'];
+      return [];
     }
   }
 }
@@ -922,7 +1082,7 @@ class BithumbData extends ExchangeData {
       return data.map(ticker => ticker.market);
     } catch (error) {
       console.warn(error);
-      return ['KRW-BTC'];
+      return [];
     }
   }
 }
@@ -1317,6 +1477,7 @@ class CoindcxData extends ExchangeData {
   }
 
   async poll() {
+    if (this.suspended) return;
     try {
       const updates = (await this.fetchTickers()).map(t => globalUpdate(this, t.market, CoindcxData.fields(t)));
       this.applyUpdates(updates);
@@ -1329,7 +1490,14 @@ class CoindcxData extends ExchangeData {
   }
 
   connectWebSocket() {
+    if (this.suspended) return;
     if (!this.pollTimer) this.pollTimer = setTimeout(() => this.poll(), COINDCX_IDLE_INTERVAL);
+  }
+
+  suspend() {
+    super.suspend();
+    clearTimeout(this.pollTimer);
+    this.pollTimer = null;
   }
 
   // 팝업에서 이 거래소를 열면 바로 빠른 주기로 바꾼다.
@@ -1414,6 +1582,55 @@ const broadcastPort = {
 };
 let activePort = null;
 let maxChangeRateIntervalId = null;
+
+// 화면이 모두 닫히면 1분 뒤 배지·지정가 알림·알림 규칙에 쓰는 거래소만 연결해 둔다.
+// 9개 거래소가 종일 초당 수많은 메시지를 보내면 노트북 배터리와 데이터를 계속 쓴다.
+const IDLE_SUSPEND_DELAY = 60_000;
+let idleTimer = null;
+
+function exchangesNeededWhenIdle() {
+  const needed = new Set();
+  const badge = getBadgeSettings();
+  if (badge.enabled) needed.add(badge.exchange);
+  for (const [exchange, tickers] of Object.entries(alertCache.priceAlerts)) {
+    if (Object.values(tickers ?? {}).some(list => list?.length)) needed.add(exchange);
+  }
+  for (const rule of ruleCache.rules) {
+    needed.add(rule.exchange);
+    // 김프는 바이낸스 USDT 가격과 비교한다.
+    if (rule.type === 'kimchi') needed.add('binance');
+  }
+  return needed;
+}
+
+function applyIdleConnections() {
+  idleTimer = null;
+  if (popupPorts.size) return;
+  const needed = exchangesNeededWhenIdle();
+  Object.entries(exchanges).forEach(([name, exchange]) =>
+    needed.has(name) ? exchange.resume().catch(console.warn) : exchange.suspend(),
+  );
+}
+
+function scheduleIdleConnections(delay = IDLE_SUSPEND_DELAY) {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(applyIdleConnections, delay);
+}
+
+function resumeAllExchanges() {
+  clearTimeout(idleTimer);
+  idleTimer = null;
+  Object.values(exchanges).forEach(exchange => exchange.resume().catch(console.warn));
+}
+
+// 화면이 닫혀 있는 동안 배지·알림 설정이 바뀌면 필요한 거래소를 다시 고른다.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || popupPorts.size) return;
+  if (changes.priceAlerts || changes[RULES_KEY] || changes[BADGE_STORAGE_KEY]) scheduleIdleConnections(1000);
+});
+
+setInterval(() => Object.values(exchanges).forEach(exchange => exchange.checkStale()), 15_000);
+setInterval(() => Object.values(exchanges).forEach(exchange => exchange.refreshMarkets().catch(console.warn)), 30 * 60_000);
 
 // 주기적으로 받아오는 부가 데이터(법정화폐 환율, 시장 지표). 팝업이 연결되면 마지막 값을 바로 보낸다.
 class PolledData {
@@ -1609,6 +1826,7 @@ async function syncExchangeAccount(exchange) {
 }
 
 async function initialize() {
+  await Promise.all([alertsReady, rulesReady, badgeReady, languageReady]);
   activeExchange = await loadActiveExchange();
   derivatives.start();
   trending.start();
@@ -1619,6 +1837,13 @@ async function initialize() {
   // 거래소 하나가 느리거나 실패해도 나머지는 바로 시작한다.
   polledData.forEach(data => data.start());
   setInterval(updateBadge, 2000);
+  // 화면 없이 깨어났으면(알람 등) 필요한 거래소만 시작한다. 화면이 연결되면 나머지도 시작한다.
+  if (!popupPorts.size) {
+    const needed = exchangesNeededWhenIdle();
+    Object.entries(exchanges).forEach(([name, exchange]) => {
+      if (!needed.has(name)) exchange.suspended = true;
+    });
+  }
   await Promise.allSettled([
     ...Object.values(exchanges).map(exchange => exchange.start()),
     exchangeRateManager.initialize(),
@@ -1631,6 +1856,7 @@ chrome.runtime.onConnect.addListener(port => {
   popupPorts.add(port);
   activePort = broadcastPort;
   exchangeRateManager.port = broadcastPort;
+  resumeAllExchanges();
 
   if (exchangeRateManager.exchangeRateUSD) {
     port.postMessage({ type: 'exchangeRateUSD', data: exchangeRateManager.exchangeRateUSD });
@@ -1648,6 +1874,7 @@ chrome.runtime.onConnect.addListener(port => {
   port.onDisconnect.addListener(() => {
     popupPorts.delete(port);
     if (popupPorts.size) return;
+    scheduleIdleConnections();
     activePort = null;
     exchangeRateManager.port = null;
     Object.values(exchanges).forEach(exchange => {
@@ -1695,8 +1922,28 @@ chrome.runtime.onConnect.addListener(port => {
 
 // 김치 프리미엄: KRW 마켓 가격 vs (Binance USDT 가격 × USD/KRW 환율).
 // USDT≈USD 가정. 두 페어가 모두 살아있고 환율이 있을 때만 산출.
+// 김프는 장중 실시간 환율로 계산한다. 수출입은행 고시 환율은 하루 한 번(고시 전에는 전날 값)이라 장중에 0.5~1%p 어긋난다.
+// 표시용 환율(exchangeRateUSD)은 화면 안내대로 고시 환율을 그대로 쓴다.
+const LIVE_FX_INTERVAL = 5 * 60_000;
+let liveUsdKrw = null;
+async function refreshLiveUsdKrw() {
+  try {
+    const response = await fetch(
+      'https://m.stock.naver.com/front-api/marketIndex/productDetail?category=exchange&reutersCode=FX_USDKRW',
+      { headers: { Accept: 'application/json' } },
+    );
+    const json = await response.json();
+    const rate = Number(json?.result?.calcPrice ?? String(json?.result?.closePrice ?? '').replace(/,/g, ''));
+    if (Number.isFinite(rate) && rate > 0) liveUsdKrw = rate;
+  } catch (error) {
+    console.warn(error);
+  }
+}
+refreshLiveUsdKrw();
+setInterval(refreshLiveUsdKrw, LIVE_FX_INTERVAL);
+
 function computeKimchiPremium() {
-  const usdRate = exchangeRateManager.exchangeRateUSD;
+  const usdRate = liveUsdKrw || exchangeRateManager.exchangeRateUSD;
   if (!usdRate) return { rate: usdRate, items: {} };
 
   const items = {};

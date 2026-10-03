@@ -369,6 +369,26 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await expect(popup.locator('button:has(svg.lucide-minimize)')).toBeVisible();
   });
 
+  test('화면을 모두 닫으면 1분 뒤 배지·알림에 쓰지 않는 거래소 연결을 끊고, 다시 열면 모두 잇는다', async ({ popup, extensionId }) => {
+    test.slow();
+    type Status = Record<string, { suspended: boolean; connected: boolean }>;
+    const status = () => popup.evaluate(() => chrome.runtime.sendMessage({ action: 'getConnectionStatus' }) as Promise<Status>);
+    const stored = await popup.evaluate(() => chrome.storage.local.get(['badgeSettings', 'language']));
+    const badge = stored.badgeSettings ?? { enabled: true, exchange: stored.language === 'ko' ? 'upbit' : 'binance' };
+
+    // 확장 페이지지만 시세 화면이 아닌 곳으로 옮겨 연결된 화면을 모두 닫는다.
+    await popup.goto(`chrome-extension://${extensionId}/manifest.json`);
+    await expect
+      .poll(async () => Object.values(await status()).filter(s => s.suspended).length, { timeout: 100_000, intervals: [5000] })
+      .toBeGreaterThan(0);
+    const idle = await status();
+    if (badge.enabled) expect(idle[badge.exchange]).toEqual({ suspended: false, connected: true });
+
+    await popup.goto(`chrome-extension://${extensionId}/popup/index.html`);
+    await expect.poll(async () => Object.values(await status()).every(s => !s.suspended)).toBe(true);
+    await expect(rows(popup).nth(5)).toBeVisible();
+  });
+
   test('런타임 에러가 없다', async () => {
     expect(errors).toEqual([]);
   });

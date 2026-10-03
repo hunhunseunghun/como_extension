@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { usePageVisible } from '@/hooks/usePageVisible';
 
 export type TickerPrice = {
   exchange: string;
@@ -13,9 +14,10 @@ const REFRESH_INTERVAL = 2000;
 // 백그라운드가 보관한 전 거래소 시세를 enabled 동안 주기적으로 받아온다. 키는 `${exchange}:${market}`.
 export const useAllTickers = (enabled: boolean) => {
   const [prices, setPrices] = useState<Record<string, TickerPrice>>({});
+  const visible = usePageVisible();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !visible) return;
     let isUnmounted = false;
     const load = () =>
       chrome.runtime.sendMessage({ action: 'getAllExchangesTickers' }, (tickers?: TickerPrice[]) => {
@@ -28,7 +30,7 @@ export const useAllTickers = (enabled: boolean) => {
       isUnmounted = true;
       clearInterval(intervalId);
     };
-  }, [enabled]);
+  }, [enabled, visible]);
 
   return prices;
 };

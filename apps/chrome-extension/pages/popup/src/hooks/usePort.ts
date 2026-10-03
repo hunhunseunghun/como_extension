@@ -12,6 +12,9 @@ import {
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 type TickerMap = { [key: string]: TickerTypes };
 
+// 업비트·빗썸은 체결마다 틱을 보내 프레임마다 표 전체를 다시 그리게 된다. 이 간격으로 모아서 반영한다.
+const FLUSH_INTERVAL = 250;
+
 export const usePort = (
   setTickers: React.Dispatch<React.SetStateAction<TickerMap>>,
   setExchangePlatform: (exchange: ExchangePlatform) => void,
@@ -34,12 +37,13 @@ export const usePort = (
     let isUnmounted = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    // 웹소켓 틱을 모아 프레임당 한 번만 setState 한다.
+    // 웹소켓 틱을 모아 FLUSH_INTERVAL마다 한 번만 setState 한다. 화면이 가려져 있으면 보일 때 한 번에 반영한다.
     let pending: { [key: string]: Partial<TickerTypes> } = {};
-    let frameId: number | null = null;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
     const flush = () => {
-      frameId = null;
+      flushTimer = null;
+      if (document.hidden) return;
       const updates = pending;
       pending = {};
       setTickers(prev => {
@@ -54,19 +58,33 @@ export const usePort = (
 
     const queueTicker = (key: string, data: Partial<TickerTypes>) => {
       pending[key] = { ...pending[key], ...data };
-      if (frameId === null) frameId = requestAnimationFrame(flush);
+      if (flushTimer === null && !document.hidden) flushTimer = setTimeout(flush, FLUSH_INTERVAL);
     };
 
     const clearPending = () => {
-      if (frameId !== null) cancelAnimationFrame(frameId);
-      frameId = null;
+      if (flushTimer !== null) clearTimeout(flushTimer);
+      flushTimer = null;
       pending = {};
     };
 
+    const onVisibilityChange = () => {
+      if (!document.hidden && flushTimer === null && Object.keys(pending).length) flush();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    let reconnectDelay = 500;
+
     const connect = () => {
-      port = chrome.runtime.connect({ name: 'popup' });
+      try {
+        port = chrome.runtime.connect({ name: 'popup' });
+      } catch {
+        // 확장 프로그램이 업데이트·재시작돼 이 페이지의 연결 컨텍스트가 사라졌다. 새 페이지로 다시 연다.
+        location.reload();
+        return;
+      }
 
       port.onMessage.addListener(({ type, data }) => {
+        reconnectDelay = 500;
         switch (type) {
           case 'upbitWebsocketTicker':
           case 'bithumbWebsocketTicker':
@@ -125,7 +143,9 @@ export const usePort = (
         clearPending();
         setIsLoading(true);
         setTickers({});
-        reconnectTimer = setTimeout(connect, 500);
+        // 서비스 워커가 바로 뜨지 못하면 간격을 늘려 가며(최대 5초) 다시 붙는다.
+        reconnectTimer = setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 5000);
       });
     };
 
@@ -134,6 +154,7 @@ export const usePort = (
 
     return () => {
       isUnmounted = true;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       clearPending();
       if (reconnectTimer !== null) clearTimeout(reconnectTimer);
       port?.disconnect();

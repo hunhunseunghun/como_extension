@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { getNumberFormat } from '@/lib/format';
 
 import { ChevronDown } from 'lucide-react';
 
@@ -299,7 +300,7 @@ export const getGlobalColumns = (
     cell: ({ getValue }) => {
       const value = Number(getValue());
       const formatCurrencyUS = (value: number) => {
-        return new Intl.NumberFormat(exchangeMarketType === 'INR' ? 'en-IN' : 'en-US', {
+        return getNumberFormat(exchangeMarketType === 'INR' ? 'en-IN' : 'en-US', {
           style: 'currency',
           currency: exchangeMarketType === 'INR' ? 'INR' : 'USD',
           notation: 'compact', // K, M, B 단위로 축약

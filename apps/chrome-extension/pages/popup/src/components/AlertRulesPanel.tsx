@@ -6,6 +6,7 @@ import { ExchangeChip } from '@/components/ui/exchangeChip';
 import { IconButton } from '@/components/ui/iconButton';
 import { MarketPicker } from '@/components/MarketPicker';
 import { useAllTickers } from '@/hooks/useAllTickers';
+import { usePageVisible } from '@/hooks/usePageVisible';
 import { EXCHANGES } from '@/constants/exchanges';
 import { useI18n } from '@/i18n';
 import type { ExchangePlatform } from '@/types';
@@ -148,8 +149,10 @@ const KimchiRules = () => {
   const [above, setAbove] = useState('5');
   const [below, setBelow] = useState('');
   const [premiums, setPremiums] = useState<KimchiItems>({});
+  const visible = usePageVisible();
 
   useEffect(() => {
+    if (!visible) return;
     let isUnmounted = false;
     const load = () =>
       chrome.runtime.sendMessage({ action: 'getKimchiPremium' }, (response?: { items?: KimchiItems }) => {
@@ -161,7 +164,7 @@ const KimchiRules = () => {
       isUnmounted = true;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [visible]);
 
   const symbol = coin.trim().toUpperCase();
   const aboveValue = parseNumber(above);

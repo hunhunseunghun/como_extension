@@ -68,13 +68,22 @@ export const expectLiveUpdates = async (page: Page, ms = 20_000) => {
   };
   try {
     await changes(ms / 2);
+    return;
   } catch {
-    // 거래대금 상위가 주식 토큰이면 주말에 가격이 멈추므로, 늘 거래되는 BTC로 좁혀 다시 본다.
-    const search = page.getByPlaceholder(/BTC/).first();
-    await search.fill('BTC');
-    await changes(ms);
-    await search.fill('');
+    // 거래대금 상위가 주식 토큰이면 주말에 가격이 멈춘다. 늘 거래되는 BTC·ETH로 좁혀 다시 본다.
+    // 주말에는 거래소에 따라 BTC도 수십 초씩 같은 값에 머물러 두 종목을 차례로 본다.
   }
+  const search = page.getByPlaceholder(/BTC/).first();
+  for (const [index, coin] of ['BTC', 'ETH'].entries()) {
+    await search.fill(coin);
+    try {
+      await changes(ms);
+      break;
+    } catch (error) {
+      if (index === 1) throw error;
+    }
+  }
+  await search.fill('');
 };
 
 export const totalCount = async (page: Page) =>

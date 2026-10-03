@@ -4,7 +4,7 @@ import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
 import { BithumbTicker, FavoriteCoins, MarketType } from '@/types';
 import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
 import { WarningIcon } from '@/components/ui/warningIcon';
-import { getRegExp } from 'korean-regexp';
+import { getChosungRegExp, getNumberFormat } from '@/lib/format';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
 import {
@@ -102,7 +102,7 @@ export const getBithumbColumns = (
       const searchValue = filterValue.toLowerCase().trim();
       const fullTextMatch =
         market.includes(searchValue) || englishName.includes(searchValue) || koreanName.includes(searchValue);
-      const chosungRegex = getRegExp(searchValue, { initialSearch: true });
+      const chosungRegex = getChosungRegExp(searchValue);
       return fullTextMatch || chosungRegex.test(koreanName);
     },
     enableHiding: false,
@@ -271,7 +271,7 @@ export const getBithumbColumns = (
     cell: ({ getValue }) => {
       const value = Number(getValue() as number);
       const formatCurrencyKR = (value: number) => {
-        return new Intl.NumberFormat(t('numberLocale'), {
+        return getNumberFormat(t('numberLocale'), {
           style: 'currency',
           currency: 'KRW',
           notation: 'compact', // ko: 만·억·조, en: K·M·B 단위 적용
