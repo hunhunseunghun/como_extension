@@ -217,4 +217,8 @@ export const ja: Partial<Record<MessageKey, string>> = {
   whatsNew3: '設定のバックアップ・復元、保有資産の平均取得単価の編集',
   onboardingTip: 'ヒント：ベルで指値アラートを作成でき、設定からサイドパネルで開いておけます。',
   searchLabel: 'コインを検索',
+  toggleCoinName: 'コイン名を韓国語・英語で切り替え',
+  retry: '再試行',
+  noChartData: 'チャートデータがありません',
+  openChart: 'チャートを開く',
 };

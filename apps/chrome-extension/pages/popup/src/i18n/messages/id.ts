@@ -217,4 +217,8 @@ export const id: Partial<Record<MessageKey, string>> = {
   whatsNew3: 'Cadangkan dan pulihkan pengaturan, ubah harga rata-rata aset',
   onboardingTip: 'Tips: gunakan tombol lonceng untuk membuat alert harga, dan buka COMO di panel samping dari pengaturan.',
   searchLabel: 'Cari koin',
+  toggleCoinName: 'Ganti nama koin antara bahasa Korea dan Inggris',
+  retry: 'Coba lagi',
+  noChartData: 'Tidak ada data grafik',
+  openChart: 'Buka grafik',
 };

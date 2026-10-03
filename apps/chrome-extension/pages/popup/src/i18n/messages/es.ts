@@ -217,4 +217,8 @@ export const es: Partial<Record<MessageKey, string>> = {
   whatsNew3: 'Copia y restauración de ajustes, edición del precio promedio de tus tenencias',
   onboardingTip: 'Consejo: usa la campana para crear alertas de precio y abre COMO en el panel lateral desde ajustes.',
   searchLabel: 'Buscar monedas',
+  toggleCoinName: 'Cambiar nombres de monedas entre coreano e inglés',
+  retry: 'Reintentar',
+  noChartData: 'No hay datos del gráfico',
+  openChart: 'Abrir gráfico',
 };

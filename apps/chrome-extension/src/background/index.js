@@ -1,3 +1,8 @@
+import { evaluatePriceAlert } from './lib/priceAlert.js';
+import { formatBadgePrice, formatPercent, shiftDate } from './lib/format.js';
+import { toGlobalSnapshot, toGlobalTick } from './lib/globalTicks.js';
+import { computeKimchiPremium as computeKimchiPremiumFrom } from './lib/kimchi.js';
+
 // 초기 설정 및 전역 변수
 const allExchangesTickers = {
   upbit: {},
@@ -26,12 +31,6 @@ function refreshCurrentDate() {
   if (date === CURRENT_DATE) return false;
   CURRENT_DATE = date;
   return true;
-}
-
-// 'yyyymmdd'에서 days일 전 날짜를 같은 형식으로 돌려준다(KST 날짜 문자열 기준, 시간대 변환 없음).
-function shiftDate(yyyymmdd, days) {
-  const date = new Date(Date.UTC(+yyyymmdd.slice(0, 4), +yyyymmdd.slice(4, 6) - 1, +yyyymmdd.slice(6, 8) - days));
-  return date.toISOString().slice(0, 10).replace(/-/g, '');
 }
 
 chrome.alarms.create('updateDate', { periodInMinutes: 30 });
@@ -79,26 +78,12 @@ function checkPriceAlerts(exchange, ticker, currentPrice) {
   alertPrices.forEach(({ price: alertPrice, deadband: alertDeadband }) => {
     if (alertPrice === undefined) return;
     const deadband = deadbandSettings[exchange]?.[ticker]?.[alertPrice] ?? alertDeadband ?? 0;
-    const crossedUp = lastPrice < alertPrice && currentPrice >= alertPrice;
-    const crossedDown = lastPrice > alertPrice && currentPrice <= alertPrice;
-
-    if (deadband === 0) {
-      if (crossedUp || crossedDown) sendNotification(exchange, ticker, currentPrice, alertPrice, crossedUp);
-      return;
-    }
-
-    if (!tickerTriggered[alertPrice]) {
-      if (crossedUp || crossedDown) {
-        sendNotification(exchange, ticker, currentPrice, alertPrice, crossedUp);
-        tickerTriggered[alertPrice] = true;
-        changed = true;
-      }
-    } else {
-      const deadbandValue = alertPrice * deadband;
-      if (currentPrice <= alertPrice - deadbandValue || currentPrice >= alertPrice + deadbandValue) {
-        tickerTriggered[alertPrice] = false;
-        changed = true;
-      }
+    const wasTriggered = !!tickerTriggered[alertPrice];
+    const result = evaluatePriceAlert({ lastPrice, currentPrice, alertPrice, deadband, triggered: wasTriggered });
+    if (result.notify) sendNotification(exchange, ticker, currentPrice, alertPrice, result.crossedUp);
+    if (result.triggered !== wasTriggered) {
+      tickerTriggered[alertPrice] = result.triggered;
+      changed = true;
     }
   });
 
@@ -288,8 +273,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (changes[RULE_STATE_KEY]) ruleCache.state = changes[RULE_STATE_KEY].newValue || {};
 });
 
-const formatPercent = value => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
-
 function checkAlertRules() {
   if (!ruleCache.rules.length) return;
   refreshCurrentDate();
@@ -435,24 +418,6 @@ const getBadgeSettings = () =>
   (getLanguage() === 'ko'
     ? { enabled: true, exchange: 'upbit', market: 'KRW-BTC' }
     : { enabled: true, exchange: 'binance', market: 'BTCUSDT' });
-
-function formatBadgePrice(price) {
-  for (const [unit, size] of [
-    ['B', 1e9],
-    ['M', 1e6],
-    ['K', 1e3],
-  ]) {
-    if (price >= size) {
-      const value = price / size;
-      return `${value >= 10 ? Math.round(value) : value.toFixed(1)}${unit}`;
-    }
-  }
-  if (price >= 100) return price.toFixed(0);
-  if (price >= 10) return price.toFixed(1);
-  if (price >= 1) return price.toFixed(2);
-  if (price >= 0.001) return price.toFixed(3).slice(1);
-  return price.toExponential(0);
-}
 
 function updateBadge() {
   const settings = getBadgeSettings();
@@ -1063,46 +1028,7 @@ class ExchangeData {
   }
 }
 
-// 해외 거래소 시세를 바이낸스 24hrTicker(스냅샷)·웹소켓 필드 형태로 맞춘다.
-// 팝업은 c <= b 이면 BID(상승색)로 표시하므로 직전 가격 대비 방향으로 b를 채운다.
-function toGlobalTick(symbol, { last, open, high, low, quoteVolume }, prev) {
-  const close = Number(last);
-  const openPrice = Number(open);
-  const change = close - openPrice;
-  // REST 응답과 같은 소수 8자리 문자열로 맞춰 부동소수점 오차가 표시되지 않게 한다.
-  const priceChange = change.toFixed(8);
-  const prevPrice = Number(prev?.c ?? prev?.lastPrice);
-  return {
-    s: symbol,
-    c: String(last),
-    o: String(open),
-    h: String(high),
-    l: String(low),
-    q: String(quoteVolume),
-    p: priceChange,
-    priceChange,
-    P: openPrice ? ((change / openPrice) * 100).toFixed(3) : '0',
-    b: Number.isFinite(prevPrice) && close >= prevPrice ? String(last) : '0',
-  };
-}
-
-function toGlobalSnapshot(symbol, { last, open, high, low, quoteVolume }) {
-  const close = Number(last);
-  const openPrice = Number(open);
-  const change = close - openPrice;
-  return {
-    symbol,
-    market: symbol,
-    lastPrice: String(last),
-    openPrice: String(open),
-    highPrice: String(high),
-    lowPrice: String(low),
-    quoteVolume: String(quoteVolume),
-    priceChange: change.toFixed(8),
-    priceChangePercent: openPrice ? ((change / openPrice) * 100).toFixed(3) : '0',
-  };
-}
-
+// 해외 거래소 응답을 setSnapshot·applyUpdates가 받는 형태로 바꾼다(필드 변환은 lib/globalTicks.js).
 const globalEntry = (symbol, fields) => {
   const ticker = toGlobalSnapshot(symbol, fields);
   return {
@@ -2134,40 +2060,7 @@ chrome.storage.local.get(KIMCHI_HISTORY_KEY).then(result => {
 });
 
 function computeKimchiPremium() {
-  const usdRate = liveUsdKrw || exchangeRateManager.exchangeRateUSD;
-  if (!usdRate) return { rate: usdRate, items: {} };
-
-  const items = {};
-  for (const krwExchange of ['upbit', 'bithumb']) {
-    const krwTickers = allExchangesTickers[krwExchange];
-    if (!krwTickers) continue;
-    for (const market in krwTickers) {
-      if (!market.startsWith('KRW-')) continue;
-      const coin = market.slice(4);
-      if (coin === 'USDT' || coin === 'USDC') continue;
-      const krwPrice = krwTickers[market]?.currentPrice;
-      const binTicker = allExchangesTickers.binance?.[`${coin}USDT`];
-      const usdtPrice = binTicker?.currentPrice;
-      if (!krwPrice || !usdtPrice) continue;
-
-      const premium = (krwPrice / (usdtPrice * usdRate) - 1) * 100;
-      items[`${krwExchange}:${market}`] = {
-        exchange: krwExchange,
-        market,
-        coin,
-        premium,
-        krwPrice,
-        usdtPrice,
-      };
-    }
-  }
-  // 테더 프리미엄: 원화로 산 USDT가 실제 달러 환율보다 얼마나 비싼지. 김프의 기준선으로 많이 본다.
-  const tether = {};
-  for (const krwExchange of ['upbit', 'bithumb']) {
-    const price = allExchangesTickers[krwExchange]?.['KRW-USDT']?.currentPrice;
-    if (price) tether[krwExchange] = (price / usdRate - 1) * 100;
-  }
-  return { rate: usdRate, items, tether };
+  return computeKimchiPremiumFrom(allExchangesTickers, liveUsdKrw || exchangeRateManager.exchangeRateUSD);
 }
 
 // 거래소 간 가격 차이: 같은 코인을 USD로 환산해 가장 싼 곳과 비싼 곳의 차이를 구한다.

@@ -220,4 +220,8 @@ export const en: Record<MessageKey, string> = {
   whatsNew3: 'Settings backup and restore, edit the average price of holdings',
   onboardingTip: 'Tip: Use the bell to create price alerts, and open COMO in the side panel from settings.',
   searchLabel: 'Search coins',
+  toggleCoinName: 'Switch coin names between Korean and English',
+  retry: 'Retry',
+  noChartData: 'No chart data',
+  openChart: 'Open chart',
 };

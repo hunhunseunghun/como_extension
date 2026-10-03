@@ -2,7 +2,9 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DisplayCurrency, getTimeframes, Translate } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
 import { FavoriteCoins, MarketType, UpbitTicker } from '@/types';
-import { Star, ArrowRightLeft, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
+import { ArrowRightLeft, ChartCandlestick } from 'lucide-react';
+import { FavoriteStar, SortableHeader } from './shared';
+import { toggleFavoriteCoin } from './favorites';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import { getChosungRegExp, getNumberFormat } from '@/lib/format';
 import FlashCell from '@/components/FlashCell';
@@ -38,44 +40,27 @@ export const getUpbitColumns = (
     accessorFn: row => `${row.korean_name} ${row.market}`,
     id: 'market',
     header: () => (
-      <div className="flex" onClick={() => setCoinNameKR(!coinNameKR)}>
-        <a href="#" className="mr-[2px] font-bold">
-          {coinNameKR ? t('nameKR') : t('nameEN')}
-        </a>
-        <ArrowRightLeft size={10} strokeWidth={3} className="mt-[2px]" />
-      </div>
+      <button
+        type="button"
+        className="flex font-bold hover:cursor-pointer"
+        aria-label={t('toggleCoinName')}
+        onClick={() => setCoinNameKR(!coinNameKR)}>
+        <span className="mr-[2px]">{coinNameKR ? t('nameKR') : t('nameEN')}</span>
+        <ArrowRightLeft size={10} strokeWidth={3} className="mt-[2px]" aria-hidden />
+      </button>
     ),
     cell: ({ row }) => {
       const splitMarket = row.original.market?.split('-');
       const convertMarket = splitMarket[1] + '/' + splitMarket[0];
       const upbitRow = row.original as { market_event?: { warning: boolean; caution: boolean } }; // Upbit 전용 필드 접근
       const market = row.original.market;
-      const isFavorite = (favoriteCoins?.upbit ?? []).includes(market);
-
-      const toggleFavorite = () => {
-        if (!row.getCanPin()) return; // 고정 불가능 시 무시
-        setFavoriteCoins(prev => ({
-          ...prev,
-          upbit: isFavorite
-            ? prev.upbit.filter(coin => coin !== market)
-            : [...prev.upbit, market],
-        }));
-        row.pin(isFavorite ? false : 'top');
-      };
+      const toggleFavorite = () =>
+        toggleFavoriteCoin({ row, exchange: 'upbit', market: market, favoriteCoins, setFavoriteCoins });
 
       return (
         <div className="flex min-w-0 gap-[2px] font-semibold">
           {favoriteFunc && (
-            <div className="mt-[2px]">
-              <Star
-                className={
-                  row.getIsPinned()
-                    ? 'size-3 text-star fill-star hover:cursor-pointer'
-                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-star hover:fill-star'
-                }
-                onClick={toggleFavorite}
-              />
-            </div>
+            <FavoriteStar pinned={row.getIsPinned() !== false} onToggle={toggleFavorite} label={t('favoritePin')} />
           )}
           <div className="min-w-0 text-left">
             <div className="flex min-w-0 gap-[2px]">
@@ -154,10 +139,7 @@ export const getUpbitColumns = (
   {
     accessorKey: 'trade_price',
     header: ({ column }) => (
-      <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-cap-s font-bold underline-offset-2">{t('currentPrice')}</span>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('currentPrice')} />
     ),
     cell: ({ getValue, row, cell }) => {
       const valueKRW = getValue() as number;
@@ -194,10 +176,7 @@ export const getUpbitColumns = (
     accessorFn: row => row.signed_change_rate * 100,
     id: 'signed_change_rate',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>{t('change')}</p>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('change')} />
     ),
     cell: ({ row, getValue }) => {
       const value = (getValue() as number).toFixed(2);
@@ -220,10 +199,7 @@ export const getUpbitColumns = (
     accessorFn: row => ((row.highest_52_week_price - row.trade_price) / row.highest_52_week_price) * 100,
     id: 'highest_52_week_diff',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>{t('fromHigh52w')}</span>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('fromHigh52w')} />
     ),
     cell: ({ getValue, row }) => {
       const value = (getValue() as number).toFixed(2);
@@ -244,10 +220,7 @@ export const getUpbitColumns = (
     accessorFn: row => ((row.trade_price - row.lowest_52_week_price) / row.lowest_52_week_price) * 100,
     id: 'lowest_52_week_diff',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>{t('fromLow52w')}</p>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('fromLow52w')} />
     ),
     cell: ({ getValue, row }) => {
       const value = (getValue() as number).toFixed(2);
@@ -269,10 +242,7 @@ export const getUpbitColumns = (
     accessorKey: 'acc_trade_price_24h',
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>{t('volume')}</span>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('volume')} />
     ),
     cell: ({ getValue }) => {
       const value = Number(getValue() as number);

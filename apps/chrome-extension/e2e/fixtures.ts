@@ -56,7 +56,7 @@ export const switchExchange = async (page: Page, from: string, to: string) => {
 
 // 거래대금 순으로 정렬해 가장 활발한 종목을 위에 두고, 일정 시간 동안 표 내용이 바뀌는지로 실시간 갱신을 확인한다.
 export const expectLiveUpdates = async (page: Page, ms = 20_000) => {
-  const volumeHeader = page.locator('thead th').last().locator('div').first();
+  const volumeHeader = page.locator('thead th').last().getByRole('button');
   const firstVolume = () => page.locator('tbody tr').first().locator('td').last().innerText();
   // 오름차순 → 내림차순 순서로 바뀐다.
   for (let i = 0; i < 2; i++) await volumeHeader.click();

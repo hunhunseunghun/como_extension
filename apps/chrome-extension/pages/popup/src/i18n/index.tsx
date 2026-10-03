@@ -1,14 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ko, type MessageKey } from './messages/ko';
 import { en } from './messages/en';
-import { es } from './messages/es';
-import { pt } from './messages/pt';
-import { vi } from './messages/vi';
-import { tr } from './messages/tr';
-import { id } from './messages/id';
-import { ja } from './messages/ja';
-import { zh } from './messages/zh';
-import { hi } from './messages/hi';
 
 export type { MessageKey };
 
@@ -46,8 +38,23 @@ export const FIAT_CURRENCIES = [
 ] as const;
 export type DisplayCurrency = (typeof FIAT_CURRENCIES)[number];
 
-// 번역이 비어 있는 키는 영어로 보여준다.
-const messages: Record<Language, Partial<Record<MessageKey, string>>> = { ko, en, es, pt, vi, tr, id, ja, zh, hi };
+type Messages = Partial<Record<MessageKey, string>>;
+
+// 번역이 비어 있는 키는 영어로 보여준다. 한국어·영어만 바로 싣고 나머지 언어는 고를 때 불러온다(첫 화면 번들을 줄임).
+const messages: Partial<Record<Language, Messages>> = { ko, en };
+const loaders: Record<Exclude<Language, 'ko' | 'en'>, () => Promise<Messages>> = {
+  es: () => import('./messages/es').then(m => m.es),
+  pt: () => import('./messages/pt').then(m => m.pt),
+  vi: () => import('./messages/vi').then(m => m.vi),
+  tr: () => import('./messages/tr').then(m => m.tr),
+  id: () => import('./messages/id').then(m => m.id),
+  ja: () => import('./messages/ja').then(m => m.ja),
+  zh: () => import('./messages/zh').then(m => m.zh),
+  hi: () => import('./messages/hi').then(m => m.hi),
+};
+const loadMessages = async (language: Language) => {
+  if (!messages[language] && language !== 'ko' && language !== 'en') messages[language] = await loaders[language]();
+};
 
 export type Translate = (key: MessageKey) => string;
 
@@ -101,6 +108,20 @@ const I18nContext = createContext<I18nContextValue>({
 
 export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
   const [language, setLanguageState] = useState<Language>(detectLanguage);
+  // 번역을 다 불러온 언어. 고른 언어를 불러오는 동안에는 이전 언어로 보여 준다(처음에는 아무것도 그리지 않음).
+  const [readyLanguage, setReadyLanguage] = useState<Language | null>(() => (messages[language] ? language : null));
+
+  useEffect(() => {
+    let isCurrent = true;
+    loadMessages(language)
+      .catch(() => {})
+      .then(() => {
+        if (isCurrent) setReadyLanguage(messages[language] ? language : 'en');
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [language]);
   const [storedCurrency, setStoredCurrency] = useState<DisplayCurrency | null>(null);
   // 통화를 직접 고르지 않았다면 언어에 맞는 통화를 쓴다 (예: 한국어 KRW, 日本語 JPY).
   const currency = storedCurrency ?? defaultCurrency(language);
@@ -137,13 +158,13 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     () => ({
       language,
       setLanguage,
-      t: key => messages[language][key] ?? en[key] ?? ko[key],
+      t: key => messages[readyLanguage ?? 'en']?.[key] ?? en[key] ?? ko[key],
       currency,
       setCurrency,
       upDownColors,
       setUpDownColors,
     }),
-    [language, setLanguage, currency, setCurrency, upDownColors, setUpDownColors],
+    [language, readyLanguage, setLanguage, currency, setCurrency, upDownColors, setUpDownColors],
   );
 
   useEffect(() => {
@@ -154,6 +175,7 @@ export const I18nProvider = ({ children }: { children: React.ReactNode }) => {
     document.documentElement.dataset.updown = upDownColors;
   }, [upDownColors]);
 
+  if (!readyLanguage) return null;
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 };
 

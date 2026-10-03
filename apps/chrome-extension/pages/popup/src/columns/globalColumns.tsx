@@ -4,7 +4,9 @@ import { BinanceTicker, FavoriteCoins, GlobalExchange, MarketType } from '@/type
 import { getGlobalTradeUrl, splitGlobalSymbol } from '@/constants/exchanges';
 import type { DisplayCurrency } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
-import { Star, ArrowDownUp, ChevronsUpDown, ChartCandlestick } from 'lucide-react';
+import { ArrowDownUp, ChartCandlestick } from 'lucide-react';
+import { FavoriteStar, SortableHeader } from './shared';
+import { toggleFavoriteCoin } from './favorites';
 import FlashCell from '@/components/FlashCell';
 import ChartToolTip from '@/components/ChartToolTip';
 import {
@@ -39,48 +41,28 @@ export const getGlobalColumns = (
     accessorFn: row => `${row.symbol}`,
     id: 'market',
     header: () => (
-      <div
-        className="flex"
+      <button
+        type="button"
+        className="flex font-bold hover:cursor-pointer"
         onClick={() => {
           setSorting((prev: SortingState) => [{ id: 'market', desc: prev[0]?.desc ? false : true }]);
         }}>
-        <a href="#" className="mr-[2px] font-bold">
-          {t('name')}
-        </a>
-        <ArrowDownUp size={10} strokeWidth={3} className="mt-[2px]" />
-      </div>
+        <span className="mr-[2px]">{t('name')}</span>
+        <ArrowDownUp size={10} strokeWidth={3} className="mt-[2px]" aria-hidden />
+      </button>
     ),
     cell: ({ row }) => {
       const symbol = row.original.symbol;
       const removeMarket = splitGlobalSymbol(symbol).base;
 
       const tradeURL = getGlobalTradeUrl(exchange, symbol);
-      const isFavorite = (favoriteCoins?.[exchange] ?? []).includes(symbol);
-
-      const toggleFavorite = () => {
-        if (!row.getCanPin()) return; // 고정 불가능 시 무시
-        setFavoriteCoins(prev => ({
-          ...prev,
-          [exchange]: isFavorite
-            ? prev[exchange].filter(coin => coin !== symbol)
-            : [...prev[exchange], symbol],
-        }));
-        row.pin(isFavorite ? false : 'top');
-      };
+      const toggleFavorite = () =>
+        toggleFavoriteCoin({ row, exchange: exchange, market: symbol, favoriteCoins, setFavoriteCoins });
 
       return (
         <div className="flex min-w-0 gap-[2px] font-semibold">
           {favoriteFunc && (
-            <div className="mt-[2px]">
-              <Star
-                className={
-                  row.getIsPinned()
-                    ? 'size-3 text-star fill-star hover:cursor-pointer'
-                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-star hover:fill-star'
-                }
-                onClick={toggleFavorite}
-              />
-            </div>
+            <FavoriteStar pinned={row.getIsPinned() !== false} onToggle={toggleFavorite} label={t('favoritePin')} />
           )}
           <div className="min-w-0 text-left">
             <div className="flex min-w-0 gap-[2px]">
@@ -150,10 +132,7 @@ export const getGlobalColumns = (
     accessorFn: row => Number(row.c ? row.c : row.lastPrice),
     id: 'trade_price',
     header: ({ column }) => (
-      <div className="flex justify-end" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span className="text-cap-s font-bold underline-offset-2">{t('currentPrice')}</span>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('currentPrice')} />
     ),
     cell: ({ getValue, row, cell }) => {
       const lastPrice = Number(getValue() as string);
@@ -196,10 +175,7 @@ export const getGlobalColumns = (
     accessorFn: row => Number(row.P ? row.P : row.priceChangePercent),
     id: 'signed_change_rate',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>{t('change')}</p>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('change')} />
     ),
     cell: ({ row, getValue }) => {
       const value = Number(getValue());
@@ -231,10 +207,7 @@ export const getGlobalColumns = (
     },
     id: 'highest_24h_diff',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>{t('fromHigh24h')}</span>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('fromHigh24h')} />
     ),
     cell: ({ getValue, row }) => {
       const value = Number(getValue());
@@ -264,10 +237,7 @@ export const getGlobalColumns = (
     },
     id: 'lowest_24h_diff',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <p>{t('fromLow24h')}</p>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('fromLow24h')} />
     ),
     cell: ({ getValue, row }) => {
       const value = Number(getValue());
@@ -292,10 +262,7 @@ export const getGlobalColumns = (
     accessorFn: row => Number(row.q ? row.q : row.quoteVolume),
     id: 'acc_trade_price_24h',
     header: ({ column }) => (
-      <div className="flex justify-end font-bold" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-        <span>{t('volume')}</span>
-        <ChevronsUpDown size={12} strokeWidth={3} className="mt-[1px]" />
-      </div>
+      <SortableHeader column={column} label={t('volume')} />
     ),
     cell: ({ getValue }) => {
       const value = Number(getValue());

@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Activity } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Activity, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { EXCHANGES } from '@/constants/exchanges';
 import { useI18n } from '@/i18n';
 import { formatFiat, useMarket } from '@/lib/market';
 import type { ExchangePlatform } from '@/types';
-import { DerivativesPanel } from '@/components/insights/DerivativesPanel';
-import { TrendsPanel } from '@/components/insights/TrendsPanel';
+
+// 선물·트렌드 탭은 누를 때 불러온다.
+const DerivativesPanel = lazy(() => import('@/components/insights/DerivativesPanel').then(m => ({ default: m.DerivativesPanel })));
+const TrendsPanel = lazy(() => import('@/components/insights/TrendsPanel').then(m => ({ default: m.TrendsPanel })));
 import { KimchiTrend } from '@/components/insights/KimchiTrend';
 import { ShareButton } from '@/components/ShareButton';
 import { HoverHint } from '@/components/ui/hoverHint';
@@ -91,8 +93,10 @@ export const InsightsPopover = () => {
             ] as const
           ).map(([value, label]) => ({ value, label: t(label) }))}
         />
-        {tab === 'derivatives' && <DerivativesPanel />}
-        {tab === 'trends' && <TrendsPanel />}
+        <Suspense fallback={<div className="grid h-24 place-content-center"><Loader2 className="size-4 animate-spin text-fg-subtle" /></div>}>
+          {tab === 'derivatives' && <DerivativesPanel />}
+          {tab === 'trends' && <TrendsPanel />}
+        </Suspense>
         {tab === 'overview' && (
           <>
             <div className="flex items-center justify-between mb-1">

@@ -217,4 +217,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   whatsNew3: '设置备份与恢复，可修改持仓均价',
   onboardingTip: '提示：点铃铛按钮创建价格提醒，在设置中可固定到侧边栏。',
   searchLabel: '搜索币种',
+  toggleCoinName: '切换币种名称（韩文/英文）',
+  retry: '重试',
+  noChartData: '暂无图表数据',
+  openChart: '打开图表',
 };

@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { useChartData } from '@/hooks/useChartData';
+import { useI18n } from '@/i18n';
 import type { ExchangePlatform } from '@/types';
 
 interface ChartTooltipProps {
@@ -131,8 +132,20 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
   isOpenRef.current = isOpen;
-  const { chartData, loading, error, fetchData } = useChartData(symbol, exchange, timeframe);
+  const { chartData, loading, error, fetchData, cancel } = useChartData(symbol, exchange, timeframe);
   const { activeChart, setActiveChart } = React.useContext(ChartContext);
+  const { t } = useI18n();
+
+  // 차트를 닫는다. 진행 중인 요청·재시도도 멈춘다.
+  const closeChart = useCallback(() => {
+    cancel();
+    setIsOpen(false);
+    setActiveChart(null);
+    chartRef.current?.remove();
+    chartRef.current = null;
+    seriesRef.current = null;
+    setPosition(null);
+  }, [cancel, setActiveChart]);
 
   const TOOLTIP_WIDTH = wideSize ? 500 : 290;
   const TOOLTIP_HEIGHT = wideSize ? 300 : 170;
@@ -141,25 +154,26 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (isOpen && containerRef.current) {
         const tooltipElement = document.querySelector('.tooltip');
-        if (tooltipElement && !tooltipElement.contains(event.target as Node)) {
-          setIsOpen(false);
-          setActiveChart(null);
-          chartRef.current?.remove();
-          chartRef.current = null;
-          seriesRef.current = null;
-          setPosition(null);
-        }
+        if (tooltipElement && !tooltipElement.contains(event.target as Node)) closeChart();
       }
+    };
+    // Esc로 닫고, 키보드로 열었던 자리로 포커스를 돌려 준다.
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      closeChart();
+      containerRef.current?.focus();
     };
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, setActiveChart]);
+  }, [isOpen, closeChart]);
 
   const updatePosition = useCallback(() => {
     const container = containerRef.current;
@@ -267,9 +281,18 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
       }
     };
 
+    // 키보드로도 연다(Enter·Space).
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      handleClick();
+    };
+
     container.addEventListener('click', handleClick);
+    container.addEventListener('keydown', handleKey);
     return () => {
       container.removeEventListener('click', handleClick);
+      container.removeEventListener('keydown', handleKey);
     };
   }, [fetchData, updatePosition, isOpen, symbol, setActiveChart]);
 
@@ -293,13 +316,14 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
 
   useEffect(() => {
     if (isOpen && activeChart && activeChart !== symbol) {
+      cancel();
       setIsOpen(false);
       chartRef.current?.remove();
       chartRef.current = null;
       seriesRef.current = null;
       setPosition(null);
     }
-  }, [activeChart, symbol]);
+  }, [activeChart, symbol, isOpen, cancel]);
 
   const tooltipContent = useMemo(
     () => (
@@ -322,24 +346,30 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
               <div className="flex items-center">
                 <span className="text-chart-fg-error">{error}</span>
                 <button className="ml-2 text-chart-fg underline hover:text-fg-neutral" onClick={() => fetchData()}>
-                  Retry
+                  {t('retry')}
                 </button>
               </div>
             )}
             {!loading && !error && !chartData.length && (
               <a href="https://www.tradingview.com" className="text-chart-fg-muted" target="_blank" rel="noopener noreferrer">
-                No data available
+                {t('noChartData')}
               </a>
             )}
           </div>
         )}
       </div>
     ),
-    [position, chartData, loading, error, fetchData, wideSize],
+    [position, chartData, loading, error, fetchData, wideSize, t],
   );
 
   return (
-    <div ref={containerRef} className={`${className} relative transition-all duration-500 ease-out cursor-pointer`}>
+    <div
+      ref={containerRef}
+      role="button"
+      tabIndex={0}
+      aria-label={`${t('openChart')} ${symbol ?? ''}`}
+      aria-expanded={isOpen}
+      className={`${className} relative transition-all duration-500 ease-out cursor-pointer`}>
       {children}
       {isOpen && createPortal(tooltipContent, document.body)}
     </div>

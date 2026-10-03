@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "clean:node_modules": "rimraf node_modules",
     "dev:background": "pnpx nodemon --exec node src/background/index.js",
+    "test:unit": "node --test \"src/background/lib/*.test.js\"",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "dev:ext": "node scripts/dev-extension.mjs",

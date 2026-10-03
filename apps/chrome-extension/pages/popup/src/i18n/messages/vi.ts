@@ -217,4 +217,8 @@ export const vi: Partial<Record<MessageKey, string>> = {
   whatsNew3: 'Sao lưu và khôi phục cài đặt, sửa giá trung bình của tài sản',
   onboardingTip: 'Mẹo: dùng nút chuông để tạo cảnh báo giá và mở COMO ở bảng bên từ cài đặt.',
   searchLabel: 'Tìm coin',
+  toggleCoinName: 'Chuyển tên coin giữa tiếng Hàn và tiếng Anh',
+  retry: 'Thử lại',
+  noChartData: 'Không có dữ liệu biểu đồ',
+  openChart: 'Mở biểu đồ',
 };

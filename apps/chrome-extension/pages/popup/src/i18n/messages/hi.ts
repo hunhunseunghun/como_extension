@@ -217,4 +217,8 @@ export const hi: Partial<Record<MessageKey, string>> = {
   whatsNew3: 'सेटिंग्स बैकअप और रिस्टोर, होल्डिंग्स की औसत कीमत बदलें',
   onboardingTip: 'टिप: घंटी बटन से प्राइस अलर्ट बनाएँ, और सेटिंग्स से COMO को साइड पैनल में खोलें।',
   searchLabel: 'कॉइन खोजें',
+  toggleCoinName: 'कॉइन नाम कोरियाई और अंग्रेज़ी में बदलें',
+  retry: 'फिर कोशिश करें',
+  noChartData: 'चार्ट डेटा नहीं है',
+  openChart: 'चार्ट खोलें',
 };

@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+
+// 거래소 계정 연동(서명·키 저장)은 보유 자산 팝오버를 열 때 불러온다.
+const AccountSync = lazy(() => import('@/components/AccountSync').then(m => ({ default: m.AccountSync })));
 import { Wallet, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +14,7 @@ import { useI18n } from '@/i18n';
 import { convertFiat, formatFiat, useMarket } from '@/lib/market';
 import { ExchangePlatform } from '@/types';
 import { ShareButton } from '@/components/ShareButton';
-import { AccountSync, type SyncExchange, type SyncedHolding } from '@/components/AccountSync';
+import type { SyncExchange, SyncedHolding } from '@/components/AccountSync';
 import { HoverHint } from '@/components/ui/hoverHint';
 import { IconButton } from '@/components/ui/iconButton';
 
@@ -297,7 +300,9 @@ export const PortfolioPopover = () => {
             </div>
           ))}
         </div>
-        <AccountSync onSynced={handleSynced} />
+        <Suspense fallback={null}>
+          <AccountSync onSynced={handleSynced} />
+        </Suspense>
       </PopoverContent>
     </Popover>
   );

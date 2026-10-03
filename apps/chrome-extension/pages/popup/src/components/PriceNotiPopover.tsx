@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { Bell } from 'lucide-react';
+import { lazy, Suspense, useState } from 'react';
+import { Bell, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useI18n } from '@/i18n';
-import { AlertRulesPanel } from '@/components/AlertRulesPanel';
-import { PriceAlertPanel } from '@/components/PriceAlertPanel';
+
+// 패널(cmdk 검색 포함)은 알림 팝오버를 열 때 불러온다. 첫 화면 번들을 줄인다.
+const PriceAlertPanel = lazy(() => import('@/components/PriceAlertPanel').then(m => ({ default: m.PriceAlertPanel })));
+const AlertRulesPanel = lazy(() => import('@/components/AlertRulesPanel').then(m => ({ default: m.AlertRulesPanel })));
 import { HoverHint } from '@/components/ui/hoverHint';
 import { Segmented } from '@/components/ui/segmented';
 
@@ -49,7 +51,9 @@ export const PriceNotiPopover = () => {
             ] as const
           ).map(([value, label]) => ({ value, label: t(label) }))}
         />
-        {tab === 'price' ? <PriceAlertPanel /> : <AlertRulesPanel kind={tab} />}
+        <Suspense fallback={<div className="grid h-24 place-content-center"><Loader2 className="size-4 animate-spin text-fg-subtle" /></div>}>
+          {tab === 'price' ? <PriceAlertPanel /> : <AlertRulesPanel kind={tab} />}
+        </Suspense>
       </PopoverContent>
     </Popover>
   );

@@ -218,6 +218,10 @@ export const ko = {
   whatsNew3: '설정 백업·복원, 보유 자산 평균가 직접 수정',
   onboardingTip: '팁: 종 버튼으로 지정가 알림을 만들고, 설정에서 사이드 패널로 열어 둘 수 있어요.',
   searchLabel: '코인 검색',
+  toggleCoinName: '코인 이름 한글·영문 전환',
+  retry: '다시 시도',
+  noChartData: '차트 데이터가 없어요',
+  openChart: '차트 열기',
 };
 
 export type MessageKey = keyof typeof ko;

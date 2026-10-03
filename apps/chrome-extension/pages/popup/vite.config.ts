@@ -21,7 +21,8 @@ export default defineConfig({
   publicDir: resolve(rootDir, 'public'),
   build: {
     outDir,
-    emptyOutDir: false,
+    // dist/popup은 팝업 빌드만 쓰므로 매번 비운다. 비우지 않으면 이전 빌드의 해시 파일이 계속 쌓인다.
+    emptyOutDir: true,
     rollupOptions: {
       external: ['chrome'],
     },

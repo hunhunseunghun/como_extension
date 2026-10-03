@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import axios from 'axios';
 import type { Time } from 'lightweight-charts';
 import { splitGlobalSymbol } from '@/constants/exchanges';
 import type { ExchangePlatform } from '@/types';
@@ -62,24 +61,61 @@ const isValidNumeric = (value: number) => Number.isFinite(value);
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
+// axios 대신 fetch로 받는다(번들 크기). params는 쿼리 문자열로 붙인다.
+const getJson = async <T = unknown>(
+  url: string,
+  { params, headers, signal }: { params?: Record<string, string | number>; headers?: Record<string, string>; signal?: AbortSignal } = {},
+): Promise<T> => {
+  const query = params ? `?${new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]))}` : '';
+  const response = await fetch(`${url}${query}`, { headers, signal });
+  if (!response.ok) throw new Error(`Request failed with status code ${response.status}`);
+  return response.json() as Promise<T>;
+};
+
+// 차트 캐시: 모든 행이 함께 쓰고(가상 스크롤로 행이 사라져도 유지), 봉 길이에 맞춰 오래된 데이터는 다시 받는다.
+const CACHE_LIMIT = 30;
+const chartCache = new Map<string, { data: ChartDataPoint[]; at: number }>();
+const cacheTtl = (timeframe: string) =>
+  timeframe === '1m' ? 30_000 : /^(3|5|10|15)m$/.test(timeframe) ? 60_000 : /m$/.test(timeframe) ? 120_000 : 600_000;
+const readCache = (key: string, timeframe: string) => {
+  const entry = chartCache.get(key);
+  if (!entry || Date.now() - entry.at > cacheTtl(timeframe)) return null;
+  // 최근에 쓴 항목을 뒤로 보내 오래 안 쓴 것부터 지운다.
+  chartCache.delete(key);
+  chartCache.set(key, entry);
+  return entry.data;
+};
+const writeCache = (key: string, data: ChartDataPoint[]) => {
+  chartCache.delete(key);
+  chartCache.set(key, { data, at: Date.now() });
+  if (chartCache.size > CACHE_LIMIT) chartCache.delete(chartCache.keys().next().value as string);
+};
+
 export const useChartData = (symbol?: string, exchange: Exchange = 'binance', timeframe: string = '1d') => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const cacheRef = useRef<Record<string, ChartDataPoint[]>>({});
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
+
+  // 새 요청·닫기 때 이전 재시도와 진행 중인 요청을 정리한다. 남겨 두면 닫은 차트가 계속 다시 요청한다.
+  const cancelPending = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (retryTimerRef.current !== null) {
-        clearTimeout(retryTimerRef.current);
-        retryTimerRef.current = null;
-      }
+      cancelPending();
     };
-  }, []);
+  }, [cancelPending]);
 
   const fetchData = useCallback(
     async (attempt: number = 0) => {
@@ -88,32 +124,33 @@ export const useChartData = (symbol?: string, exchange: Exchange = 'binance', ti
         return;
       }
 
+      cancelPending();
       const cacheKey = `${exchange}-${symbol}-${timeframe}`;
-      if (cacheRef.current[cacheKey]) {
-        setChartData(cacheRef.current[cacheKey]);
+      const cached = readCache(cacheKey, timeframe);
+      if (cached) {
+        setChartData(cached);
         setError(null);
         return;
       }
 
+      const controller = new AbortController();
+      abortRef.current = controller;
       setLoading(true);
       try {
         const currentTime = Math.floor(Date.now());
-        const { data } = await fetchChartData(symbol, exchange, timeframe);
+        const { data } = await fetchChartData(symbol, exchange, timeframe, controller.signal);
         const formattedData = formatChartData(data, exchange, currentTime);
 
         if (!formattedData.length) {
           throw new Error(`No valid data points for ${symbol}`);
         }
 
-        if (Object.keys(cacheRef.current).length >= 10) {
-          delete cacheRef.current[Object.keys(cacheRef.current)[0]];
-        }
-        cacheRef.current[cacheKey] = formattedData;
-        if (!isMountedRef.current) return;
+        writeCache(cacheKey, formattedData);
+        if (!isMountedRef.current || controller.signal.aborted) return;
         setChartData(formattedData);
         setError(null);
       } catch (err) {
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current || controller.signal.aborted) return;
         setError(err instanceof Error ? err.message : 'Unknown error');
         if (attempt < MAX_RETRIES - 1) {
           retryTimerRef.current = setTimeout(() => {
@@ -124,18 +161,17 @@ export const useChartData = (symbol?: string, exchange: Exchange = 'binance', ti
         if (isMountedRef.current) setLoading(false);
       }
     },
-    [symbol, exchange, timeframe],
+    [symbol, exchange, timeframe, cancelPending],
   );
 
-  return { chartData, loading, error, fetchData };
+  return { chartData, loading, error, fetchData, cancel: cancelPending };
 };
 
 // CoinDCX 캔들 API는 BTCINR 대신 I-BTC_INR 같은 페어 코드를 쓴다. 마켓 목록은 한 번만 받는다.
 let coindcxPairsPromise: Promise<Record<string, string>> | null = null;
 const getCoindcxPair = async (symbol: string) => {
-  coindcxPairsPromise ??= axios
-    .get<{ coindcx_name: string; pair: string }[]>('https://api.coindcx.com/exchange/v1/markets_details')
-    .then(({ data }) => Object.fromEntries(data.map(market => [market.coindcx_name, market.pair])))
+  coindcxPairsPromise ??= getJson<{ coindcx_name: string; pair: string }[]>('https://api.coindcx.com/exchange/v1/markets_details')
+    .then(data => Object.fromEntries(data.map(market => [market.coindcx_name, market.pair])))
     .catch(error => {
       coindcxPairsPromise = null;
       throw error;
@@ -181,7 +217,7 @@ const toKlines = (exchange: Exchange, data: any): BinanceKline[] | UpbitCandle[]
   }
 };
 
-const fetchChartData = async (symbol: string, exchange: Exchange, timeframe: string = '1d') => {
+const fetchChartData = async (symbol: string, exchange: Exchange, timeframe: string = '1d', signal?: AbortSignal) => {
   const getUpbitInterval = (tf: string) => {
     const intervals: Record<string, string> = {
       '1m': 'minutes/1',
@@ -370,8 +406,8 @@ const fetchChartData = async (symbol: string, exchange: Exchange, timeframe: str
   };
 
   const config = configs[exchange];
-  const response = await axios.get(config.url, { params: config.params, headers: config.headers });
-  return { data: toKlines(exchange, response.data) };
+  const data = await getJson(config.url, { params: config.params, headers: config.headers, signal });
+  return { data: toKlines(exchange, data) };
 };
 
 const formatChartData = (

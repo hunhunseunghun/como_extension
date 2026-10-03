@@ -217,4 +217,8 @@ export const tr: Partial<Record<MessageKey, string>> = {
   whatsNew3: 'Ayar yedekleme ve geri yükleme, varlıkların ortalama fiyatını düzenleme',
   onboardingTip: 'İpucu: Fiyat alarmı oluşturmak için zili kullanın, COMO\'yu ayarlardan yan panelde açın.',
   searchLabel: 'Coin ara',
+  toggleCoinName: 'Coin adlarını Korece ve İngilizce arasında değiştir',
+  retry: 'Tekrar dene',
+  noChartData: 'Grafik verisi yok',
+  openChart: 'Grafiği aç',
 };

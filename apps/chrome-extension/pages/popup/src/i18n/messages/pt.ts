@@ -217,4 +217,8 @@ export const pt: Partial<Record<MessageKey, string>> = {
   whatsNew3: 'Backup e restauração de configurações, edição do preço médio dos ativos',
   onboardingTip: 'Dica: use o sino para criar alertas de preço e abra o COMO no painel lateral pelas configurações.',
   searchLabel: 'Buscar moedas',
+  toggleCoinName: 'Alternar nomes das moedas entre coreano e inglês',
+  retry: 'Tentar novamente',
+  noChartData: 'Sem dados do gráfico',
+  openChart: 'Abrir gráfico',
 };

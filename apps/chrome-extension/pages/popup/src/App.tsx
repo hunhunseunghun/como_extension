@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo, lazy, Suspense } from 'react';
 import '@/styles/App.css';
 import {
   UpbitTicker,
@@ -45,7 +45,6 @@ import { PortfolioPopover as PortfolioPopoverBase } from '@/components/Portfolio
 import { InsightsPopover as InsightsPopoverBase } from '@/components/InsightsPopover';
 import { DexWatchlistPopover as DexWatchlistPopoverBase } from '@/components/DexWatchlistPopover';
 import { ReviewPrompt } from '@/components/ReviewPrompt';
-import { Onboarding } from '@/components/Onboarding';
 import { useI18n } from '@/i18n';
 import { FiatRates, MarketContext, MarketStats } from '@/lib/market';
 import { Search, Loader2 } from 'lucide-react';
@@ -54,7 +53,10 @@ import { ChartProvider } from './components/ChartToolTip';
 import fireLogo from '@/assets/icons/fire.svg';
 import comoLogo from '@/assets/icons/como-logo.png';
 import { HoverHint } from '@/components/ui/hoverHint';
-import { WalletStatusContext, type WalletStatus } from '@/lib/walletStatus';
+import { WalletStatusContext, type WalletStatus } from '@/lib/walletStatusContext';
+
+// 첫 실행 안내는 새로 설치한 사용자에게만 뜨므로 필요할 때 불러온다.
+const Onboarding = lazy(() => import('@/components/Onboarding').then(m => ({ default: m.Onboarding })));
 
 // 툴바 팝오버는 시세와 상관없으므로 시세가 바뀔 때마다 App과 함께 다시 그리지 않는다.
 const InsightsPopover = memo(InsightsPopoverBase);
@@ -448,6 +450,13 @@ const App = () => {
                           return (
                             <TableHead
                               key={header.id}
+                              aria-sort={
+                                header.column.getIsSorted() === 'asc'
+                                  ? 'ascending'
+                                  : header.column.getIsSorted() === 'desc'
+                                    ? 'descending'
+                                    : undefined
+                              }
                               style={{
                                 width: adjustedWidth,
                                 minWidth: adjustedWidth,
@@ -555,11 +564,13 @@ const App = () => {
               ) : (
                 <ReviewPrompt />
               )}
-              <Onboarding
-                exchangePlatform={exchangePlatform}
-                setExchangePlatform={selectExchange}
-                setFavoriteCoins={setFavoriteCoins}
-              />
+              <Suspense fallback={null}>
+                <Onboarding
+                  exchangePlatform={exchangePlatform}
+                  setExchangePlatform={selectExchange}
+                  setFavoriteCoins={setFavoriteCoins}
+                />
+              </Suspense>
             </main>
           </div>
         </ThemeProvider>
