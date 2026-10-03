@@ -14,17 +14,17 @@ import {
   isSidePanelView,
   LISTING_ALERTS_STORAGE_KEY,
 } from '@/lib/settings';
-
-
-const selectClass =
-  'h-6 rounded-md border bg-background px-1 text-cap-s hover:cursor-pointer';
+import { HoverHint } from '@/components/ui/hoverHint';
+import { NativeSelect } from '@/components/ui/nativeSelect';
+import { Section, SettingRow } from '@/components/ui/section';
+import { Segmented } from '@/components/ui/segmented';
+import { Switch } from '@/components/ui/switch';
 
 export const CurrencySelect = () => {
   const { t, currency, setCurrency } = useI18n();
   return (
-    <select
+    <NativeSelect
       aria-label={t('currencyLabel')}
-      className={selectClass}
       value={currency}
       onChange={event => setCurrency(event.target.value as DisplayCurrency)}>
       {FIAT_CURRENCIES.map(code => (
@@ -32,16 +32,9 @@ export const CurrencySelect = () => {
           {code}
         </option>
       ))}
-    </select>
+    </NativeSelect>
   );
 };
-
-const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex items-center justify-between gap-2 py-1">
-    <span className="text-fg-subtle">{label}</span>
-    {children}
-  </div>
-);
 
 type SettingsPopoverProps = {
   favoriteFunc: boolean;
@@ -102,143 +95,121 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
             className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
             <Settings strokeWidth={2} className="size-3.5 p-0" />
           </Button>
-          <span className="absolute right-0 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+          <HoverHint align="end">
             {t('settings')}
-          </span>
+          </HoverHint>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-2 text-cap bg-background border border-stroke-weak">
-        <div className="font-semibold mb-1">{t('settings')}</div>
+        <div className="px-1 pb-1 text-title-s font-semibold">{t('settings')}</div>
 
-        <Row label={t('language')}>
-          <select
-            aria-label={t('language')}
-            className={selectClass}
-            value={language}
-            onChange={event => setLanguage(event.target.value as Language)}>
-            {LANGUAGES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </Row>
-
-        <Row label={t('currencyLabel')}>
-          <CurrencySelect />
-        </Row>
-
-        <Row label={t('upDownColors')}>
-          <div className="flex gap-1">
-            {(
-              [
-                ['green-up', 'text-green-600', 'text-red-500'],
-                ['red-up', 'text-red-500', 'text-blue-500'],
-              ] as const
-            ).map(([value, upClass, downClass]) => (
-              <Button
-                key={value}
-                variant={upDownColors === value ? 'default' : 'outline'}
-                aria-label={value === 'green-up' ? t('greenUp') : t('redUp')}
-                aria-pressed={upDownColors === value}
-                className="h-6 px-1.5 text-cap-s hover:cursor-pointer"
-                onClick={() => setUpDownColors(value)}>
-                <span className={upDownColors === value ? '' : upClass}>▲</span>
-                <span className={upDownColors === value ? '' : downClass}>▼</span>
-              </Button>
-            ))}
-          </div>
-        </Row>
-
-        <Row label={t('theme')}>
-          <div className="flex gap-1">
-            {(
-              [
-                ['light', Sun],
-                ['dark', Moon],
-                ['system', Monitor],
-              ] as const
-            ).map(([value, Icon]) => (
-              <Button
-                key={value}
-                variant={theme === value ? 'default' : 'outline'}
-                aria-label={t(value === 'light' ? 'themeLight' : value === 'dark' ? 'themeDark' : 'themeSystem')}
-                aria-pressed={theme === value}
-                className="h-6 w-7 p-0 hover:cursor-pointer"
-                onClick={() => setTheme(value)}>
-                <Icon className="size-3.5" />
-              </Button>
-            ))}
-          </div>
-        </Row>
-
-        <Row label={t('designVersion')}>
-          <div className="flex gap-1">
-            {(['v1', 'v2'] as const).map(value => (
-              <Button
-                key={value}
-                variant={designVersion === value ? 'default' : 'outline'}
-                aria-label={t(value === 'v1' ? 'designV1' : 'designV2')}
-                aria-pressed={designVersion === value}
-                className="h-6 px-1.5 text-cap-s hover:cursor-pointer"
-                onClick={() => setDesignVersion(value)}>
-                {value}
-              </Button>
-            ))}
-          </div>
-        </Row>
-
-        <Row label={t('favoritePin')}>
-          <input
-            type="checkbox"
-            aria-label={t('favoritePin')}
-            className="hover:cursor-pointer"
-            checked={favoriteFunc}
-            onChange={event => setFavoriteFunc(event.target.checked)}
-          />
-        </Row>
-
-        <Row label={t('listingAlerts')}>
-          <input
-            type="checkbox"
-            aria-label={t('listingAlerts')}
-            className="hover:cursor-pointer"
-            checked={listingAlerts ?? isListingAlertsDefault(language)}
-            onChange={event => {
-              setListingAlerts(event.target.checked);
-              chrome.storage.local.set({ [LISTING_ALERTS_STORAGE_KEY]: event.target.checked });
-            }}
-          />
-        </Row>
-
-        <div className="border-t mt-1 pt-1">
-          <Row label={t('toolbarBadge')}>
-            <input
-              type="checkbox"
-              aria-label={t('toolbarBadge')}
-              className="hover:cursor-pointer"
-              checked={!!badge?.enabled}
-              onChange={event => badge && saveBadge({ ...badge, enabled: event.target.checked })}
+        <Section title={t('settingsGroupDisplay')}>
+          <SettingRow label={t('language')}>
+            <NativeSelect
+              aria-label={t('language')}
+              value={language}
+              onChange={event => setLanguage(event.target.value as Language)}>
+              {LANGUAGES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </NativeSelect>
+          </SettingRow>
+          <SettingRow label={t('currencyLabel')}>
+            <CurrencySelect />
+          </SettingRow>
+          <SettingRow label={t('upDownColors')}>
+            <Segmented
+              value={upDownColors}
+              onChange={setUpDownColors}
+              options={(
+                [
+                  ['green-up', 'text-palette-green', 'text-palette-red'],
+                  ['red-up', 'text-palette-red', 'text-palette-blue'],
+                ] as const
+              ).map(([value, upClass, downClass]) => ({
+                value,
+                ariaLabel: value === 'green-up' ? t('greenUp') : t('redUp'),
+                label: (
+                  <>
+                    <span className={upClass}>▲</span>
+                    <span className={downClass}>▼</span>
+                  </>
+                ),
+              }))}
             />
-          </Row>
-          {badge?.enabled && (
-            <MarketPicker
-              exchange={badge.exchange}
-              onExchangeChange={exchange => {
-                setBadgeMarketInput('');
-                setBadge({ ...badge, exchange });
+          </SettingRow>
+        </Section>
+
+        <Section title={t('settingsGroupAppearance')}>
+          <SettingRow label={t('theme')}>
+            <Segmented
+              value={theme}
+              onChange={setTheme}
+              options={(
+                [
+                  ['light', Sun, 'themeLight'],
+                  ['dark', Moon, 'themeDark'],
+                  ['system', Monitor, 'themeSystem'],
+                ] as const
+              ).map(([value, Icon, label]) => ({ value, ariaLabel: t(label), label: <Icon /> }))}
+            />
+          </SettingRow>
+          <SettingRow label={t('designVersion')}>
+            <Segmented
+              value={designVersion}
+              onChange={setDesignVersion}
+              options={(['v1', 'v2'] as const).map(value => ({
+                value,
+                label: value,
+                ariaLabel: t(value === 'v1' ? 'designV1' : 'designV2'),
+              }))}
+            />
+          </SettingRow>
+          <SettingRow label={t('favoritePin')}>
+            <Switch aria-label={t('favoritePin')} checked={favoriteFunc} onCheckedChange={setFavoriteFunc} />
+          </SettingRow>
+        </Section>
+
+        <Section title={t('settingsGroupAlerts')}>
+          <SettingRow label={t('listingAlerts')}>
+            <Switch
+              aria-label={t('listingAlerts')}
+              checked={listingAlerts ?? isListingAlertsDefault(language)}
+              onCheckedChange={checked => {
+                setListingAlerts(checked);
+                chrome.storage.local.set({ [LISTING_ALERTS_STORAGE_KEY]: checked });
               }}
-              market={badgeMarketInput}
-              onMarketChange={handleBadgeMarket}
-              prices={prices}
             />
+          </SettingRow>
+          <SettingRow label={t('toolbarBadge')}>
+            <Switch
+              aria-label={t('toolbarBadge')}
+              checked={!!badge?.enabled}
+              onCheckedChange={checked => badge && saveBadge({ ...badge, enabled: checked })}
+            />
+          </SettingRow>
+          {badge?.enabled && (
+            <div className="px-1 pb-1">
+              <MarketPicker
+                exchange={badge.exchange}
+                onExchangeChange={exchange => {
+                  setBadgeMarketInput('');
+                  setBadge({ ...badge, exchange });
+                }}
+                market={badgeMarketInput}
+                onMarketChange={handleBadgeMarket}
+                prices={prices}
+              />
+            </div>
           )}
-        </div>
+        </Section>
 
         {canOpenSidePanel && (
           <Button
-            variant="outline"
-            className="w-full h-7 mt-2 text-cap gap-1 hover:cursor-pointer"
+            variant="soft"
+            className="w-full h-control-lg mt-1 text-cap gap-1 hover:cursor-pointer"
             onClick={openSidePanel}>
             <PanelRight className="size-3.5" />
             {t('openSidePanel')}

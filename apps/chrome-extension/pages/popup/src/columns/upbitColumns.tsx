@@ -68,33 +68,34 @@ export const getUpbitColumns = (
       };
 
       return (
-        <div className="flex gap-[2px] font-semibold">
+        <div className="flex min-w-0 gap-[2px] font-semibold">
           {favoriteFunc && (
             <div className="mt-[2px]">
               <Star
                 className={
                   row.getIsPinned()
-                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                    ? 'size-3 text-star fill-star hover:cursor-pointer'
+                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-star hover:fill-star'
                 }
                 onClick={toggleFavorite}
               />
             </div>
           )}
-          <div className="text-left">
-            <div className="flex gap-[2px]">
+          <div className="min-w-0 text-left">
+            <div className="flex min-w-0 gap-[2px]">
               <a
                 href={`https://upbit.com/exchange?code=CRIX.UPBIT.${row.original?.market}`}
                 target="_blank"
-                className="hover:text-fg-faint">
+                title={coinNameKR ? row.original.korean_name : row.original.english_name}
+                className="truncate hover:text-fg-faint">
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
-              <div className="flex gap-[1px] items-center">
+              <div className="flex shrink-0 gap-[1px] items-center">
                 {upbitRow.market_event?.warning && <WarningIcon text={t('warningShort')} />}
                 {upbitRow.market_event?.caution && <CautionIcon text={t('cautionShort')} />}
               </div>
             </div>
-            <span className="text-cap text-fg-subtle font-medium">{convertMarket}</span>
+            <span className="block truncate text-cap text-fg-subtle font-medium">{convertMarket}</span>
           </div>
         </div>
       );
@@ -142,7 +143,7 @@ export const getUpbitColumns = (
       return (
         <div className="flex justify-center items-center">
           <ChartToolTip
-            className="flex justify-center items-center hover:text-red-500"
+            className="flex justify-center items-center hover:text-fg-highlight"
             symbol={row.original.market}
             exchange="upbit"
             timeframe={timeframe}

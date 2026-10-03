@@ -9,6 +9,9 @@ import type { ExchangePlatform } from '@/types';
 import { DerivativesPanel } from '@/components/insights/DerivativesPanel';
 import { TrendsPanel } from '@/components/insights/TrendsPanel';
 import { ShareButton } from '@/components/ShareButton';
+import { HoverHint } from '@/components/ui/hoverHint';
+import { Segmented } from '@/components/ui/segmented';
+import { Switch } from '@/components/ui/switch';
 
 type InsightsTab = 'overview' | 'derivatives' | 'trends';
 
@@ -20,14 +23,14 @@ const REFRESH_INTERVAL = 3000;
 // 공포·탐욕 지수 구간별 색 (0 극도의 공포 ~ 100 극도의 탐욕)
 const fearGreedColor = (value: number) =>
   value < 25
-    ? 'bg-red-500'
+    ? 'bg-sentiment-1'
     : value < 45
-      ? 'bg-orange-400'
+      ? 'bg-sentiment-2'
       : value <= 55
-        ? 'bg-yellow-400'
+        ? 'bg-sentiment-3'
         : value <= 75
-          ? 'bg-lime-500'
-          : 'bg-green-600';
+          ? 'bg-sentiment-4'
+          : 'bg-sentiment-5';
 
 export const InsightsPopover = () => {
   const { t } = useI18n();
@@ -67,31 +70,26 @@ export const InsightsPopover = () => {
             className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
             <Activity strokeWidth={2} className="size-3.5 p-0" />
           </Button>
-          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+          <HoverHint>
             {t('insights')}
-          </span>
+          </HoverHint>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2 text-cap bg-background border border-stroke-weak">
-        <div className="flex gap-1 mb-2" role="tablist">
-          {(
+        <Segmented
+          variant="tabs"
+          fill
+          className="mb-2"
+          value={tab}
+          onChange={setTab}
+          options={(
             [
               ['overview', 'insightsOverview'],
               ['derivatives', 'insightsDerivatives'],
               ['trends', 'insightsTrends'],
             ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              role="tab"
-              aria-selected={tab === value}
-              variant={tab === value ? 'default' : 'outline'}
-              className="h-6 flex-1 px-1 text-cap-s hover:cursor-pointer"
-              onClick={() => setTab(value)}>
-              {t(label)}
-            </Button>
-          ))}
-        </div>
+          ).map(([value, label]) => ({ value, label: t(label) }))}
+        />
         {tab === 'derivatives' && <DerivativesPanel />}
         {tab === 'trends' && <TrendsPanel />}
         {tab === 'overview' && (
@@ -119,7 +117,7 @@ export const InsightsPopover = () => {
               />
             </div>
             <div className="grid grid-cols-3 gap-1 mb-2" data-testid="market-stats">
-              <div className="rounded-md border p-1">
+              <div className="rounded-md border border-tile-border bg-tile px-2 py-1.5">
                 <div className="text-cap-s text-fg-subtle">{t('fearGreed')}</div>
                 {fearGreed ? (
                   <div className="flex items-center gap-1 font-semibold">
@@ -131,16 +129,16 @@ export const InsightsPopover = () => {
                   <div>-</div>
                 )}
               </div>
-              <div className="rounded-md border p-1">
+              <div className="rounded-md border border-tile-border bg-tile px-2 py-1.5">
                 <div className="text-cap-s text-fg-subtle">{t('btcDominance')}</div>
-                <div className="font-semibold">
+                <div className="num font-semibold">
                   {marketStats?.btcDominance != null ? `${marketStats.btcDominance.toFixed(1)}%` : '-'}
                 </div>
               </div>
-              <div className="rounded-md border p-1">
+              <div className="rounded-md border border-tile-border bg-tile px-2 py-1.5">
                 <div className="text-cap-s text-fg-subtle">{t('fundingRate')}</div>
                 <div
-                  className={`font-semibold ${marketStats?.fundingRate != null ? (marketStats.fundingRate >= 0 ? 'text-up' : 'text-down') : ''}`}>
+                  className={`num font-semibold ${marketStats?.fundingRate != null ? (marketStats.fundingRate >= 0 ? 'text-up' : 'text-down') : ''}`}>
                   {marketStats?.fundingRate != null ? `${(marketStats.fundingRate * 100).toFixed(4)}%` : '-'}
                 </div>
               </div>
@@ -148,14 +146,9 @@ export const InsightsPopover = () => {
 
             <div className="flex items-center justify-between mb-1">
               <span className="font-semibold">{t('spreads')}</span>
-              <label className="flex items-center gap-1 text-cap-s text-fg-subtle hover:cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={includeKrw}
-                  onChange={event => setIncludeKrw(event.target.checked)}
-                  className="hover:cursor-pointer"
-                />
+              <label className="flex items-center gap-1.5 text-cap-s text-fg-subtle hover:cursor-pointer">
                 {t('includeKrw')}
+                <Switch checked={includeKrw} onCheckedChange={setIncludeKrw} />
               </label>
             </div>
             <div className="text-cap-s text-fg-faint mb-1">{t('spreadsHint')}</div>
@@ -182,7 +175,7 @@ export const InsightsPopover = () => {
                     />
                     <span>{formatFiat(high.usdPrice, 'USD', locale)}</span>
                   </div>
-                  <div className="w-12 text-right font-semibold text-up">{spread.toFixed(2)}%</div>
+                  <div className="num w-12 text-right font-semibold text-fg-emphasis">{spread.toFixed(2)}%</div>
                 </div>
               ))}
             </div>

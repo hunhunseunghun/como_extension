@@ -124,7 +124,7 @@ const News = () => {
         <span className="text-cap-s text-fg-faint">{feed.source}</span>
       </div>
       {granted === false && (
-        <Button variant="outline" className="h-6 w-full text-cap-s hover:cursor-pointer" onClick={request}>
+        <Button variant="soft" className="h-control w-full text-cap-s hover:cursor-pointer" onClick={request}>
           {t('allowNews')}
         </Button>
       )}
@@ -177,7 +177,7 @@ const Unlocks = () => {
         <span className="text-cap-s text-fg-faint">DefiLlama</span>
       </div>
       {granted === false && (
-        <Button variant="outline" className="h-6 w-full text-cap-s hover:cursor-pointer" onClick={request}>
+        <Button variant="soft" className="h-control w-full text-cap-s hover:cursor-pointer" onClick={request}>
           {t('allowUnlocks')}
         </Button>
       )}

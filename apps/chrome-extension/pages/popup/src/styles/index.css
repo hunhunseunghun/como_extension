@@ -78,10 +78,84 @@ body {
   --como-stroke-focus: #1e82eb;
 
   /* 시세: 기본은 빨강 상승(한·중·일 관례), data-updown="green-up"이면 초록 상승. 툴바 배지 색(background/index.js)과 같은 값이다. */
-  --como-up: #ef4444;
-  --como-down: #3b82f6;
+  --como-palette-red: #ef4444;
+  --como-palette-green: #16a34a;
+  --como-palette-blue: #3b82f6;
+  --como-up: var(--como-palette-red);
+  --como-down: var(--como-palette-blue);
   --como-up-weak: rgb(239 68 68 / 0.12);
   --como-down-weak: rgb(59 130 246 / 0.12);
+
+  /* 상태색: 즐겨찾기 별 · 유의(노랑) · 주의(빨강) 배지 · 채운 배지 위 글자 · 아이콘 hover 강조 */
+  --como-fg-star: #ffb800;
+  --como-bg-warning: #f5a300;
+  --como-bg-critical: #fa342c;
+  --como-fg-on-solid: #ffffff;
+  --como-fg-highlight: var(--como-stroke-focus);
+
+  /* 헤더 버튼 hover 안내(HoverHint · ui/tooltip) */
+  --como-bg-hint: var(--como-gray-1000);
+  --como-fg-hint: var(--como-gray-00);
+  --como-hint-opacity: 1;
+
+  /* 공포·탐욕 지수 5단계 (극도의 공포 → 극도의 탐욕) */
+  --como-sentiment-1: #fa342c;
+  --como-sentiment-2: #ff7e36;
+  --como-sentiment-3: #ffb800;
+  --como-sentiment-4: #7cc62a;
+  --como-sentiment-5: #1aa174;
+
+  /* 캔들 차트 패널: v2는 팝오버와 같은 면을 쓴다 */
+  --como-bg-chart: var(--como-bg-layer-floating);
+  --como-fg-chart: var(--como-fg-subtle);
+  --como-fg-chart-muted: var(--como-fg-faint);
+  --como-fg-chart-error: var(--como-fg-critical);
+  --como-chart-grid: var(--como-stroke-weak);
+  --como-chart-border: var(--como-stroke-weak);
+  --como-chart-panel-border: var(--como-stroke-weak);
+  --como-chart-font: 11px;
+  --como-chart-font-compact: 11px;
+
+  --como-scrollbar-thumb: var(--como-gray-400);
+  --como-scrollbar-thumb-hover: var(--como-gray-500);
+
+  /* 굵기: 표 머리처럼 가장 강한 강조. v2는 700까지만 쓴다. */
+  --como-weight-heavy: 700;
+
+  /* 컨트롤: 세그먼트(탭·선택지) · 스위치 · 입력 필드 */
+  --como-seg-track: var(--como-gray-200);
+  --como-seg-thumb: var(--como-gray-00);
+  --como-seg-thumb-fg: var(--como-fg-neutral);
+  --como-seg-item-fg: var(--como-fg-subtle);
+  --como-seg-item-border: transparent;
+  --como-seg-thumb-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.04);
+  --como-switch-on: var(--como-stroke-focus);
+  --como-switch-off: var(--como-gray-500);
+  --como-switch-thumb: var(--como-gray-00);
+  --como-field-bg: var(--como-gray-100);
+  --como-field-bg-hover: var(--como-gray-200);
+  --como-field-border: transparent;
+  --como-field-focus: var(--como-stroke-focus);
+  --como-field-shadow: none;
+  --como-field-placeholder: var(--como-fg-placeholder);
+  /* 컨트롤 높이: 입력·작은 버튼 / 주 버튼 */
+  --como-control-h: 28px;
+  --como-control-h-lg: 32px;
+  /* 거래소 로고 같은 선택 칩 */
+  --como-chip-selected-bg: var(--como-bg-neutral-weak);
+  --como-chip-selected-ring: transparent;
+  /* 요약 타일(인사이트 지표, 보유 자산 합계): v2는 회색 면, v1은 테두리 */
+  --como-tile-bg: var(--como-bg-layer-raised);
+  --como-tile-border: transparent;
+  /* 거래소 간 가격 차이(%)처럼 방향이 없는 강조 숫자. v1은 3.0.0처럼 상승색 */
+  --como-fg-emphasis: var(--como-fg-neutral);
+  /* 패널 안 보조 버튼(Button variant="soft"): v2는 회색 면, v1은 3.0.0의 테두리 버튼 */
+  --como-btn-soft-bg: var(--como-bg-neutral-weak);
+  --como-btn-soft-bg-hover: var(--como-bg-neutral-weak-pressed);
+  --como-btn-soft-border: transparent;
+  --como-btn-soft-shadow: none;
+  /* 보유 자산 총 평가금액처럼 패널에서 가장 큰 숫자. v1은 3.0.0처럼 본문 크기 */
+  --como-text-total: var(--como-text-title);
 
   /* 글자 크기: v2는 11px(cap) 아래로 쓰지 않는다. cap 계열은 줄 높이를 부모에서 물려받는다. */
   --como-text-cap-xs: 11px;
@@ -146,8 +220,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 :root[data-updown='green-up'] {
-  --como-up: #16a34a;
-  --como-down: #ef4444;
+  --como-up: var(--como-palette-green);
+  --como-down: var(--como-palette-red);
   --como-up-weak: rgb(22 163 74 / 0.12);
   --como-down-weak: rgb(239 68 68 / 0.12);
 }
@@ -170,6 +244,19 @@ body {
   --como-stroke-weak: var(--como-dark-gray-400);
   --como-stroke-strong: var(--como-dark-gray-600);
   --como-stroke-focus: #41a2f9;
+  --como-fg-star: #ffc94d;
+  --como-bg-critical: #ff6e60;
+  --como-bg-hint: var(--como-dark-gray-900);
+  --como-fg-hint: var(--como-gray-1000);
+  --como-scrollbar-thumb: var(--como-dark-gray-400);
+  --como-scrollbar-thumb-hover: var(--como-dark-gray-500);
+  --como-seg-track: var(--como-dark-gray-300);
+  --como-seg-thumb: var(--como-dark-gray-500);
+  --como-seg-thumb-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  --como-switch-off: var(--como-dark-gray-500);
+  --como-switch-thumb: var(--como-dark-gray-1000);
+  --como-field-bg: var(--como-dark-gray-300);
+  --como-field-bg-hover: var(--como-dark-gray-400);
   --chart-1: hsl(220 70% 50%);
   --chart-2: hsl(160 60% 45%);
   --chart-3: hsl(30 80% 55%);
@@ -191,10 +278,61 @@ body {
   --como-fg-placeholder: #525252; /* neutral-600 */
   --como-fg-disabled: #a3a3a3;
   --como-fg-inverted: hsl(0 0% 98%);
-  --como-fg-critical: hsl(0 84.2% 60.2%);
+  --como-fg-critical: #ef4444; /* red-500: 3.0.0 오류 문구 */
   --como-stroke-weak: hsl(0, 0%, 87%);
   --como-stroke-strong: #a3a3a3; /* neutral-400 */
   --como-stroke-focus: #0a0a0a; /* neutral-950 */
+  --como-bg-overlay: rgb(0 0 0 / 0.5);
+
+  --como-fg-star: #facc15; /* yellow-400 */
+  --como-bg-warning: #eab308; /* yellow-500 */
+  --como-bg-critical: #ef4444; /* red-500 */
+  --como-fg-highlight: #ef4444; /* 차트 아이콘 hover */
+  --como-bg-hint: #000000;
+  --como-fg-hint: #ffffff;
+  --como-hint-opacity: 0.9;
+  --como-sentiment-1: #ef4444; /* red-500 */
+  --como-sentiment-2: #fb923c; /* orange-400 */
+  --como-sentiment-3: #facc15; /* yellow-400 */
+  --como-sentiment-4: #84cc16; /* lime-500 */
+  --como-sentiment-5: #16a34a; /* green-600 */
+  --como-bg-chart: rgb(0 0 0 / 0.8);
+  --como-fg-chart: #d1d4dc;
+  --como-fg-chart-muted: #9ca3af; /* gray-400 */
+  --como-fg-chart-error: #f87171; /* red-400 */
+  --como-chart-grid: rgba(255, 255, 255, 0.2);
+  --como-chart-border: #2b2b43; /* lightweight-charts 기본 */
+  --como-chart-panel-border: transparent;
+  --como-chart-font: 9px;
+  --como-chart-font-compact: 8px;
+  --como-scrollbar-thumb: hsl(0, 0%, 86%);
+  --como-scrollbar-thumb-hover: hsl(0, 0%, 82%);
+  --como-weight-heavy: 800;
+  /* v1 세그먼트는 3.0.0의 버튼 묶음(선택=검정 채움, 나머지=테두리)처럼 보인다 */
+  --como-seg-track: transparent;
+  --como-seg-thumb: var(--primary);
+  --como-seg-thumb-fg: var(--primary-foreground);
+  --como-seg-item-fg: var(--foreground);
+  --como-seg-item-border: var(--border);
+  --como-seg-thumb-shadow: none;
+  --como-field-bg: var(--background);
+  --como-field-bg-hover: var(--background);
+  --como-field-border: var(--border);
+  --como-field-focus: var(--ring);
+  --como-field-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --como-field-placeholder: var(--muted-foreground);
+  --como-control-h: 24px;
+  --como-control-h-lg: 28px;
+  --como-chip-selected-bg: transparent;
+  --como-chip-selected-ring: var(--como-stroke-strong);
+  --como-tile-bg: transparent;
+  --como-tile-border: var(--border);
+  --como-fg-emphasis: var(--como-up);
+  --como-btn-soft-bg: var(--background);
+  --como-btn-soft-bg-hover: var(--accent);
+  --como-btn-soft-border: var(--input);
+  --como-btn-soft-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --como-text-total: inherit;
 
   --como-text-cap-xs: 9px;
   --como-text-cap-s: 10px;
@@ -240,10 +378,16 @@ body {
   --como-fg-placeholder: #a3a3a3;
   --como-fg-disabled: #525252;
   --como-fg-inverted: hsl(0 0% 9%);
-  --como-fg-critical: hsl(0 62.8% 30.6%);
+  --como-fg-critical: #ef4444;
   --como-stroke-weak: hsla(0, 0%, 28%, 0.89);
   --como-stroke-strong: #a3a3a3;
   --como-stroke-focus: #d4d4d4; /* neutral-300 */
+  --como-fg-star: #facc15;
+  --como-bg-critical: #ef4444;
+  --como-bg-hint: #000000;
+  --como-fg-hint: #ffffff;
+  --como-scrollbar-thumb: hsl(0, 0%, 19%);
+  --como-scrollbar-thumb-hover: hsl(0, 0%, 23%);
 
   --background: hsl(0, 0%, 13%);
   --foreground: hsl(0 0% 98%);
@@ -292,6 +436,45 @@ body {
   --color-down: var(--como-down);
   --color-up-weak: var(--como-up-weak);
   --color-down-weak: var(--como-down-weak);
+  --color-palette-red: var(--como-palette-red);
+  --color-palette-green: var(--como-palette-green);
+  --color-palette-blue: var(--como-palette-blue);
+  --color-star: var(--como-fg-star);
+  --color-warning: var(--como-bg-warning);
+  --color-critical: var(--como-bg-critical);
+  --color-on-solid: var(--como-fg-on-solid);
+  --color-fg-highlight: var(--como-fg-highlight);
+  --color-hint: var(--como-bg-hint);
+  --color-hint-fg: var(--como-fg-hint);
+  --color-sentiment-1: var(--como-sentiment-1);
+  --color-sentiment-2: var(--como-sentiment-2);
+  --color-sentiment-3: var(--como-sentiment-3);
+  --color-sentiment-4: var(--como-sentiment-4);
+  --color-sentiment-5: var(--como-sentiment-5);
+  --color-chart: var(--como-bg-chart);
+  --color-chart-fg: var(--como-fg-chart);
+  --color-chart-fg-muted: var(--como-fg-chart-muted);
+  --color-chart-fg-error: var(--como-fg-chart-error);
+  --font-weight-heavy: var(--como-weight-heavy);
+  --color-seg-track: var(--como-seg-track);
+  --color-seg-thumb: var(--como-seg-thumb);
+  --color-seg-thumb-fg: var(--como-seg-thumb-fg);
+  --color-seg-item-fg: var(--como-seg-item-fg);
+  --color-seg-item-border: var(--como-seg-item-border);
+  --shadow-seg: var(--como-seg-thumb-shadow);
+  --color-field: var(--como-field-bg);
+  --color-field-hover: var(--como-field-bg-hover);
+  --color-field-border: var(--como-field-border);
+  --color-chip-selected: var(--como-chip-selected-bg);
+  --color-chip-ring: var(--como-chip-selected-ring);
+  --color-tile: var(--como-tile-bg);
+  --color-tile-border: var(--como-tile-border);
+  --color-fg-emphasis: var(--como-fg-emphasis);
+  --color-btn-soft: var(--como-btn-soft-bg);
+  --color-btn-soft-hover: var(--como-btn-soft-bg-hover);
+  --color-btn-soft-border: var(--como-btn-soft-border);
+  --spacing-control: var(--como-control-h);
+  --spacing-control-lg: var(--como-control-h-lg);
 
   --text-cap-xs: var(--como-text-cap-xs);
   --text-cap-s: var(--como-text-cap-s);
@@ -360,12 +543,12 @@ body {
   }
 
   .light-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(0, 0%, 86%); /* 스크롤바 색상: muted 색상 사용 */
+    background: var(--como-scrollbar-thumb);
     border-radius: 2px;
   }
 
   .light-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(0, 0%, 82%); /* 호버 시 색상: muted-foreground */
+    background: var(--como-scrollbar-thumb-hover);
   }
   .light-scrollbar::-webkit-scrollbar-button {
     display: block;
@@ -382,18 +565,110 @@ body {
   }
 
   .dark .dark-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(0, 0%, 19%);
+    background: var(--como-scrollbar-thumb);
     border-radius: 4px;
   }
 
   .dark .dark-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(0, 0%, 23%);
+    background: var(--como-scrollbar-thumb-hover);
   }
 
   .dark .dark-scrollbar::-webkit-scrollbar-button {
     display: block;
     background: var(--background);
     height: 0px;
+  }
+}
+
+/* ── 컨트롤 ─────────────────────────────────────────────────────────
+ * components/ui의 Switch·NativeSelect·Field가 쓴다. 실제 <input>·<select>를 그대로 두고 모양만 바꾼다.
+ * v1에서는 3.0.0처럼 브라우저 기본 체크박스·셀렉트로 돌아간다.
+ */
+@layer components {
+  .como-switch {
+    appearance: none;
+    position: relative;
+    flex-shrink: 0;
+    width: 30px;
+    height: 18px;
+    border-radius: 9999px;
+    background: var(--como-switch-off);
+    cursor: pointer;
+    transition: background-color var(--como-duration-d3) var(--como-ease);
+  }
+  .como-switch::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: var(--como-switch-thumb);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+    transition: transform var(--como-duration-d3) var(--como-ease);
+  }
+  .como-switch:checked {
+    background: var(--como-switch-on);
+  }
+  .como-switch:checked::before {
+    transform: translateX(12px);
+  }
+  .como-switch:focus-visible {
+    outline: 2px solid var(--como-stroke-focus);
+    outline-offset: 2px;
+  }
+  .como-switch:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .como-select {
+    appearance: none;
+    height: 28px;
+    padding: 0 24px 0 8px;
+    border-radius: var(--como-radius-md);
+    border: 1px solid var(--como-field-border);
+    background: var(--como-field-bg);
+    color: var(--como-fg-neutral);
+    font-size: var(--como-text-cap);
+    cursor: pointer;
+    transition: background-color var(--como-duration-d2) var(--como-ease);
+  }
+  .como-select:hover {
+    background: var(--como-field-bg-hover);
+  }
+  .como-select:focus-visible {
+    outline: 2px solid var(--como-stroke-focus);
+    outline-offset: 1px;
+  }
+  .como-select-icon {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--como-fg-subtle);
+  }
+
+  :root[data-ds='v1'] .como-switch {
+    appearance: auto;
+    width: auto;
+    height: auto;
+    background: none;
+    border-radius: 0;
+  }
+  :root[data-ds='v1'] .como-switch::before {
+    content: none;
+  }
+  :root[data-ds='v1'] .como-select {
+    appearance: auto;
+    height: 24px;
+    padding: 0 4px;
+    font-size: var(--como-text-cap-s);
+  }
+  :root[data-ds='v1'] .como-select-icon {
+    display: none;
   }
 }
 

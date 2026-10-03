@@ -72,26 +72,26 @@ export const getGlobalColumns = (
       };
 
       return (
-        <div className="flex gap-[2px] font-semibold">
+        <div className="flex min-w-0 gap-[2px] font-semibold">
           {favoriteFunc && (
             <div className="mt-[2px]">
               <Star
                 className={
                   row.getIsPinned()
-                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                    ? 'size-3 text-star fill-star hover:cursor-pointer'
+                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-star hover:fill-star'
                 }
                 onClick={toggleFavorite}
               />
             </div>
           )}
-          <div className="text-left">
-            <div className="flex gap-[2px]">
-              <a href={tradeURL} target="_blank" className="hover:text-fg-faint">
+          <div className="min-w-0 text-left">
+            <div className="flex min-w-0 gap-[2px]">
+              <a href={tradeURL} target="_blank" title={removeMarket} className="truncate hover:text-fg-faint">
                 {removeMarket}
               </a>
             </div>
-            <span className="text-cap text-fg-subtle font-medium">{symbol}</span>
+            <span className="block truncate text-cap text-fg-subtle font-medium">{symbol}</span>
           </div>
         </div>
       );
@@ -135,7 +135,7 @@ export const getGlobalColumns = (
       return (
         <div className="flex justify-center items-center">
           <ChartToolTip
-            className="flex justify-center items-center hover:text-red-500"
+            className="flex justify-center items-center hover:text-fg-highlight"
             symbol={row.original.symbol}
             exchange={exchange}
             wideSize={wideSize}
@@ -243,7 +243,7 @@ export const getGlobalColumns = (
       const highestPrice = row.original.h ? Number(row.original.h) : Number(row.original.highPrice);
       return (
         <div
-          className={`flex flex-col items-end ${value < 0 ? 'text-down' : value > 0 ? 'text-up' : 'text-black-500'} font-medium`}>
+          className={`flex flex-col items-end ${value < 0 ? 'text-down' : value > 0 ? 'text-up' : 'text-fg-neutral'} font-medium`}>
           <span>{value.toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
             <span className="text-cap-s text-fg-subtle">
@@ -276,7 +276,7 @@ export const getGlobalColumns = (
       const lowestPrice = row.original.l ? Number(row.original.l) : Number(row.original.lowPrice);
       return (
         <div
-          className={`flex flex-col items-end ${value > 0 ? 'text-up' : value < 0 ? 'text-down' : 'text-black-500'} font-medium`}>
+          className={`flex flex-col items-end ${value > 0 ? 'text-up' : value < 0 ? 'text-down' : 'text-fg-neutral'} font-medium`}>
           <span>+{value.toFixed(2)}%</span>
           {exchangeMarketType !== 'BTC' ? (
             <span className="text-cap-s text-fg-subtle">

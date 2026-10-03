@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Star, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/iconButton';
 import { useI18n } from '@/i18n';
 
 const STORAGE_KEY = 'usageStats';
@@ -49,26 +50,21 @@ export const ReviewPrompt = () => {
 
   return (
     <div
-      className="absolute bottom-2 left-2 right-2 z-[60] flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-cap shadow-lg"
+      className="absolute bottom-2 left-2 right-2 z-[60] flex items-center gap-2 rounded-md border bg-layer-floating px-2 py-1.5 text-cap shadow-lg"
       data-testid="review-prompt">
-      <Star className="size-4 shrink-0 text-yellow-400 fill-yellow-400" />
+      <Star className="size-4 shrink-0 text-star fill-star" />
       <span className="flex-1">{t('reviewAsk')}</span>
       <Button
-        className="h-6 px-2 text-cap-s hover:cursor-pointer"
+        className="h-control px-2 text-cap-s hover:cursor-pointer"
         onClick={() => {
           chrome.tabs.create({ url: reviewUrl });
           update({ reviewed: true });
         }}>
         {t('reviewRate')}
       </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label={t('reviewLater')}
-        className="h-5 w-5 p-0 hover:cursor-pointer"
-        onClick={() => update({ nextPromptAt: Date.now() + 30 * DAY })}>
-        <X className="size-3" />
-      </Button>
+      <IconButton aria-label={t('reviewLater')} onClick={() => update({ nextPromptAt: Date.now() + 30 * DAY })}>
+        <X />
+      </IconButton>
     </div>
   );
 };

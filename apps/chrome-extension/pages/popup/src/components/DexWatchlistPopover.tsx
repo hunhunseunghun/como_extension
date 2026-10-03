@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useI18n } from '@/i18n';
 import { formatFiat } from '@/lib/market';
+import { HoverHint } from '@/components/ui/hoverHint';
+import { IconButton } from '@/components/ui/iconButton';
 
 // DexScreener 공개 API (키 없음, 분당 300회). 거래소 상장 전 DEX·밈코인을 컨트랙트 주소로 추적한다.
 const API = 'https://api.dexscreener.com/latest/dex';
@@ -157,13 +159,13 @@ export const DexWatchlistPopover = () => {
             className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
             <Sprout strokeWidth={2} className="size-3.5 p-0" />
           </Button>
-          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+          <HoverHint>
             {t('dexWatchlist')}
-          </span>
+          </HoverHint>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2 text-cap bg-background border border-stroke-weak">
-        <div className="font-semibold mb-1">{t('dexWatchlist')}</div>
+        <div className="text-title-s font-semibold mb-1 px-1">{t('dexWatchlist')}</div>
         <form
           className="flex gap-1 mb-1"
           onSubmit={event => {
@@ -171,25 +173,25 @@ export const DexWatchlistPopover = () => {
             search();
           }}>
           <Input
-            className="h-6 px-1 text-cap-s"
+            className="h-control px-2 text-cap-s"
             placeholder={t('dexSearchPlaceholder')}
             value={query}
             onChange={event => setQuery(event.target.value)}
           />
-          <Button type="submit" className="h-6 px-2 hover:cursor-pointer" aria-label={t('search')}>
-            <Search className="size-3" />
+          <Button type="submit" className="h-control px-2 hover:cursor-pointer" aria-label={t('search')}>
+            <Search className="size-3.5" />
           </Button>
         </form>
 
         {isSearching && <div className="text-fg-faint py-1">{t('searching')}</div>}
         {!!results.length && (
-          <div className="rounded-md border px-1 mb-2 max-h-40 overflow-y-auto" data-testid="dex-results">
+          <div className="rounded-md border border-tile-border bg-tile px-1 mb-2 max-h-40 overflow-y-auto" data-testid="dex-results">
             {results.map(pair => (
               <PairRow
                 key={`${pair.chainId}:${pair.pairAddress}`}
                 pair={pair}
                 action={
-                  <Button className="h-5 px-1.5 text-cap-s hover:cursor-pointer" onClick={() => addPair(pair)}>
+                  <Button variant="soft" className="h-6 px-2 text-cap-s hover:cursor-pointer" onClick={() => addPair(pair)}>
                     {t('add')}
                   </Button>
                 }
@@ -203,14 +205,11 @@ export const DexWatchlistPopover = () => {
           {watchlist.map(item => {
             const pair = pairs[item.pairAddress.toLowerCase()];
             const remove = (
-              <Button
-                variant="ghost"
-                size="icon"
+              <IconButton
                 aria-label={t('delete')}
-                className="h-4 w-4 p-0 hover:bg-transparent hover:cursor-pointer"
                 onClick={() => saveWatchlist(watchlist.filter(watched => watched.pairAddress !== item.pairAddress))}>
-                <X className="size-3" />
-              </Button>
+                <X />
+              </IconButton>
             );
             return pair ? (
               <PairRow key={item.pairAddress} pair={pair} action={remove} />

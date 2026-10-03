@@ -1,5 +1,6 @@
 import { Maximize, Minimize } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
+import { HoverHint } from '@/components/ui/hoverHint';
 
 export function SizeToggle({
   wideSize,
@@ -16,9 +17,9 @@ export function SizeToggle({
       variant="outline"
       onClick={switchSize}>
       {wideSize ? <Minimize size={14} strokeWidth={2} /> : <Maximize size={14} strokeWidth={2} />}
-      <span className="absolute left-1/3 -translate-x-[80%] top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white bg-black # rounded-md opacity-0 group-hover:block group-hover:opacity-90 transition-opacity z-49">
+      <HoverHint className="font-normal left-1/3 -translate-x-[80%]">
         {wideSize ? 'Minimize toggle' : 'Maximize Toggle'}
-      </span>
+      </HoverHint>
     </Toggle>
   );
 }

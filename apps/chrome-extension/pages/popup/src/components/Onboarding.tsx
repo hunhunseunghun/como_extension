@@ -58,7 +58,7 @@ export const Onboarding = ({ exchangePlatform, setExchangePlatform, setFavoriteC
     setIsVisible(false);
   };
 
-  const chip = (selected: boolean) => `h-6 px-2 text-cap-s hover:cursor-pointer ${selected ? '' : 'text-fg-subtle'}`;
+  const chip = (selected: boolean) => `h-control px-2 text-cap-s hover:cursor-pointer ${selected ? '' : 'text-fg-subtle'}`;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-overlay p-4" data-testid="onboarding">
@@ -76,9 +76,9 @@ export const Onboarding = ({ exchangePlatform, setExchangePlatform, setFavoriteC
             {EXCHANGE_LIST.map(({ key, logo, labelKey }) => (
               <Button
                 key={key}
-                variant={exchangePlatform === key ? 'default' : 'outline'}
+                variant={exchangePlatform === key ? 'default' : 'soft'}
                 aria-pressed={exchangePlatform === key}
-                className="h-7 justify-start gap-1 px-1.5 text-cap-s hover:cursor-pointer"
+                className="h-control-lg justify-start gap-1 px-1.5 text-cap-s hover:cursor-pointer"
                 onClick={() => setExchangePlatform(key)}>
                 <img src={logo} className="size-3.5 rounded-full" />
                 <span className="truncate">{t(labelKey)}</span>
@@ -94,7 +94,7 @@ export const Onboarding = ({ exchangePlatform, setExchangePlatform, setFavoriteC
               return (
                 <Button
                   key={coin}
-                  variant={selected ? 'default' : 'outline'}
+                  variant={selected ? 'default' : 'soft'}
                   aria-pressed={selected}
                   className={chip(selected)}
                   onClick={() => setCoins(prev => (selected ? prev.filter(c => c !== coin) : [...prev, coin]))}>
@@ -112,7 +112,7 @@ export const Onboarding = ({ exchangePlatform, setExchangePlatform, setFavoriteC
               return (
                 <Button
                   key={coin ?? 'none'}
-                  variant={selected ? 'default' : 'outline'}
+                  variant={selected ? 'default' : 'soft'}
                   aria-pressed={selected}
                   className={chip(selected)}
                   onClick={() => setBadgeCoin(coin)}>
@@ -126,12 +126,12 @@ export const Onboarding = ({ exchangePlatform, setExchangePlatform, setFavoriteC
         <div className="mt-3 flex justify-between">
           <Button
             variant="ghost"
-            className="h-7 px-2 text-cap-s text-fg-subtle hover:cursor-pointer"
+            className="h-control-lg px-2 text-cap-s text-fg-subtle hover:cursor-pointer"
             onClick={() => finish(false)}>
             {t('onboardingSkip')}
           </Button>
           <Button
-            className="h-7 px-3 text-cap-s hover:cursor-pointer"
+            className="h-control-lg px-3 text-cap-s hover:cursor-pointer"
             onClick={() => (step < 2 ? setStep(step + 1) : finish(true))}>
             {step < 2 ? t('onboardingNext') : t('onboardingDone')}
           </Button>

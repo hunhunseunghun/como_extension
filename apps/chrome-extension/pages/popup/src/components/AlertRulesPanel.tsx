@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ExchangeChip } from '@/components/ui/exchangeChip';
+import { IconButton } from '@/components/ui/iconButton';
 import { MarketPicker } from '@/components/MarketPicker';
 import { useAllTickers } from '@/hooks/useAllTickers';
 import { EXCHANGES } from '@/constants/exchanges';
@@ -56,18 +58,27 @@ const useRules = () => {
   };
 };
 
-const RuleRow = ({ children, onRemove }: { children: React.ReactNode; onRemove: () => void }) => (
-  <li className="flex items-center justify-between gap-1 py-0.5" data-testid="alert-rule">
-    <span className="flex items-center gap-1 min-w-0 truncate">{children}</span>
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-4 w-4 p-0 hover:bg-transparent hover:cursor-pointer"
-      onClick={onRemove}>
-      <X className="h-3 w-3" />
-    </Button>
-  </li>
-);
+const RuleRow = ({ children, onRemove }: { children: React.ReactNode; onRemove: () => void }) => {
+  const { t } = useI18n();
+  return (
+    <li className="flex min-h-7 items-center justify-between gap-1 px-1" data-testid="alert-rule">
+      <span className="flex items-center gap-1 min-w-0 truncate">{children}</span>
+      <IconButton aria-label={t('delete')} onClick={onRemove}>
+        <X />
+      </IconButton>
+    </li>
+  );
+};
+
+// 등록한 규칙 목록. 비어 있으면 안내 한 줄.
+const RuleList = ({ empty, children }: { empty: boolean; children: React.ReactNode }) => {
+  const { t } = useI18n();
+  return (
+    <ul className="divide-y divide-stroke-weak border-t pt-1">
+      {empty ? <li className="px-1 py-2 text-fg-faint">{t('noRules')}</li> : children}
+    </ul>
+  );
+};
 
 const ChangeRules = () => {
   const { t } = useI18n();
@@ -90,16 +101,16 @@ const ChangeRules = () => {
         prices={prices}
       />
       <div className="flex items-center gap-1">
-        <label className="flex-1 text-fg-subtle">{t('changeThreshold')}</label>
+        <label className="flex-1 text-fg-muted">{t('changeThreshold')}</label>
         <Input
           aria-label={t('changeThreshold')}
           inputMode="decimal"
-          className="h-6 w-14 px-1 text-cap-s"
+          className="num h-control w-14 px-2 text-right text-cap-s"
           value={threshold}
           onChange={event => setThreshold(event.target.value)}
         />
         <Button
-          className="h-6 px-2 text-cap-s hover:cursor-pointer"
+          className="h-control px-3 text-cap-s hover:cursor-pointer"
           disabled={!canAdd}
           onClick={() =>
             add({ id: newId(), type: 'change', exchange, market: normalized, threshold: Number(threshold) })
@@ -108,15 +119,14 @@ const ChangeRules = () => {
         </Button>
       </div>
       <p className="text-cap-s text-fg-faint">{t('changeRuleHelp')}</p>
-      <ul className="border-t pt-1">
-        {changeRules.length === 0 && <li className="text-fg-faint py-1">{t('noRules')}</li>}
+      <RuleList empty={changeRules.length === 0}>
         {changeRules.map(rule => {
           const rate = prices[`${rule.exchange}:${rule.market}`]?.changeRate;
           return (
             <RuleRow key={rule.id} onRemove={() => remove(rule.id)}>
-              <img src={EXCHANGES[rule.exchange]?.logo} className="size-3" />
+              <img src={EXCHANGES[rule.exchange]?.logo} className="size-3.5" />
               <span className="font-medium">{rule.market}</span>
-              <span>±{rule.threshold}%</span>
+              <span className="num">±{rule.threshold}%</span>
               {rate != null && (
                 <span className={`num ${rate >= 0 ? 'text-up' : 'text-down'}`}>
                   ({t('currentValue')} {formatPercent(rate)})
@@ -125,7 +135,7 @@ const ChangeRules = () => {
             </RuleRow>
           );
         })}
-      </ul>
+      </RuleList>
     </div>
   );
 };
@@ -167,43 +177,45 @@ const KimchiRules = () => {
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1">
         {(['upbit', 'bithumb'] as const).map(key => (
-          <button
+          <ExchangeChip
             key={key}
-            type="button"
-            aria-pressed={exchange === key}
-            className={`p-0.5 rounded hover:cursor-pointer ${exchange === key ? 'ring-1 ring-stroke-strong' : 'opacity-60'}`}
-            onClick={() => setExchange(key)}>
-            <img src={EXCHANGES[key].logo} className="size-4" />
-          </button>
+            logo={EXCHANGES[key].logo}
+            label={t(EXCHANGES[key].labelKey)}
+            selected={exchange === key}
+            onClick={() => setExchange(key)}
+          />
         ))}
         <Input
           aria-label={t('coinSymbol')}
           placeholder={t('coinSymbol')}
-          className="h-6 flex-1 px-1 text-cap-s"
+          className="h-control flex-1 px-2 text-cap-s"
           value={coin}
           onChange={event => setCoin(event.target.value)}
         />
         {current != null && <span className="num text-fg-subtle shrink-0">{formatPercent(current)}</span>}
       </div>
       <div className="flex items-center gap-1">
-        <Input
-          aria-label={t('kimchiAboveLabel')}
-          placeholder={t('kimchiAboveLabel')}
-          inputMode="decimal"
-          className="h-6 flex-1 px-1 text-cap-s"
-          value={above}
-          onChange={event => setAbove(event.target.value)}
-        />
-        <Input
-          aria-label={t('kimchiBelowLabel')}
-          placeholder={t('kimchiBelowLabel')}
-          inputMode="decimal"
-          className="h-6 flex-1 px-1 text-cap-s"
-          value={below}
-          onChange={event => setBelow(event.target.value)}
-        />
+        {(
+          [
+            ['≥', 'kimchiAboveLabel', above, setAbove],
+            ['≤', 'kimchiBelowLabel', below, setBelow],
+          ] as const
+        ).map(([sign, label, value, setValue]) => (
+          // 값이 들어가도 어느 칸인지 보이게 앞에 기호를 둔다.
+          <label key={label} className="relative flex-1">
+            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-fg-subtle">{sign}</span>
+            <Input
+              aria-label={t(label)}
+              placeholder={t(label)}
+              inputMode="decimal"
+              className="num h-control pl-5 pr-2 text-cap-s"
+              value={value}
+              onChange={event => setValue(event.target.value)}
+            />
+          </label>
+        ))}
         <Button
-          className="h-6 px-2 text-cap-s hover:cursor-pointer"
+          className="h-control px-3 text-cap-s hover:cursor-pointer"
           disabled={!canAdd}
           onClick={() =>
             add({ id: newId(), type: 'kimchi', exchange, coin: symbol, above: aboveValue, below: belowValue })
@@ -212,13 +224,12 @@ const KimchiRules = () => {
         </Button>
       </div>
       <p className="text-cap-s text-fg-faint">{t('kimchiRuleHelp')}</p>
-      <ul className="border-t pt-1">
-        {kimchiRules.length === 0 && <li className="text-fg-faint py-1">{t('noRules')}</li>}
+      <RuleList empty={kimchiRules.length === 0}>
         {kimchiRules.map(rule => {
           const premium = premiums[`${rule.exchange}:KRW-${rule.coin}`]?.premium;
           return (
             <RuleRow key={rule.id} onRemove={() => remove(rule.id)}>
-              <img src={EXCHANGES[rule.exchange].logo} className="size-3" />
+              <img src={EXCHANGES[rule.exchange].logo} className="size-3.5" />
               <span className="font-medium">{rule.coin}</span>
               {rule.above != null && <span>≥ {rule.above}%</span>}
               {rule.below != null && <span>≤ {rule.below}%</span>}
@@ -230,7 +241,7 @@ const KimchiRules = () => {
             </RuleRow>
           );
         })}
-      </ul>
+      </RuleList>
     </div>
   );
 };

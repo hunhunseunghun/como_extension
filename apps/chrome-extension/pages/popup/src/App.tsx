@@ -52,6 +52,7 @@ import { ChartProvider } from './components/ChartToolTip';
 
 import fireLogo from '@/assets/icons/fire.svg';
 import comoLogo from '@/assets/icons/como-logo.png';
+import { HoverHint } from '@/components/ui/hoverHint';
 
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 const fallbackData: TickerTypes[] = [];
@@ -258,10 +259,14 @@ const App = () => {
   const chartColumnWidth = wideSize ? 62 : 48; // 차트 열 고정 너비
   const remainingWidth = viewportWidth - chartColumnWidth; // 나머지 열이 사용할 너비
   const nonChartColumns = table.getAllColumns().filter(col => col.id !== 'candlestick_chart');
-  const equalColumnWidth = Math.floor(remainingWidth / nonChartColumns.length); // 나머지 열의 균등 너비
+  // 종목명 열은 이름과 마켓 코드(예: WAXP/KRW)가 한 줄에 들어가도록 조금 더 넓게, 나머지는 균등하게 나눈다.
+  const columnWeight = (columnId: string) => (columnId === 'market' ? 1.2 : 1);
+  const totalWeight = nonChartColumns.reduce((sum, col) => sum + columnWeight(col.id), 0);
 
   const getColumnWidth = (columnId: string) =>
-    columnId === 'candlestick_chart' ? chartColumnWidth : equalColumnWidth || 100;
+    columnId === 'candlestick_chart'
+      ? chartColumnWidth
+      : Math.floor((remainingWidth * columnWeight(columnId)) / totalWeight) || 100;
 
   // favoriteCoins와 rowPinning 동기화
   useEffect(() => {
@@ -322,9 +327,9 @@ const App = () => {
                         {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
                       </span>
 
-                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                      <HoverHint>
                         {t('topGainer')}
-                      </span>
+                      </HoverHint>
                     </div>
                   )}
                 </section>
@@ -356,18 +361,19 @@ const App = () => {
                   <div className="relative flex justify-center items-center h-6 w-15 text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
                     <span>Total</span>
                     <span className="w-[17px]">{table.getRowModel().rows.length}</span>
-                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                    <HoverHint>
                       {t('marketCount')}
-                    </span>
+                    </HoverHint>
                   </div>
-                  <div className="relative flex justify-center items-center h-6 w-16 text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
-                    <span>
+                  {/* 400px보다 좁은 사이드 패널에서는 검색창 자리를 위해 환율을 숨긴다. */}
+                  <div className="relative flex justify-center items-center h-6 w-16 text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default max-[400px]:hidden">
+                    <span className="num">
                       {exchangeRateUSD}
                       <span className="text-fg-faint"> KRW</span>
                     </span>
-                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                    <HoverHint>
                       {t('exchangeRateSource')}
-                    </span>
+                    </HoverHint>
                   </div>
                   {maxChangeRateCoin.market && wideSize && (
                     <div className="relative flex justify-center items-center h-6 ml-[2px] text-cap-s font-semibold gap-0.5 border-transparent border-1 rounded-md group hover:cursor-default">
@@ -381,9 +387,9 @@ const App = () => {
                         {maxChangeRateCoin.market && maxChangeRateCoin.changeRate?.toFixed(2)}%
                       </span>
 
-                      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+                      <HoverHint className="font-normal">
                         {t('topGainer')}
-                      </span>
+                      </HoverHint>
                     </div>
                   )}
                   {wideSize && !isGlobalExchange(exchangePlatform) && (
@@ -392,7 +398,7 @@ const App = () => {
                 </section>
                 <section className="relative items-center flex">
                   <Input
-                    className="h-6 w-30 pl-4 py-2 text-cap-s text-fg-faint placeholder:text-fg-placeholder border"
+                    className="h-6 w-30 pl-4 py-2 text-cap-s"
                     placeholder={` ${t('searchPlaceholder')}`}
                     value={(table.getColumn('market')?.getFilterValue() as string) ?? ''}
                     onChange={event => table.getColumn('market')?.setFilterValue(event.target.value)}
@@ -407,7 +413,7 @@ const App = () => {
               {/* TableHeader */}
               <div ref={headerRef} className="sticky top-0 z-50 bg-neutral-weak overflow-x-hidden">
                 <Table className="table-fixed text-body-s w-full">
-                  <TableHeader className="h-7.5 text-cap-s font-extrabold">
+                  <TableHeader className="h-7.5 text-cap-s font-heavy">
                     {table.getHeaderGroups().map(headerGroup => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map(header => {

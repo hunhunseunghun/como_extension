@@ -93,9 +93,9 @@ export const AccountSync = ({ onSynced }: Props) => {
             {(['upbit', 'binance'] as const).map(key => (
               <Button
                 key={key}
-                variant={exchange === key ? 'default' : 'outline'}
+                variant={exchange === key ? 'default' : 'soft'}
                 aria-pressed={exchange === key}
-                className="h-6 flex-1 gap-1 px-1 text-cap-s hover:cursor-pointer"
+                className="h-control flex-1 gap-1 px-1 text-cap-s hover:cursor-pointer"
                 onClick={() => {
                   setExchange(key);
                   setStatus(null);
@@ -108,10 +108,10 @@ export const AccountSync = ({ onSynced }: Props) => {
           </div>
           {hasKeys ? (
             <div className="flex gap-1">
-              <Button className="h-6 flex-1 text-cap-s hover:cursor-pointer" disabled={isSyncing} onClick={sync}>
+              <Button className="h-control flex-1 text-cap-s hover:cursor-pointer" disabled={isSyncing} onClick={sync}>
                 {isSyncing ? t('syncing') : t('syncNow')}
               </Button>
-              <Button variant="outline" className="h-6 px-2 text-cap-s hover:cursor-pointer" onClick={removeKeys}>
+              <Button variant="soft" className="h-control px-2 text-cap-s hover:cursor-pointer" onClick={removeKeys}>
                 {t('removeKeys')}
               </Button>
             </div>
@@ -121,7 +121,7 @@ export const AccountSync = ({ onSynced }: Props) => {
                 aria-label={exchange === 'upbit' ? 'Access key' : 'API key'}
                 placeholder={exchange === 'upbit' ? 'Access key' : 'API key'}
                 autoComplete="off"
-                className="h-6 px-1 text-cap-s"
+                className="h-control px-2 text-cap-s"
                 value={publicKey}
                 onChange={event => setPublicKey(event.target.value)}
               />
@@ -130,12 +130,12 @@ export const AccountSync = ({ onSynced }: Props) => {
                 placeholder="Secret key"
                 type="password"
                 autoComplete="off"
-                className="h-6 px-1 text-cap-s"
+                className="h-control px-2 text-cap-s"
                 value={secretKey}
                 onChange={event => setSecretKey(event.target.value)}
               />
               <Button
-                className="h-6 text-cap-s hover:cursor-pointer"
+                className="h-control text-cap-s hover:cursor-pointer"
                 disabled={!publicKey.trim() || !secretKey.trim() || isSyncing}
                 onClick={handleSaveAndSync}>
                 {t('saveAndSync')}

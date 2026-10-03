@@ -18,6 +18,9 @@ import { getRegExp } from 'korean-regexp';
 import { useI18n } from '@/i18n';
 import { EXCHANGES } from '@/constants/exchanges';
 import { AlertRulesPanel } from '@/components/AlertRulesPanel';
+import { HoverHint } from '@/components/ui/hoverHint';
+import { IconButton } from '@/components/ui/iconButton';
+import { Segmented } from '@/components/ui/segmented';
 
 type AlertTab = 'price' | 'change' | 'kimchi';
 
@@ -247,34 +250,29 @@ export const PriceNotiPopover = () => {
       <Popover>
         <PopoverTrigger asChild>
           <div className="relative group">
-            <Button variant="outline" size="icon" className="relatvie w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
+            <Button variant="outline" size="icon" className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
               <Bell strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
             </Button>
-            <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+            <HoverHint>
               {t('alertTitle')}
-            </span>
+            </HoverHint>
           </div>
         </PopoverTrigger>
-        <PopoverContent className="w-70 p-2 bg-background border border-stroke-weak shadow-[0_10px_38px_-10px_rgba(22,_23,_24,_0.35),_0_10px_20px_-15px_rgba(22,_23,_24,_0.2)] dark:shadow-[0_10px_38px_-10px_rgba(0,_0,_0,_0.35),_0_10px_20px_-15px_rgba(0,_0,_0,_0.2)]">
-          <div className="flex gap-1 mb-2" role="tablist">
-            {(
+        <PopoverContent className="w-72 p-2 text-cap bg-background border border-stroke-weak">
+          <Segmented
+            variant="tabs"
+            fill
+            className="mb-2"
+            value={tab}
+            onChange={setTab}
+            options={(
               [
                 ['price', 'alertTabPrice'],
                 ['change', 'alertTabChange'],
                 ['kimchi', 'alertTabKimchi'],
               ] as const
-            ).map(([value, label]) => (
-              <Button
-                key={value}
-                role="tab"
-                aria-selected={tab === value}
-                variant={tab === value ? 'default' : 'outline'}
-                className="h-6 flex-1 px-1 text-cap-s hover:cursor-pointer"
-                onClick={() => setTab(value)}>
-                {t(label)}
-              </Button>
-            ))}
-          </div>
+            ).map(([value, label]) => ({ value, label: t(label) }))}
+          />
           {tab !== 'price' ? (
             <AlertRulesPanel kind={tab} />
           ) : (
@@ -282,9 +280,9 @@ export const PriceNotiPopover = () => {
               <div>
                 <Command shouldFilter={false} className="w-full bg-background">
                   <div className="relative">
-                    <section className="flex w-full border rounded-md gap-1">
+                    <section className="flex h-control w-full items-center gap-1 rounded-md border border-field-border bg-field">
                       <CommandInput
-                        className="w-full h-6 p-0 gap-1 text-cap border-none text-fg-faint pl-4 focus-visible:ring-0"
+                        className="w-full h-6 p-0 gap-1 text-cap border-none text-fg-neutral pl-4 focus-visible:ring-0"
                         placeholder={t('searchPlaceholder')}
                         value={searchValue}
                         onValueChange={value => {
@@ -297,7 +295,7 @@ export const PriceNotiPopover = () => {
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="outline"
-                            className="h-6 w-10 text-cap font-semibold gap-1 border-transparent hover:cursor-pointer">
+                            className="h-6 w-10 text-cap font-semibold gap-1 border-transparent bg-transparent shadow-none hover:cursor-pointer">
                             <img src={exchangePlatform.logo} className="size-3" />
                             <ChevronDown className="size-2.5" />
                           </Button>
@@ -317,7 +315,7 @@ export const PriceNotiPopover = () => {
                       </DropdownMenu>
                     </section>
                     {isCommandOpen && (
-                      <CommandList className="absolute top-6.5 left-0 w-full max-h-70 overflow-y-auto bg-background z-50 light-scrollbar dark-scrollbar text-cap-s">
+                      <CommandList className="absolute top-[calc(var(--como-control-h)+4px)] left-0 w-full max-h-70 overflow-y-auto rounded-md border bg-layer-floating shadow-md z-50 light-scrollbar dark-scrollbar text-cap-s">
                         {isLoading ? (
                           <CommandEmpty>Loading...</CommandEmpty>
                         ) : filteredTickers.length === 0 ? (
@@ -330,8 +328,8 @@ export const PriceNotiPopover = () => {
                       </CommandList>
                     )}
                   </div>
-                  <section className="flex flex-col p-2 gap-1">
-                    <div className="flex items-center h-7.5 text-body bg-background gap-1 p-1">
+                  <section className="flex flex-col pt-2 gap-1.5">
+                    <div className="flex items-center h-7 text-title-s gap-1 px-1">
                       {selectedTicker?.market && (
                         <div className="flex items-center font-semibold gap-1">
                           <img
@@ -346,8 +344,8 @@ export const PriceNotiPopover = () => {
                       )}
                     </div>
 
-                    <div className="relative flex text-body-s bg-muted border-none p-1">
-                      <Label className="absolute left-2 top-1/2 -translate-y-1/2 text-cap-s">{t('targetPrice')}</Label>
+                    <div className="relative flex h-control items-center rounded-md border border-field-border bg-field text-body-s">
+                      <Label className="absolute left-2 top-1/2 -translate-y-1/2 text-cap-s text-fg-muted">{t('targetPrice')}</Label>
                       <Input
                         type="text"
                         value={targetPrice.toLocaleString('en-US')}
@@ -355,13 +353,13 @@ export const PriceNotiPopover = () => {
                           const value = e.target.value.replace(/,/g, '');
                           setTargetPrice(Number(value) || 0);
                         }}
-                        className="w-full h-6 text-right font-semibold focus:outline-none appearance-none border-none bg-transparent"
+                        className="num w-full h-full text-right font-semibold focus:outline-none appearance-none border-none bg-transparent shadow-none hover:bg-transparent"
                       />
                     </div>
 
-                    <div className="relative flex text-body-s bg-muted border-none p-1">
+                    <div className="relative flex h-control items-center rounded-md border border-field-border bg-field text-body-s">
                       <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                        <Label className="text-cap-s">{t('deadband')}</Label>
+                        <Label className="text-cap-s text-fg-muted">{t('deadband')}</Label>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -384,7 +382,7 @@ export const PriceNotiPopover = () => {
                             const value = Math.min(100, Math.max(0, Number(e.target.value) || 0));
                             setDeadBand(value);
                           }}
-                          className="w-full h-6 text-right pr-5 font-semibold focus:outline-none border-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="num w-full h-full text-right pr-5 font-semibold focus:outline-none border-none bg-transparent shadow-none hover:bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           min={0}
                           max={100}
                           step={1}
@@ -409,19 +407,16 @@ export const PriceNotiPopover = () => {
                       </div>
                     </div>
 
-                    {errorMessage && <div className="text-cap-s text-red-500 mt-1">{errorMessage}</div>}
+                    {errorMessage && <div className="text-cap-s text-fg-critical mt-1">{errorMessage}</div>}
 
-                    <Button
-                      variant="outline"
-                      onClick={handleSetPriceAlert}
-                      className="mt-2 h-7 text-cap hover:cursor-pointer">
+                    <Button onClick={handleSetPriceAlert} className="mt-1 h-control-lg text-cap hover:cursor-pointer">
                       {t('addAlert')}
                     </Button>
                   </section>
                 </Command>
               </div>
               <section>
-                <div className="font-semibold mt-1">{t('allAlerts')}</div>
+                <h3 className="mt-3 border-t px-1 pt-2 text-cap-s font-semibold text-fg-subtle">{t('allAlerts')}</h3>
                 <div className="h-[200px] overflow-y-auto light-scrollbar dark-scrollbar">
                   {Object.keys(allPriceAlerts).length > 0 ? (
                     <Accordion type="single" collapsible className="w-full text-cap mt-1">
@@ -433,7 +428,7 @@ export const PriceNotiPopover = () => {
                                   key={`${exchange}-${ticker}`}
                                   value={`${exchange}-${ticker}`}
                                   className="border-none">
-                                  <AccordionTrigger className="text-cap py-1.5 hover:no-underline">
+                                  <AccordionTrigger className="text-cap px-1 py-1.5 hover:no-underline">
                                     <div className="flex items-center gap-1">
                                       <img
                                         src={exchangesData[exchange as keyof typeof exchangesData]?.logo}
@@ -447,18 +442,16 @@ export const PriceNotiPopover = () => {
                                     <ul className="ml-4">
                                       {pairs.map((pair, index) =>
                                         pair && typeof pair === 'object' && pair.price !== undefined ? (
-                                          <li key={index} className="flex items-center justify-between py-0.5">
-                                            <span>
+                                          <li key={index} className="flex min-h-6 items-center justify-between">
+                                            <span className="num">
                                               {pair.price.toLocaleString('en-US')} ({t('deadband')}:{' '}
                                               {(pair.deadband * 100).toFixed(2)}%)
                                             </span>
-                                            <Button
-                                              variant="ghost"
-                                              size="icon"
-                                              className="h-4 w-4 p-0 hover:bg-transparent"
+                                            <IconButton
+                                              aria-label={t('delete')}
                                               onClick={() => handleDeletePriceAlert(exchange, ticker, pair.price)}>
-                                              <X className="h-3 w-3" />
-                                            </Button>
+                                              <X />
+                                            </IconButton>
                                           </li>
                                         ) : null,
                                       )}
@@ -471,7 +464,7 @@ export const PriceNotiPopover = () => {
                       )}
                     </Accordion>
                   ) : (
-                    <div className="text-cap mt-1">{t('noAlerts')}</div>
+                    <div className="px-1 py-2 text-cap text-fg-faint">{t('noAlerts')}</div>
                   )}
                 </div>
               </section>

@@ -186,34 +186,39 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     if (!isOpenRef.current || !chartContainer) return;
 
     if (!chartRef.current) {
-      // 설정한 상승·하락 색(CSS 변수)을 캔들에도 쓴다.
+      // 상승·하락 색과 차트 패널 색·글자 크기는 디자인 토큰(CSS 변수)에서 읽는다.
       const rootStyle = getComputedStyle(document.documentElement);
-      const upColor = rootStyle.getPropertyValue('--como-up').trim() || '#ef4444';
-      const downColor = rootStyle.getPropertyValue('--como-down').trim() || '#3b82f6';
+      const token = (name: string, fallback: string) => rootStyle.getPropertyValue(name).trim() || fallback;
+      const upColor = token('--como-up', '#ef4444');
+      const downColor = token('--como-down', '#3b82f6');
+      const gridColor = token('--como-chart-grid', 'rgba(255, 255, 255, 0.2)');
+      const borderColor = token('--como-chart-border', '#2b2b43');
+      const fontSize = parseFloat(token(wideSize ? '--como-chart-font' : '--como-chart-font-compact', '11'));
       chartRef.current = createChart(chartContainer, {
         width: TOOLTIP_WIDTH,
         height: TOOLTIP_HEIGHT,
         layout: {
           background: { color: 'transparent' },
-          textColor: '#d1d4dc',
-          fontSize: wideSize ? 9 : 8,
+          textColor: token('--como-fg-chart', '#d1d4dc'),
+          fontSize,
           attributionLogo: false,
         },
         grid: {
           vertLines: {
             style: 2,
             visible: true,
-            color: 'rgba(255, 255, 255, 0.2)',
+            color: gridColor,
           },
           horzLines: {
             style: 2,
             visible: true,
-            color: 'rgba(255, 255, 255, 0.2)',
+            color: gridColor,
           },
         },
         rightPriceScale: {
           visible: true,
           borderVisible: true,
+          borderColor,
           entireTextOnly: true,
         },
         localization: {
@@ -300,7 +305,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     () => (
       <div
         className={cn(
-          'tooltip absolute bg-black/80 shadow-lg rounded-lg z-51 p-1',
+          'tooltip absolute bg-chart border border-(--como-chart-panel-border) shadow-lg rounded-lg z-51 p-1',
           wideSize ? 'w-[505px] h-[300px]' : 'w-[300px] h-[170px]',
         )}
         style={position ? { left: `${position.left}px`, top: `${position.top}px` } : { display: 'none' }}>
@@ -309,20 +314,20 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
           style={{ display: chartData.length && !loading && !error ? 'block' : 'none' }}
         />
         {(loading || error || !chartData.length) && (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
+          <div className="w-full h-full flex items-center justify-center text-chart-fg">
             {loading && (
-              <div className="w-6 h-6 border-2 border-t-2 border-gray-200 border-t-gray-300 rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-t-2 border-chart-fg-muted border-t-chart-fg rounded-full animate-spin" />
             )}
             {error && (
               <div className="flex items-center">
-                <span className="text-red-400">{error}</span>
-                <button className="ml-2 text-gray-300 underline hover:text-gray-100" onClick={() => fetchData()}>
+                <span className="text-chart-fg-error">{error}</span>
+                <button className="ml-2 text-chart-fg underline hover:text-fg-neutral" onClick={() => fetchData()}>
                   Retry
                 </button>
               </div>
             )}
             {!loading && !error && !chartData.length && (
-              <a href="https://www.tradingview.com" className="text-gray-400" target="_blank" rel="noopener noreferrer">
+              <a href="https://www.tradingview.com" className="text-chart-fg-muted" target="_blank" rel="noopener noreferrer">
                 No data available
               </a>
             )}

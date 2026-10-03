@@ -17,6 +17,8 @@ const buttonVariants = cva(
           "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+        // 패널 안 보조 동작. v2는 회색 면, v1은 outline과 같은 모양(토큰 --como-btn-soft-*)
+        soft: "border border-btn-soft-border bg-btn-soft text-fg-neutral shadow-(--como-btn-soft-shadow) hover:bg-btn-soft-hover",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },

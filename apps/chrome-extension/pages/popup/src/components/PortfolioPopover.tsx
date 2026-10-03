@@ -12,6 +12,8 @@ import { convertFiat, formatFiat, useMarket } from '@/lib/market';
 import { ExchangePlatform } from '@/types';
 import { ShareButton } from '@/components/ShareButton';
 import { AccountSync, type SyncExchange, type SyncedHolding } from '@/components/AccountSync';
+import { HoverHint } from '@/components/ui/hoverHint';
+import { IconButton } from '@/components/ui/iconButton';
 
 // source: 거래소 API로 불러온 항목('upbit-api' 등). 다시 동기화하면 같은 source 항목만 바꾼다.
 type Holding = {
@@ -131,25 +133,25 @@ export const PortfolioPopover = () => {
             className="relative w-6 h-6 p-0 hover:cursor-pointer hover:bg-accent">
             <Wallet strokeWidth={2} className="size-3.5 mt-[1px] p-0" />
           </Button>
-          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[50]">
+          <HoverHint>
             {t('portfolio')}
-          </span>
+          </HoverHint>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2 text-cap bg-background border border-stroke-weak">
-        <div className="flex justify-between items-center mb-1">
-          <span className="font-semibold">{t('portfolio')}</span>
+        <div className="flex justify-between items-center mb-1 px-1">
+          <span className="text-title-s font-semibold">{t('portfolio')}</span>
           <CurrencySelect />
         </div>
 
-        <div className="rounded-md border p-1.5 mb-2" data-testid="portfolio-total">
-          <div className="flex justify-between">
+        <div className="rounded-md border border-tile-border bg-tile px-2 py-1.5 mb-2" data-testid="portfolio-total">
+          <div className="flex justify-between items-baseline">
             <span className="text-fg-subtle">{t('totalValue')}</span>
-            <span className="font-semibold">{formatFiat(totals.value, currency, locale)}</span>
+            <span className="num text-(length:--como-text-total) font-semibold">{formatFiat(totals.value, currency, locale)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-fg-subtle">{t('totalPnl')}</span>
-            <span className={`font-semibold ${pnlColor(totalPnl)}`}>
+            <span className={`num font-semibold ${pnlColor(totalPnl)}`}>
               {formatFiat(totalPnl, currency, locale)}
               {totals.cost > 0 && ` (${formatPercent((totalPnl / totals.cost) * 100)})`}
             </span>
@@ -191,7 +193,7 @@ export const PortfolioPopover = () => {
           <Input
             type="number"
             min="0"
-            className="h-6 px-1 text-cap-s"
+            className="h-control px-2 text-cap-s"
             placeholder={t('quantity')}
             value={quantity}
             onChange={event => setQuantity(event.target.value)}
@@ -199,17 +201,17 @@ export const PortfolioPopover = () => {
           <Input
             type="number"
             min="0"
-            className="h-6 px-1 text-cap-s"
+            className="h-control px-2 text-cap-s"
             placeholder={selectedPrice ? String(selectedPrice) : t('avgPrice')}
             title={t('avgPrice')}
             value={avgPrice}
             onChange={event => setAvgPrice(event.target.value)}
           />
-          <Button className="h-6 px-2 text-cap-s hover:cursor-pointer" onClick={handleAdd}>
+          <Button className="h-control px-3 text-cap-s hover:cursor-pointer" onClick={handleAdd}>
             {t('add')}
           </Button>
         </div>
-        {errorMessage && <div className="text-red-500 text-cap-s mb-1">{errorMessage}</div>}
+        {errorMessage && <div className="text-fg-critical text-cap-s mb-1">{errorMessage}</div>}
 
         <div className="max-h-48 overflow-y-auto">
           {!rows.length && <div className="text-fg-faint py-2">{t('noHoldings')}</div>}
@@ -218,7 +220,7 @@ export const PortfolioPopover = () => {
               key={holding.id}
               className="flex items-center gap-1 py-1 border-b last:border-b-0"
               data-testid="holding">
-              <img src={EXCHANGES[holding.exchange]?.logo} className="size-3" />
+              <img src={EXCHANGES[holding.exchange]?.logo} className="size-3.5" />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">
                   {getCoin(holding.exchange, holding.market)}{' '}
@@ -227,12 +229,12 @@ export const PortfolioPopover = () => {
                     <span className="ml-1 rounded-sm bg-neutral-weak px-1 text-cap-xs font-normal">API</span>
                   )}
                 </div>
-                <div className="text-cap-s text-fg-faint truncate">
+                <div className="num text-cap-s text-fg-faint truncate">
                   {t('avgPrice')} {formatFiat(holding.avgPrice, quote, locale)} ·{' '}
                   {price ? formatFiat(price, quote, locale) : '-'}
                 </div>
               </div>
-              <div className="text-right">
+              <div className="num text-right">
                 <div>{value !== null ? formatFiat(value, quote, locale) : '-'}</div>
                 <div className={`text-cap-s ${pnl !== null ? pnlColor(pnl) : ''}`}>
                   {pnl !== null && pnlRate !== null
@@ -240,14 +242,11 @@ export const PortfolioPopover = () => {
                     : '-'}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
+              <IconButton
                 aria-label={t('delete')}
-                className="h-4 w-4 p-0 hover:bg-transparent hover:cursor-pointer"
                 onClick={() => saveHoldings(holdings.filter(item => item.id !== holding.id))}>
-                <X className="size-3" />
-              </Button>
+                <X />
+              </IconButton>
             </div>
           ))}
         </div>

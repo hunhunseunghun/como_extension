@@ -10,6 +10,7 @@ COMO 팝업·사이드 패널의 시각 규칙과 토큰 정의다. 구현은 `a
 | **v2** | 이 문서의 토큰 체계. 값은 [SEED Design](https://github.com/daangn/seed-design)(Apache-2.0)의 팔레트·간격·모서리·모션을 바탕으로 한다. | 3.1.0부터 기본 |
 
 - 두 버전은 **같은 의미 토큰**을 쓰고 값만 다르다. 컴포넌트 코드는 하나다.
+- v1은 3.0.0의 **값**(색·글자 크기·모서리·컨트롤 모양)을 보존한다. 세그먼트·스위치·셀렉트·soft 버튼도 v1에서는 토큰과 `:root[data-ds='v1']` 규칙으로 3.0.0의 버튼 묶음·기본 체크박스·기본 셀렉트·테두리 버튼 모양으로 돌아간다. 3.1.0에서 새로 생긴 배치(설정 묶음 제목 등)는 두 버전이 같이 쓴다.
 - 설정 → 디자인에서 `v1` / `v2`를 고른다. 값은 `localStorage['como-ds']`에 저장되고, `<html data-ds="v1|v2">`가 토큰 값을 바꾼다. 렌더 전에 `main.tsx`에서 적용해 깜빡임이 없다.
 - 다크 모드는 `.dark` 클래스가 같은 토큰을 다시 채운다. 테마는 라이트 · 다크 · 시스템(기본) 세 가지다.
 
@@ -73,6 +74,46 @@ v2에서 `fg-subtle`과 `fg-faint`는 같은 값이다(SEED에는 한 단계뿐)
 - `<html data-updown="red-up|green-up">`가 바꾼다. 두 디자인 버전에서 같다.
 - 툴바 배지(`src/background/index.js`의 `updateBadge`)와 차트 캔들(`ChartToolTip`, `--como-up`/`--como-down`을 읽음)도 같은 값을 쓴다. 값을 바꾸면 세 곳을 함께 바꾼다.
 
+### 상태 · 강조
+
+| 토큰 (Tailwind) | 역할 | v2 라이트 / 다크 | v1 |
+|---|---|---|---|
+| `text-star` / `fill-star` | 즐겨찾기 별 | `#ffb800` / `#ffc94d` | yellow-400 |
+| `bg-warning` | 유의 배지, 업데이트 안내 강조 | `#f5a300` | yellow-500 |
+| `bg-critical` | 주의 배지 | `#fa342c` / `#ff6e60` | red-500 |
+| `text-on-solid` | 채운 배지 위 글자 | `#fff` | 같음 |
+| `text-fg-highlight` | 아이콘 hover 강조 (차트 아이콘) | `stroke-focus` | red-500 |
+| `text-fg-emphasis` | 방향 없는 강조 숫자 (거래소 간 가격 차이 %) | `fg-neutral` | 상승색 |
+| `bg-sentiment-1`…`5` | 공포·탐욕 5단계 | SEED 빨강→초록 | red-500 → green-600 |
+| `text-palette-red/green/blue` | 상승·하락 색 미리보기 (`--como-up`/`--como-down`의 원본 값) | 고정 | 같음 |
+
+### 툴팁 · 차트
+
+| 토큰 | 역할 | v2 라이트 / 다크 | v1 |
+|---|---|---|---|
+| `bg-hint` / `text-hint-fg` | 헤더 버튼 hover 안내 | `#1a1c20`/흰 글자 · 다크는 반전 | 검정/흰 글자, 투명도 .9 |
+| `bg-chart` | 캔들 차트 패널 | `layer-floating` | `rgb(0 0 0 / .8)` |
+| `text-chart-fg` / `-muted` / `-error` | 축·안내·오류 글자 | `fg-subtle` / `fg-faint` / `fg-critical` | `#d1d4dc` / gray-400 / red-400 |
+| `--como-chart-grid` · `--como-chart-border` | 격자 · 가격축 선 | `stroke-weak` | 흰 20% · `#2b2b43` |
+| `--como-chart-font` / `-compact` | 축 글자 (넓게 / 기본) | 11px / 11px | 9px / 8px |
+
+`ChartToolTip`은 차트를 만들 때 `getComputedStyle`로 위 토큰을 읽는다.
+
+### 컨트롤
+
+| 토큰 | 역할 | v2 | v1 |
+|---|---|---|---|
+| `bg-field` · `border-field-border` · `--como-field-focus` | 입력·셀렉트 면, 테두리, 포커스 링 | 회색 면 `gray-100`(다크 `dark-gray-300`), 테두리 없음, 파란 링 | 배경색 + 테두리 + 그림자 |
+| `h-control` / `h-control-lg` | 입력·작은 버튼 / 주 버튼 높이 | 28px / 32px | 24px / 28px |
+| `bg-seg-track` · `bg-seg-thumb` · `shadow-seg` | 세그먼트 트랙 · 선택 칸 | 회색 트랙 위 흰 칸 | 트랙 없음, 선택=primary 채움, 나머지=테두리 |
+| `--como-switch-on` / `-off` / `-thumb` | 스위치 | 파랑 / 회색 / 흰 | 브라우저 기본 체크박스 |
+| `bg-chip-selected` · `ring-chip-ring` | 거래소 로고 선택 칩 | 회색 면 | 테두리 링 |
+| `bg-tile` · `border-tile-border` | 요약 타일 (인사이트 지표, 보유 자산 합계) | 회색 면 | 테두리 |
+| `bg-btn-soft` · `border-btn-soft-border` | `Button variant="soft"` | 회색 면 | outline과 같은 테두리 버튼 |
+| `--como-text-total` | 패널에서 가장 큰 숫자 (총 평가금액) | 16px | 본문 크기 |
+| `font-heavy` | 표 머리 굵기 | 700 | 800 |
+| `--como-scrollbar-thumb` / `-hover` | 스크롤바 | 회색 단계 | 3.0.0 hsl 값 |
+
 ### shadcn/ui 변수
 
 `--background`, `--primary`, `--border` 등은 v2에서 위 의미 토큰을 가리키고, v1에서는 3.0.0의 hsl 값을 그대로 쓴다. `components/ui/*`는 이 변수와 의미 토큰만 쓴다.
@@ -91,13 +132,13 @@ v2에서 `fg-subtle`과 `fg-faint`는 같은 값이다(SEED에는 한 단계뿐)
 | `text-display` | 20px | 20px | 27px | 큰 숫자 (총 평가금액) |
 
 - 글꼴: Pretendard(jsDelivr) → 시스템 산세리프. 별도 라이선스가 필요 없는 글꼴만 쓴다.
-- `cn()`(`lib/utils.ts`)은 `tailwind-merge`에 위 크기 이름을 알려 준다. 새 크기를 추가하면 거기도 추가한다. 빠뜨리면 `text-cap`을 글자색으로 오인해 `text-primary-foreground`를 지운다.
+- `cn()`(`lib/utils.ts`)은 `tailwind-merge`에 위 크기 이름과 `font-heavy`·`shadow-seg`·`h-control`을 알려 준다. 새 이름을 추가하면 거기도 추가한다. 빠뜨리면 `text-cap`을 글자색으로 오인해 `text-primary-foreground`를 지우거나, `h-6 h-control`을 둘 다 남긴다.
 
 ## 간격 · 크기
 
 - 4px 격자 (Tailwind 기본 `1` = 4px). SEED `x1`–`x16`과 같다.
 - 팝업: 420×430(기본), 800×600(넓게). 사이드 패널은 가득 채우고 700px 이상에서 넓은 열을 쓴다.
-- 표 행 48px. 헤더 칩·작은 버튼 높이 24px(`h-6`), 입력 28px(`h-7`).
+- 표 행 48px. 헤더 칩·헤더 아이콘 버튼 24px(`h-6`). 패널 안 입력·작은 버튼은 `h-control`, 주 버튼은 `h-control-lg`.
 - 팝오버 너비 288px(`w-72`)·320px(`w-80`).
 
 ## 모서리
@@ -125,8 +166,23 @@ v2에서 `fg-subtle`과 `fg-faint`는 같은 값이다(SEED에는 한 단계뿐)
 ## 컴포넌트 규칙
 
 - 기반은 shadcn/ui + Radix (`components/ui/`). 새 컴포넌트도 의미 토큰만 쓴다.
-- 팝오버: `bg-background`(또는 `bg-layer-floating`) + `border` + `text-cap`, 안쪽 여백 `p-2`.
-- 툴팁: 지금은 헤더 버튼마다 `span`으로 직접 그린다(`bg-black opacity-50`). 새로 만들 때는 `components/ui/tooltip`을 쓴다.
+- 팝오버: `bg-background`(또는 `bg-layer-floating`) + `border` + `text-cap`, 안쪽 여백 `p-2`. 제목은 `text-title-s font-semibold`.
+  - `ui/popover`는 남은 높이(`--radix-popover-content-available-height`)까지만 커지고 넘치면 스크롤한다. 팝업은 430px라 긴 패널도 잘리지 않는다.
+  - 열 때 첫 입력칸이 아니라 패널 자체에 포커스를 둔다(열자마자 포커스 링이 생기지 않음).
+- 공통 부품 (`components/ui/`)
+  | 부품 | 쓰임 |
+  |---|---|
+  | `HoverHint` | 헤더 버튼 hover 안내. 부모에 `relative group`. `tone="warning"`은 새 버전 안내 |
+  | `Tooltip` | 도움말처럼 내용이 긴 안내 (데드밴드 설명) |
+  | `Segmented` | 2~4개 중 하나. `variant="tabs"`는 탭(role=tab), 기본은 값 선택(aria-pressed) |
+  | `Switch` | 켜고 끄는 설정. 실제 체크박스(role=switch) |
+  | `NativeSelect` | 긴 목록(언어·통화) 선택. 실제 `<select>` |
+  | `Section` · `SettingRow` | 설정 묶음 제목 · 이름-컨트롤 한 줄 |
+  | `ExchangeChip` | 거래소 로고 선택 |
+  | `IconButton` | 목록 행 삭제 같은 작은 아이콘 동작 (aria-label 필수) |
+  | `Button` `default` / `soft` / `outline` | 주 동작 / 패널 안 보조 동작 / 헤더·드롭다운 트리거 |
+- 선택형 버튼 묶음(온보딩 거래소·코인, 계정 연동 거래소)은 선택=`default`, 나머지=`soft`.
+- 예외: `warningIcon`의 9px 글리프, 공유 카드(`lib/shareCard.ts`)의 캔버스 색(이미지로 저장되므로 화면 테마와 무관한 고정 값).
 - 시세 숫자: `FlashCell`이 `.num`과 깜빡임 색을 붙인다. 직접 그릴 때도 `num text-up|text-down`.
 - 아이콘: lucide-react, 크기 `size-3.5`(14px) 기본.
 

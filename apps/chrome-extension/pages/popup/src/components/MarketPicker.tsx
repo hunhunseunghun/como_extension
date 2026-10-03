@@ -1,5 +1,6 @@
 import { useId, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
+import { ExchangeChip } from '@/components/ui/exchangeChip';
 import { EXCHANGE_LIST, isGlobalExchange } from '@/constants/exchanges';
 import { useI18n } from '@/i18n';
 import type { TickerPrice } from '@/hooks/useAllTickers';
@@ -32,22 +33,20 @@ export const MarketPicker = ({ exchange, onExchangeChange, market, onMarketChang
 
   return (
     <div className={className}>
-      <div className="flex gap-1 mb-1">
+      <div className="flex flex-wrap gap-0.5 mb-1">
         {EXCHANGE_LIST.map(({ key, logo, labelKey }) => (
-          <button
+          <ExchangeChip
             key={key}
-            type="button"
-            title={t(labelKey)}
-            aria-pressed={exchange === key}
-            className={`p-0.5 rounded hover:cursor-pointer ${exchange === key ? 'ring-1 ring-stroke-strong' : 'opacity-60'}`}
-            onClick={() => onExchangeChange(key)}>
-            <img src={logo} className="size-4" />
-          </button>
+            logo={logo}
+            label={t(labelKey)}
+            selected={exchange === key}
+            onClick={() => onExchangeChange(key)}
+          />
         ))}
       </div>
       <Input
         list={listId}
-        className="h-6 px-1 text-cap-s"
+        className="h-control px-2 text-cap-s"
         placeholder={isGlobalExchange(exchange) ? 'BTCUSDT' : 'KRW-BTC'}
         value={market}
         onChange={event => onMarketChange(event.target.value)}

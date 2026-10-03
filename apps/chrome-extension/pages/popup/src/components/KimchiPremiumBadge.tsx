@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { ExchangePlatform, KimchiPremium } from '@/types';
 import { useI18n } from '@/i18n';
+import { HoverHint } from '@/components/ui/hoverHint';
 
 interface Props {
   kimchiPremium: KimchiPremium;
@@ -36,9 +37,9 @@ export const KimchiPremiumBadge = ({ kimchiPremium, exchangePlatform }: Props) =
           </span>
         </span>
       ))}
-      <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-max px-2 py-1 text-body-s text-white font-semibold bg-black rounded-md opacity-50 group-hover:block group-hover:opacity-90 transition-opacity z-[9999]">
+      <HoverHint>
         {t('kimchiTooltip')}
-      </span>
+      </HoverHint>
     </div>
   );
 };

@@ -66,31 +66,32 @@ export const getBithumbColumns = (
       };
 
       return (
-        <div className="flex gap-[2px] font-semibold">
+        <div className="flex min-w-0 gap-[2px] font-semibold">
           {favoriteFunc && (
             <div className="mt-[2px]">
               <Star
                 className={
                   row.getIsPinned()
-                    ? 'size-3 text-yellow-400 fill-yellow-400 hover:cursor-pointer'
-                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-yellow-400 hover:fill-yellow-400'
+                    ? 'size-3 text-star fill-star hover:cursor-pointer'
+                    : 'size-3 text-fg-faint hover:cursor-pointer hover:text-star hover:fill-star'
                 }
                 onClick={toggleFavorite}
               />
             </div>
           )}
 
-          <div className="text-left">
-            <div className="flex gap-[2px]">
+          <div className="min-w-0 text-left">
+            <div className="flex min-w-0 gap-[2px]">
               <a
                 href={`https://www.bithumb.com/react/trade/order/${splitMarket.length && splitMarket[1] + '-' + splitMarket[0]}`}
                 target="_blank"
-                className="hover:text-fg-faint">
+                title={coinNameKR ? row.original.korean_name : row.original.english_name}
+                className="truncate hover:text-fg-faint">
                 {coinNameKR ? row.original.korean_name : row.original.english_name}
               </a>
               {bithumbRow.market_warning !== 'NONE' && <WarningIcon text={t('warningShort')} />}
             </div>
-            <span className="text-cap text-fg-subtle font-medium">
+            <span className="block truncate text-cap text-fg-subtle font-medium">
               {splitMarket.length && splitMarket[1] + '/' + splitMarket[0]}
             </span>
           </div>
@@ -140,7 +141,7 @@ export const getBithumbColumns = (
       return (
         <div className="flex justify-center items-center">
           <ChartToolTip
-            className="flex justify-center items-center hover:text-red-500"
+            className="flex justify-center items-center hover:text-fg-highlight"
             symbol={row.original.market}
             exchange="bithumb"
             wideSize={wideSize}

@@ -67,7 +67,7 @@ export const DerivativesPanel = () => {
         <div className="flex items-center justify-between mb-1">
           <span className="font-semibold">{t('liquidations')}</span>
           <span className="text-cap-s text-fg-subtle">
-            {t('lastMinutes').replace('{n}', String(minutes))} · {liq?.count ?? 0}
+            {t('lastMinutes').replace('{n}', String(minutes))} · {t('liqCount').replace('{n}', String(liq?.count ?? 0))}
           </span>
         </div>
         <div className="flex justify-between text-cap-s mb-0.5">
