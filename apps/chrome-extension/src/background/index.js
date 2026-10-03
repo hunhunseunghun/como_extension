@@ -444,7 +444,7 @@ function deletePriceAlert(exchange, ticker, priceToDelete, response) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'openPopup') chrome.action.openPopup();
   if (message.action === 'changeExchange') handleExchangeChange(message.exchange);
-  if (message.action === 'getActiveExchange' && activePort) {
+  if (message.action === 'getActiveExchange' && activePort && activeExchange) {
     activePort.postMessage({ type: 'activeExchange', data: activeExchange });
   }
   if (message.action === 'setPriceAlert') {
@@ -664,19 +664,12 @@ class ExchangeData {
   async fetchInitialTickers() {
     try {
       // 마켓 전체를 한 URL에 넣으면 빗썸이 414(URI Too Long)로 거부하므로 나눠서 요청한다.
-      const chunks = [];
+      // 한꺼번에 보내면 업비트가 초당 요청 한도(429)로 일부를 거절해 스냅샷 전체가 비므로 차례로 보내고, 429면 잠시 뒤 다시 보낸다.
+      const responses = [];
       for (let i = 0; i < this.markets.length; i += TICKER_CHUNK_SIZE) {
-        chunks.push(this.markets.slice(i, i + TICKER_CHUNK_SIZE));
+        const chunk = this.markets.slice(i, i + TICKER_CHUNK_SIZE);
+        responses.push(await this.fetchTickerChunk(chunk));
       }
-      const responses = await Promise.all(
-        chunks.map(async chunk => {
-          const response = await fetch(`${this.apiUrl}/ticker?markets=${chunk.join(',')}`, {
-            headers: { Accept: 'application/json' },
-          });
-          if (!response.ok) throw new Error(`${this.name} ticker ${response.status}`);
-          return response.json();
-        }),
-      );
       this.setSnapshot(
         responses.flat().map(ticker => ({
           key: ticker.market,
@@ -690,6 +683,18 @@ class ExchangeData {
     } catch (error) {
       console.warn(error);
     }
+  }
+
+  async fetchTickerChunk(chunk, attempt = 0) {
+    const response = await fetch(`${this.apiUrl}/ticker?markets=${chunk.join(',')}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (response.status === 429 && attempt < 4) {
+      await new Promise(resolve => setTimeout(resolve, 300 * 2 ** attempt));
+      return this.fetchTickerChunk(chunk, attempt + 1);
+    }
+    if (!response.ok) throw new Error(`${this.name} ticker ${response.status}`);
+    return response.json();
   }
 
   // 업비트·빗썸 공통 구독/파싱
@@ -1615,6 +1620,11 @@ async function initialize() {
   connectLiquidations();
   const initial = getExchangeInstance(activeExchange);
   if (initial) initial.setPopupActive(true);
+  // 서비스 워커가 깨어나는 중에 화면이 먼저 연결됐으면, 활성 거래소를 이제 알려 주고 시세를 이어 준다.
+  if (activePort) {
+    activePort.postMessage({ type: 'activeExchange', data: activeExchange });
+    if (initial) initial.connectPopup(activePort);
+  }
 
   // 거래소 하나가 느리거나 실패해도 나머지는 바로 시작한다.
   polledData.forEach(data => data.start());
@@ -1638,7 +1648,7 @@ chrome.runtime.onConnect.addListener(port => {
   polledData.forEach(data => data.post(port));
 
   // 화면은 거래소가 바뀌면 시세를 비우므로, 거래소를 시세 스냅샷보다 먼저 알린다.
-  port.postMessage({ type: 'activeExchange', data: activeExchange });
+  if (activeExchange) port.postMessage({ type: 'activeExchange', data: activeExchange });
 
   const active = getExchangeInstance(activeExchange);
   if (active) active.connectPopup(activePort);
