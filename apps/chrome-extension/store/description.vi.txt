@@ -6,10 +6,10 @@ Giá Bitcoin, Ethereum và tiền điện tử trực tiếp từ 9 sàn giao d�
 COMO kết nối với chín sàn giao dịch lớn trên thế giới và tại Hàn Quốc. Giá được truyền trực tiếp qua WebSocket, nên bảng giá cập nhật ngay khi có giao dịch khớp lệnh. Chuyển sàn và thị trường chỉ trong một giây.
 
 🔔 Cảnh báo giá
-Đặt giá mục tiêu cho bất kỳ coin nào và nhận thông báo trên máy tính khi giá vượt qua mức đó. Tùy chọn vùng đệm (deadband) giúp tránh cảnh báo lặp lại khi giá dao động quanh mục tiêu của bạn. Nhấp vào thông báo để mở coin đó trên sàn.
+Đặt giá mục tiêu cho bất kỳ coin nào và nhận thông báo trên máy tính khi giá vượt qua mức đó. Tùy chọn vùng đệm (deadband) giúp tránh cảnh báo lặp lại khi giá dao động quanh mục tiêu của bạn. Nhấp vào thông báo để mở coin đó trên sàn. Bạn cũng có thể nhận cảnh báo khi có niêm yết mới trên sàn Hàn Quốc, biến động lớn trong 24 giờ và ngưỡng kimchi premium.
 
 💼 Danh mục đầu tư
-Thêm tài sản bạn đang nắm giữ (coin, số lượng, giá trung bình) để xem tổng giá trị và lãi/lỗ theo thời gian thực. Tổng có thể hiển thị bằng 15 loại tiền tệ địa phương, chẳng hạn như đô la Mỹ, euro, yên, won hay rupee.
+Thêm tài sản bạn đang nắm giữ (coin, số lượng, giá trung bình) để xem tổng giá trị và lãi/lỗ theo thời gian thực. Tổng có thể hiển thị bằng 15 loại tiền tệ địa phương.
 
 🧭 Thông tin thị trường
 • Chỉ số Sợ hãi & Tham lam, tỷ lệ thống trị BTC và funding rate BTC trong nháy mắt
@@ -25,7 +25,7 @@ Biểu đồ nến từ 1 phút đến 1 tháng cho mọi sàn, ngay trong cửa
 ⚡ Tối ưu cho tốc độ
 • Giá trực tiếp trên huy hiệu thanh công cụ (chọn bất kỳ coin nào)
 • Chế độ bảng bên giúp giá luôn hiển thị khi bạn lướt web
-• Phím tắt: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Phím tắt: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Ghim coin yêu thích lên đầu, chế độ tối, bố cục gọn và rộng
 • Kiểu màu xanh là tăng hoặc đỏ là tăng
 
@@ -43,3 +43,4 @@ Có gì mới trong phiên bản 3.1.0
 • Thẻ chia sẻ: chia sẻ lợi nhuận danh mục dưới dạng hình ảnh, không hiện số tiền
 • Đồng bộ tài khoản chỉ đọc (tùy chọn) để nhập tài sản đang nắm giữ
 • Hướng dẫn thiết lập nhanh khi cài đặt lần đầu
+• Cảnh báo giá mới: tìm coin kèm giá trực tiếp và đặt mục tiêu bằng nút ±% nhanh

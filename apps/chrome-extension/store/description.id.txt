@@ -6,10 +6,10 @@ Harga Bitcoin, Ethereum, dan kripto secara live dari 9 exchange dalam satu klik 
 COMO terhubung ke sembilan exchange besar global dan Korea. Harga dialirkan secara live melalui WebSocket, jadi tabel langsung diperbarui setiap ada transaksi. Ganti exchange dan pasar dalam sekejap.
 
 🔔 Alert harga
-Atur harga target untuk koin apa pun dan dapatkan notifikasi desktop saat harga melewatinya. Opsi deadband mencegah alert berulang saat harga bergerak naik-turun di sekitar target Anda. Klik notifikasi untuk membuka koin tersebut di exchange.
+Atur harga target untuk koin apa pun dan dapatkan notifikasi desktop saat harga melewatinya. Opsi deadband mencegah alert berulang saat harga bergerak naik-turun di sekitar target Anda. Klik notifikasi untuk membuka koin tersebut di exchange. Anda juga bisa mendapat alert untuk listing baru di exchange Korea, pergerakan besar 24 jam, dan ambang premi kimchi.
 
 💼 Portofolio
-Tambahkan aset Anda (koin, jumlah, harga rata-rata) untuk melihat total nilai dan untung/rugi secara real-time. Total dapat ditampilkan dalam 15 mata uang lokal, seperti dolar AS, euro, yen, won, atau rupiah.
+Tambahkan aset Anda (koin, jumlah, harga rata-rata) untuk melihat total nilai dan untung/rugi secara real-time. Total dapat ditampilkan dalam 15 mata uang lokal.
 
 🧭 Wawasan pasar
 • Fear & Greed Index, dominasi BTC, dan funding rate BTC dalam sekilas
@@ -25,7 +25,7 @@ Grafik candlestick dari 1 menit hingga 1 bulan untuk setiap exchange, langsung d
 ⚡ Dirancang untuk kecepatan
 • Harga live di badge toolbar (pilih koin apa saja)
 • Mode panel samping membuat harga tetap terlihat saat Anda browsing
-• Pintasan keyboard: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Pintasan keyboard: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favorit disematkan di atas, mode gelap, tata letak ringkas dan lebar
 • Gaya warna hijau-naik atau merah-naik
 
@@ -43,3 +43,4 @@ Yang baru di versi 3.1.0
 • Kartu berbagi: bagikan imbal hasil portofolio sebagai gambar, tanpa nominal
 • Sinkronisasi akun baca-saja opsional untuk mengimpor aset Anda
 • Panduan pengaturan singkat saat pertama kali dipasang
+• Alert harga baru: cari koin dengan harga live dan atur target dengan tombol cepat ±%

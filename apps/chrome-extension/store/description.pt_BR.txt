@@ -6,10 +6,10 @@ Cotação ao vivo de Bitcoin, Ethereum e criptomoedas de 9 corretoras em um cliq
 O COMO se conecta a nove das principais corretoras globais e coreanas. Os preços chegam ao vivo via WebSocket, então a tabela se atualiza a cada negociação. Troque de corretora e de mercado em um segundo.
 
 🔔 Alertas de preço
-Defina preços-alvo para qualquer moeda e receba uma notificação na área de trabalho quando o preço cruzar o alvo. A opção de zona morta evita alertas repetidos quando o preço oscila em torno do seu alvo. Clique na notificação para abrir a moeda na corretora.
+Defina preços-alvo para qualquer moeda e receba uma notificação na área de trabalho quando o preço cruzar o alvo. A opção de zona morta evita alertas repetidos quando o preço oscila em torno do seu alvo. Clique na notificação para abrir a moeda na corretora. Você também pode receber alertas de novas listagens em corretoras coreanas, grandes variações em 24h e limites do prêmio kimchi.
 
 💼 Carteira
-Adicione seus ativos (moeda, quantidade, preço médio) para ver o valor total e o lucro/prejuízo em tempo real. Os totais podem ser exibidos em 15 moedas locais, como dólar americano, euro, iene, won ou rupia.
+Adicione seus ativos (moeda, quantidade, preço médio) para ver o valor total e o lucro/prejuízo em tempo real. Os totais podem ser exibidos em 15 moedas locais.
 
 🧭 Insights de mercado
 • Índice de Medo e Ganância, dominância do BTC e taxa de financiamento do BTC num relance
@@ -25,7 +25,7 @@ Gráficos de candlestick de 1 minuto a 1 mês para todas as corretoras, direto n
 ⚡ Feito para ser rápido
 • Cotação ao vivo no ícone da barra de ferramentas (escolha qualquer moeda)
 • O modo painel lateral mantém os preços visíveis enquanto você navega
-• Atalho de teclado: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Atalho de teclado: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favoritos fixados no topo, modo escuro, layouts compacto e amplo
 • Estilo de cores: verde para alta ou vermelho para alta
 
@@ -43,3 +43,4 @@ Novidades da versão 3.1.0
 • Card para compartilhar: compartilhe o retorno da carteira como imagem, sem valores
 • Sincronização de conta opcional, somente leitura, para importar seus ativos
 • Guia rápido de configuração na primeira instalação
+• Alertas de preço renovados: busque moedas com preços ao vivo e defina alvos com botões rápidos de ±%

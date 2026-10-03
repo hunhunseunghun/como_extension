@@ -6,10 +6,10 @@ Precios de Bitcoin, Ethereum y criptomonedas en vivo de 9 exchanges con un solo 
 COMO se conecta a nueve de los principales exchanges globales y coreanos. Los precios llegan en vivo por WebSocket, así que la tabla se actualiza con cada operación. Cambia de exchange y de mercado en un segundo.
 
 🔔 Alertas de precio
-Define precios objetivo para cualquier moneda y recibe una notificación de escritorio cuando el precio lo cruce. La opción de banda muerta evita alertas repetidas cuando el precio oscila alrededor de tu objetivo. Haz clic en la notificación para abrir la moneda en el exchange.
+Define precios objetivo para cualquier moneda y recibe una notificación de escritorio cuando el precio lo cruce. La opción de banda muerta evita alertas repetidas cuando el precio oscila alrededor de tu objetivo. Haz clic en la notificación para abrir la moneda en el exchange. También puedes recibir alertas de nuevos listados en exchanges coreanos, grandes movimientos en 24 h y umbrales de prima kimchi.
 
 💼 Portafolio
-Agrega tus tenencias (moneda, cantidad, precio promedio) para ver el valor total y las ganancias/pérdidas en tiempo real. Los totales se pueden mostrar en 15 monedas locales, como dólares estadounidenses, euros, yenes, wones o rupias.
+Agrega tus tenencias (moneda, cantidad, precio promedio) para ver el valor total y las ganancias/pérdidas en tiempo real. Los totales se pueden mostrar en 15 monedas locales.
 
 🧭 Análisis del mercado
 • Índice de Miedo y Codicia (Fear & Greed), dominancia de BTC y tasa de financiamiento de BTC de un vistazo
@@ -25,7 +25,7 @@ Gráficos de velas de 1 minuto a 1 mes para cada exchange, directamente en la ve
 ⚡ Pensado para la velocidad
 • Precio en vivo en el ícono de la barra de herramientas (elige cualquier moneda)
 • El modo de panel lateral mantiene los precios visibles mientras navegas
-• Atajo de teclado: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Atajo de teclado: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favoritos fijados arriba, modo oscuro, diseños compacto y amplio
 • Estilo de color: verde al alza o rojo al alza
 
@@ -43,3 +43,4 @@ Novedades de la versión 3.1.0
 • Tarjeta para compartir: comparte la rentabilidad de tu portafolio como imagen, sin montos
 • Sincronización de cuenta opcional de solo lectura para importar tus activos
 • Guía rápida de configuración en la primera instalación
+• Alertas de precio renovadas: busca monedas con precios en vivo y fija objetivos con botones rápidos de ±%

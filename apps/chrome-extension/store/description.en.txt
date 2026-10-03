@@ -6,10 +6,10 @@ Live Bitcoin, Ethereum and crypto prices from 9 exchanges in one click — with 
 COMO connects to nine major global and Korean exchanges. Prices stream in live over WebSocket, so the table updates as trades happen. Switch exchanges and markets in a second.
 
 🔔 Price alerts
-Set target prices for any coin and get a desktop notification when the price crosses it. A deadband option prevents repeated alerts when the price hovers around your target. Click the notification to open the coin on the exchange.
+Set target prices for any coin and get a desktop notification when the price crosses it. A deadband option prevents repeated alerts when the price hovers around your target. Click the notification to open the coin on the exchange. You can also get alerts for new listings on Korean exchanges, big 24h moves and kimchi premium thresholds.
 
 💼 Portfolio
-Add your holdings (coin, quantity, average price) to see total value and profit/loss in real time. Totals can be shown in 15 local currencies, such as US dollars, euros, yen, won or rupees.
+Add your holdings (coin, quantity, average price) to see total value and profit/loss in real time. Totals can be shown in 15 local currencies.
 
 🧭 Market insights
 • Fear & Greed Index, BTC dominance and BTC funding rate at a glance
@@ -25,7 +25,7 @@ Candlestick charts from 1 minute to 1 month for every exchange, right inside the
 ⚡ Built for speed
 • Live price on the toolbar badge (choose any coin)
 • Side panel mode keeps prices visible while you browse
-• Keyboard shortcut: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Keyboard shortcut: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favorites pinned to the top, dark mode, compact and wide layouts
 • Green-up or red-up color style
 
@@ -43,3 +43,4 @@ What's new in 3.1.0
 • Share card: share your portfolio return as an image, without amounts
 • Optional read-only account sync to import your holdings
 • Quick setup guide on first install
+• Redesigned price alerts: search coins with live prices and set targets with quick ±% buttons

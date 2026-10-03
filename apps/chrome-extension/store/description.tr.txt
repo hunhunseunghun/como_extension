@@ -6,10 +6,10 @@ COMO – Kripto Para Fiyat Takibi ve Canlı Bitcoin Fiyatı
 COMO, dokuz büyük küresel ve Kore borsasına bağlanır. Fiyatlar WebSocket üzerinden canlı akar, böylece tablo işlemler gerçekleştikçe güncellenir. Borsalar ve piyasalar arasında bir saniyede geçiş yapın.
 
 🔔 Fiyat alarmları
-Herhangi bir coin için hedef fiyat belirleyin, fiyat hedefi geçtiğinde masaüstü bildirimi alın. Ölü bant seçeneği, fiyat hedefinizin etrafında dalgalanırken tekrarlanan alarmları önler. Coini borsada açmak için bildirime tıklayın.
+Herhangi bir coin için hedef fiyat belirleyin, fiyat hedefi geçtiğinde masaüstü bildirimi alın. Ölü bant seçeneği, fiyat hedefinizin etrafında dalgalanırken tekrarlanan alarmları önler. Coini borsada açmak için bildirime tıklayın. Kore borsalarındaki yeni listelemeler, büyük 24 saatlik hareketler ve kimchi primi eşikleri için de alarm alabilirsiniz.
 
 💼 Portföy
-Varlıklarınızı (coin, miktar, ortalama fiyat) ekleyin; toplam değeri ve kâr/zararı anlık olarak görün. Toplamlar ABD doları, euro, yen, won veya rupi gibi 15 yerel para biriminde gösterilebilir.
+Varlıklarınızı (coin, miktar, ortalama fiyat) ekleyin; toplam değeri ve kâr/zararı anlık olarak görün. Toplamlar 15 yerel para biriminde gösterilebilir.
 
 🧭 Piyasa analizleri
 • Korku ve Açgözlülük Endeksi, BTC dominansı ve BTC fonlama oranı bir bakışta
@@ -25,7 +25,7 @@ Her borsa için 1 dakikadan 1 aya kadar mum grafikleri, doğrudan açılır penc
 ⚡ Hız için tasarlandı
 • Araç çubuğu rozetinde canlı fiyat (istediğiniz coini seçin)
 • Yan panel modu, gezinirken fiyatları görünür tutar
-• Klavye kısayolu: Ctrl + Space (Windows, Linux) / Cmd + Space (Mac)
+• Klavye kısayolu: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
 • En üste sabitlenen favoriler, karanlık mod, kompakt ve geniş düzenler
 • Yükselişte yeşil veya yükselişte kırmızı renk stili
 
@@ -43,3 +43,4 @@ COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piy
 • Paylaşım kartı: portföy getirinizi tutar göstermeden görsel olarak paylaşın
 • Varlıklarınızı içe aktarmak için isteğe bağlı salt okunur hesap senkronizasyonu
 • İlk kurulumda hızlı ayar rehberi
+• Yenilenen fiyat alarmları: canlı fiyatlarla coin arayın, hızlı ±% butonlarıyla hedef belirleyin
