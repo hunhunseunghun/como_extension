@@ -35,12 +35,9 @@ La interfaz usa el idioma de tu navegador, y puedes cambiarlo cuando quieras en 
 🔒 Privacidad
 De forma predeterminada, COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión. La sincronización de cuenta opcional usa una clave API de solo lectura que tú introduces; la clave se guarda solo en tu navegador y solo se envía a ese exchange.
 
-Novedades de la versión 3.1.0
-• Diseño renovado (puedes volver al aspecto anterior en la configuración) y un tema que sigue al sistema
-• Nuevas alertas: nuevos listados en exchanges coreanos, variación de 24 h y umbrales de prima kimchi
-• Análisis de futuros: tasas de financiación más altas y más bajas, liquidaciones de la última hora
-• Tendencias: monedas en tendencia, noticias cripto y desbloqueos de tokens
-• Tarjeta para compartir: comparte la rentabilidad de tu portafolio como imagen, sin montos
-• Sincronización de cuenta opcional de solo lectura para importar tus activos
-• Guía rápida de configuración en la primera instalación
-• Alertas de precio renovadas: busca monedas con precios en vivo y fija objetivos con botones rápidos de ±%
+Novedades de la versión 3.2.0
+• Alertas de avisos de trading de exchanges coreanos (opcional), gráfico de la prima kimchi y prima de tether
+• Marcas de depósitos y retiros suspendidos en las monedas
+• Copia y restauración de ajustes, y edición del precio promedio de tus tenencias
+• Sincronización de cuenta más segura: se rechazan claves que pueden operar o retirar, y puedes guardarlas solo hasta cerrar el navegador
+• Menos consumo de batería y datos con COMO cerrado, y la ventana abre más rápido

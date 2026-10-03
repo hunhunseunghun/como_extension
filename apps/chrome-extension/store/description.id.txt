@@ -35,12 +35,9 @@ Tampilan mengikuti bahasa browser Anda, dan Anda dapat mengubahnya kapan saja di
 🔒 Privasi
 Secara bawaan, COMO hanya membaca data pasar publik dari API exchange dan API harga. COMO tidak membaca halaman yang Anda kunjungi, serta pengaturan, alert, dan portofolio Anda tetap tersimpan di browser Anda. Tidak perlu akun atau login. Sinkronisasi akun opsional memakai API key baca-saja yang Anda masukkan; key hanya disimpan di browser Anda dan hanya dikirim ke exchange tersebut.
 
-Yang baru di versi 3.1.0
-• Desain baru (tampilan lama tetap bisa dipilih di pengaturan) dan tema yang mengikuti sistem
-• Alert baru: listing baru di exchange Korea, perubahan harga 24 jam, dan ambang kimchi premium
-• Wawasan futures: funding rate tertinggi dan terendah, likuidasi dalam satu jam terakhir
-• Tren: koin trending, berita kripto, dan unlock token
-• Kartu berbagi: bagikan imbal hasil portofolio sebagai gambar, tanpa nominal
-• Sinkronisasi akun baca-saja opsional untuk mengimpor aset Anda
-• Panduan pengaturan singkat saat pertama kali dipasang
-• Alert harga baru: cari koin dengan harga live dan atur target dengan tombol cepat ±%
+Yang baru di versi 3.2.0
+• Alert pengumuman trading exchange Korea (opsional), grafik tren premi kimchi, dan premi tether
+• Tanda deposit dan penarikan dihentikan pada koin
+• Cadangkan dan pulihkan pengaturan, serta ubah harga rata-rata aset
+• Sinkronisasi akun lebih aman: kunci yang bisa trading atau penarikan ditolak, dan kunci bisa disimpan hanya sampai browser ditutup
+• Lebih hemat baterai dan data saat COMO ditutup, dan popup terbuka lebih cepat

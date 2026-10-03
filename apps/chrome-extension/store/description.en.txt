@@ -35,12 +35,9 @@ The interface follows your browser language, and you can switch it any time in s
 🔒 Privacy
 By default COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required. Optional account sync uses a read-only API key that you enter; the key is stored only in your browser and is sent only to that exchange.
 
-What's new in 3.1.0
-• Refreshed design (switch back to the previous look in settings) and a theme that follows your system
-• New alerts: new listings on Korean exchanges, 24h price change, and kimchi premium thresholds
-• Futures insights: top and bottom funding rates, liquidations in the last hour
-• Trends: trending coins, crypto news and token unlocks
-• Share card: share your portfolio return as an image, without amounts
-• Optional read-only account sync to import your holdings
-• Quick setup guide on first install
-• Redesigned price alerts: search coins with live prices and set targets with quick ±% buttons
+What's new in 3.2.0
+• Trading notice alerts for Korean exchanges (optional), kimchi premium trend chart and tether premium
+• Deposit and withdrawal suspension marks on coins
+• Back up and restore your settings, and edit the average price of your holdings
+• Safer account sync: keys that can trade or withdraw are rejected, and you can keep keys only until the browser closes
+• Uses less battery and data when COMO is closed, and the popup opens faster

@@ -35,12 +35,9 @@ Arayüz tarayıcınızın dilini kullanır ve dili istediğiniz zaman ayarlardan
 🔒 Gizlilik
 COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piyasa verilerini okur. Ziyaret ettiğiniz sayfaları okumaz; ayarlarınız, alarmlarınız ve portföyünüz tarayıcınızda kalır. Hesap veya giriş gerekmez. İsteğe bağlı hesap senkronizasyonu, girdiğiniz salt okunur API anahtarını kullanır; anahtar yalnızca tarayıcınızda saklanır ve yalnızca ilgili borsaya gönderilir.
 
-3.1.0 sürümündeki yenilikler
-• Yenilenen tasarım (eski görünüme ayarlardan dönebilirsiniz) ve sistemi takip eden tema
-• Yeni alarmlar: Kore borsalarında yeni listelemeler, 24 saatlik fiyat değişimi ve kimchi primi eşikleri
-• Vadeli işlem analizleri: en yüksek ve en düşük fonlama oranları, son bir saatteki tasfiyeler
-• Trendler: trend coinler, kripto haberleri ve token kilit açılışları
-• Paylaşım kartı: portföy getirinizi tutar göstermeden görsel olarak paylaşın
-• Varlıklarınızı içe aktarmak için isteğe bağlı salt okunur hesap senkronizasyonu
-• İlk kurulumda hızlı ayar rehberi
-• Yenilenen fiyat alarmları: canlı fiyatlarla coin arayın, hızlı ±% butonlarıyla hedef belirleyin
+3.2.0 sürümündeki yenilikler
+• Kore borsalarının işlem duyurusu alarmları (isteğe bağlı), kimchi primi grafiği ve tether primi
+• Coinlerde yatırma ve çekme durdurma işaretleri
+• Ayarları yedekleme ve geri yükleme, varlıkların ortalama fiyatını düzenleme
+• Daha güvenli hesap senkronizasyonu: işlem veya çekim yapabilen anahtarlar reddedilir, anahtarları yalnızca tarayıcı kapanana kadar tutabilirsiniz
+• COMO kapalıyken daha az pil ve veri kullanımı, açılır pencere daha hızlı açılır
