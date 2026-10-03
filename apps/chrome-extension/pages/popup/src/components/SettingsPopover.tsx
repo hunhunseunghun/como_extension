@@ -81,7 +81,8 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
     const currentWindow = await chrome.windows.getCurrent();
     if (currentWindow.id === undefined) return;
     await chrome.sidePanel.open({ windowId: currentWindow.id });
-    window.close();
+    // 툴바 팝업일 때만 닫는다. 탭으로 연 화면(개발용 미리보기 등)에서 닫으면 탭이나 창이 함께 사라진다.
+    if (chrome.extension.getViews({ type: 'popup' }).includes(window)) window.close();
   };
 
   return (

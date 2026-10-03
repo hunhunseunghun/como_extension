@@ -61,8 +61,20 @@ export const expectLiveUpdates = async (page: Page, ms = 20_000) => {
   // 오름차순 → 내림차순 순서로 바뀐다.
   for (let i = 0; i < 2; i++) await volumeHeader.click();
   await expect.poll(async () => (await firstVolume()).length).toBeGreaterThan(0);
-  const before = await page.locator('tbody').innerText();
-  await expect.poll(() => page.locator('tbody').innerText(), { timeout: ms, intervals: [500] }).not.toBe(before);
+  const tbody = () => page.locator('tbody').innerText();
+  const changes = async (timeout: number) => {
+    const before = await tbody();
+    await expect.poll(tbody, { timeout, intervals: [500] }).not.toBe(before);
+  };
+  try {
+    await changes(ms / 2);
+  } catch {
+    // 거래대금 상위가 주식 토큰이면 주말에 가격이 멈추므로, 늘 거래되는 BTC로 좁혀 다시 본다.
+    const search = page.getByPlaceholder(/BTC/).first();
+    await search.fill('BTC');
+    await changes(ms);
+    await search.fill('');
+  }
 };
 
 export const totalCount = async (page: Page) =>
