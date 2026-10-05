@@ -1,5 +1,5 @@
 import type { MessageKey } from '@/i18n';
-import type { ExchangePlatform, GlobalExchange, MarketType } from '@/types';
+import type { ExchangePlatform, GlobalExchange, KrwExchange, MarketType } from '@/types';
 
 type ExchangeMeta = {
   key: ExchangePlatform;
@@ -53,6 +53,16 @@ export const EXCHANGES: Record<ExchangePlatform, ExchangeMeta> = {
     labelKey: 'exchange_coindcx',
     logo: 'https://coin-images.coingecko.com/markets/images/520/large/coindcx.png?1706864493',
   },
+  coinone: {
+    key: 'coinone',
+    labelKey: 'exchange_coinone',
+    logo: 'https://coin-images.coingecko.com/markets/images/20/large/coinone_circle_500x500.png?1706864256',
+  },
+  digitalx: {
+    key: 'digitalx',
+    labelKey: 'exchange_digitalx',
+    logo: 'https://coin-images.coingecko.com/markets/images/28/large/digital-x.png?1790061806',
+  },
 };
 
 export const EXCHANGE_LIST = Object.values(EXCHANGES);
@@ -82,6 +92,8 @@ export const MARKET_TYPES: Record<ExchangePlatform, readonly MarketType[]> = {
   coinbase: ['USD'],
   kraken: ['USD'],
   coindcx: ['INR', 'USDT'],
+  coinone: ['KRW'],
+  digitalx: ['KRW'],
 };
 
 export const GLOBAL_QUOTES = ['USDT', 'USD', 'INR', 'BTC'] as const;
@@ -109,4 +121,14 @@ export const getGlobalTradeUrl = (exchange: GlobalExchange, symbol: string) => {
     case 'coindcx':
       return `https://coindcx.com/trade/${symbol}`;
   }
+};
+
+export const KRW_EXCHANGES: readonly KrwExchange[] = ['upbit', 'bithumb', 'coinone', 'digitalx'];
+export const isKrwExchange = (exchange: string): exchange is KrwExchange =>
+  (KRW_EXCHANGES as readonly string[]).includes(exchange);
+
+// 처음 고를 때 호스트 권한을 받는 거래소. 기존 사용자에게 업데이트 때 새 권한 확인 창이 뜨지 않게 선택 권한으로 둔다.
+export const OPTIONAL_EXCHANGE_ORIGINS: Partial<Record<ExchangePlatform, string[]>> = {
+  coinone: ['https://api.coinone.co.kr/*'],
+  digitalx: ['https://api.digitalx.miraeasset.com/*'],
 };

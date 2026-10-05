@@ -1,27 +1,16 @@
 import { ColumnDef, SortingState } from '@tanstack/react-table';
-import { getTimeframes, Translate } from '@/i18n';
+import { Translate } from '@/i18n';
 import { BinanceTicker, FavoriteCoins, GlobalExchange, MarketType } from '@/types';
 import { getGlobalTradeUrl, splitGlobalSymbol } from '@/constants/exchanges';
 import type { DisplayCurrency } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
-import { ArrowDownUp, ChartCandlestick } from 'lucide-react';
-import { FavoriteStar, SortableHeader } from './shared';
+import { ArrowDownUp } from 'lucide-react';
+import { ChartCell, FavoriteStar, SortableHeader, TimeframeHeader } from './shared';
 import { toggleFavoriteCoin } from './favorites';
 import FlashCell from '@/components/FlashCell';
-import ChartToolTip from '@/components/ChartToolTip';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { getNumberFormat } from '@/lib/format';
 
-import { ChevronDown } from 'lucide-react';
-
-// 바이낸스·Bybit·OKX 공통 컬럼. 백그라운드가 세 거래소 시세를 바이낸스 필드 형태로 맞춰 보낸다.
+// 해외 거래소 공통 컬럼. 백그라운드가 세 거래소 시세를 바이낸스 필드 형태로 맞춰 보낸다.
 export const getGlobalColumns = (
   exchange: GlobalExchange,
   exchangeMarketType: MarketType,
@@ -87,43 +76,16 @@ export const getGlobalColumns = (
   },
   {
     accessorKey: 'candlestick_chart',
-    header: () => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-5 w-12 text-cap-s font-semibold gap-1 hover:cursor-pointer">
-            <span>{getTimeframes(t).find(tf => tf.value === timeframe)?.label}</span>
-            <ChevronDown className="size-2" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="relative left-1 w-13 data-[side=bottom]:slide-in-from-top-2 z-52">
-          <DropdownMenuGroup>
-            {getTimeframes(t).map(({ value, label }) => (
-              <DropdownMenuItem
-                key={value}
-                textValue={label}
-                className="gap-1 px-1 py-1 items-left text-body-s hover:cursor-pointer"
-                onSelect={() => setTimeframe(value)}>
-                <span>{label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    header: () => <TimeframeHeader timeframe={timeframe} setTimeframe={setTimeframe} t={t} />,
+    cell: ({ row }) => (
+      <ChartCell
+        symbol={row.original.symbol}
+        exchange={exchange}
+        timeframe={timeframe}
+        wideSize={wideSize}
+        pinned={row.getIsPinned() !== false}
+      />
     ),
-    cell: ({ row }) => {
-      return (
-        <div className="flex justify-center items-center">
-          <ChartToolTip
-            className="flex justify-center items-center hover:text-fg-highlight"
-            symbol={row.original.symbol}
-            exchange={exchange}
-            wideSize={wideSize}
-            timeframe={timeframe}>
-            <ChartCandlestick size={16} />
-          </ChartToolTip>
-        </div>
-      );
-    },
     enableHiding: false,
     size: 60,
   },

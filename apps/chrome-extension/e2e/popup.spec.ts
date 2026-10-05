@@ -237,7 +237,7 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     const [worker] = extContext.serviceWorkers();
     await expect
       .poll(() => worker.evaluate(() => chrome.action.getTitle({})), { timeout: 15_000 })
-      .toContain('ETHUSDT');
+      .toMatch(/^ETH [\d,.]+ \([+-]\d+\.\d{2}%\)/);
 
     // 초록 상승으로 바꾸면 html에 green-up이 설정된다.
     await content.getByRole('button', { name: '초록 상승 · 빨강 하락' }).click();
@@ -251,9 +251,10 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
   test('와이드 모드에서 김프를 표시한다', async ({ popup }) => {
     await popup.locator('button:has(svg.lucide-maximize)').click();
     await popup.setViewportSize({ width: 800, height: 600 });
-    await expect(popup.locator('span:text-is("김프")').locator('..')).toContainText(/BTC[\s\S]*%/);
+    const badge = popup.locator('nav span:text-is("김프")').locator('..');
+    await expect(badge).toContainText(/BTC[\s\S]*%/);
     // 테더 프리미엄도 함께 보여 준다.
-    await expect(popup.locator('span:text-is("김프")').locator('..')).toContainText(/USDT[\s\S]*%/);
+    await expect(badge).toContainText(/USDT[\s\S]*%/);
   });
 
   test('사이드 패널 화면은 창 크기에 맞춰 그린다', async ({ extContext, extensionId }) => {
@@ -414,7 +415,7 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await expect(popup.locator('thead')).toContainText('Price');
     await expect(popup.locator('thead')).toContainText('Volume');
     await expect(popup.getByRole('button', { name: 'Upbit' }).first()).toBeVisible();
-    await expect(popup.locator('span:text-is("K-Prem")')).toBeVisible();
+    await expect(popup.locator('nav span:text-is("K-Prem")')).toBeVisible();
     expect(await popup.locator('tbody').innerText()).not.toMatch(/[억만조]/);
 
     await popup.reload();
@@ -435,10 +436,138 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
       .poll(async () => Object.values(await status()).filter(s => s.suspended).length, { timeout: 100_000, intervals: [5000] })
       .toBeGreaterThan(0);
     const idle = await status();
-    if (badge.enabled) expect(idle[badge.exchange]).toEqual({ suspended: false, connected: true });
+    if (badge.enabled) expect(idle[badge.exchange]).toMatchObject({ suspended: false, connected: true });
 
     await popup.goto(`chrome-extension://${extensionId}/popup/index.html`);
     await expect.poll(async () => Object.values(await status()).every(s => !s.suspended)).toBe(true);
+    await expect(rows(popup).nth(5)).toBeVisible();
+  });
+
+  test('원화 표에 코인별 김프 열을 보여 주고, 설정하면 좁은 화면에서도 거래대금 대신 보여 준다', async ({ popup }) => {
+    // 앞 테스트가 영어·와이드로 바꿔 두었다. 한국어·좁은 화면으로 돌린다.
+    await popup.evaluate(() => chrome.storage.local.set({ language: 'ko' }));
+    await popup.reload();
+    await expect(rows(popup).nth(5)).toBeVisible();
+    const minimize = popup.locator('button:has(svg.lucide-minimize)');
+    if (await minimize.count()) {
+      await minimize.click();
+      await popup.setViewportSize({ width: 420, height: 430 });
+    }
+    // 좁은 화면 기본값은 거래대금
+    await expect(popup.locator('thead')).not.toContainText('김프');
+    await popup.evaluate(() => chrome.storage.local.set({ kimchiColumnNarrow: true }));
+    await expect(popup.locator('thead')).toContainText('김프');
+    await expect(popup.locator('thead')).not.toContainText('거래금');
+    // 김프 열은 정렬된다. 내림차순으로 바꾸면 첫 행이 가장 높다.
+    const header = popup.locator('thead th').filter({ hasText: '김프' }).getByRole('button');
+    await header.click();
+    await header.click();
+    const premium = (index: number) =>
+      rows(popup).nth(index).locator('td').nth(4).locator('span').first().innerText().then(text => Number.parseFloat(text));
+    await expect.poll(() => premium(0), { timeout: 30_000 }).not.toBeNaN();
+    expect(await premium(0)).toBeGreaterThanOrEqual(await premium(3));
+    await popup.screenshot({ path: test.info().outputPath('kimchi-column.png') });
+    await popup.evaluate(() => chrome.storage.local.set({ kimchiColumnNarrow: false }));
+    await expect(popup.locator('thead')).toContainText('거래금');
+  });
+
+  test('즐겨찾기는 고른 순서대로 위에 고정되고, 미니 차트를 그리며, Alt+↓로 순서를 바꾼다', async ({ popup }) => {
+    await popup.evaluate(() => chrome.storage.local.set({ favoriteCoins: { upbit: ['KRW-ETH', 'KRW-BTC', 'KRW-XRP'] } }));
+    await popup.reload();
+    const pinned = popup.locator('tr[data-favorite-row]');
+    await expect(pinned).toHaveCount(3);
+    await expect
+      .poll(() => pinned.evaluateAll(list => list.map(row => row.getAttribute('data-favorite-row'))))
+      .toEqual(['KRW-ETH', 'KRW-BTC', 'KRW-XRP']);
+    await expect(pinned.first().getByTestId('sparkline')).toBeVisible({ timeout: 15_000 });
+
+    await pinned.first().getByRole('button', { name: '즐겨찾기 상단 고정' }).focus();
+    await popup.keyboard.press('Alt+ArrowDown');
+    await expect
+      .poll(async () => (await popup.evaluate(() => chrome.storage.local.get('favoriteCoins'))).favoriteCoins.upbit)
+      .toEqual(['KRW-BTC', 'KRW-ETH', 'KRW-XRP']);
+    await expect
+      .poll(() => pinned.evaluateAll(list => list.map(row => row.getAttribute('data-favorite-row'))))
+      .toEqual(['KRW-BTC', 'KRW-ETH', 'KRW-XRP']);
+
+    // 끌어 놓기: XRP를 맨 위로
+    await pinned.nth(2).locator('td').nth(2).dragTo(pinned.nth(0).locator('td').nth(2));
+    await expect
+      .poll(async () => (await popup.evaluate(() => chrome.storage.local.get('favoriteCoins'))).favoriteCoins.upbit)
+      .toEqual(['KRW-XRP', 'KRW-BTC', 'KRW-ETH']);
+    await popup.screenshot({ path: test.info().outputPath('favorites-sparkline.png') });
+  });
+
+  test('배지가 즐겨찾기를 번갈아 보여 주고, 마우스를 올리면 즐겨찾기 가격 목록을 보여 준다', async ({ popup, extContext }) => {
+    const [worker] = extContext.serviceWorkers();
+    await popup.evaluate(() =>
+      chrome.storage.local.set({ badgeSettings: { enabled: true, exchange: 'upbit', market: 'KRW-BTC', rotate: true } }),
+    );
+    const seen = new Set<string>();
+    await expect
+      .poll(
+        async () => {
+          seen.add(await worker.evaluate(() => chrome.action.getBadgeText({})));
+          return ['BTC', 'XRP', 'ETH'].every(symbol => seen.has(symbol));
+        },
+        { timeout: 40_000, intervals: [500] },
+      )
+      .toBe(true);
+    const title = await worker.evaluate(() => chrome.action.getTitle({}));
+    expect(title.split('\n').slice(0, 3).map(line => line.split(' ')[0])).toEqual(['BTC', 'XRP', 'ETH']);
+    await popup.evaluate(() =>
+      chrome.storage.local.set({ badgeSettings: { enabled: true, exchange: 'upbit', market: 'KRW-BTC', rotate: false } }),
+    );
+  });
+
+  test('조용한 모드는 배지와 상승·하락 색을 숨긴다', async ({ popup, extContext }) => {
+    const [worker] = extContext.serviceWorkers();
+    await popup.evaluate(() => chrome.storage.local.set({ quietMode: true }));
+    await expect(popup.locator('html')).toHaveAttribute('data-quiet', '');
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toBe('');
+    // 상승 색이 일반 글자색과 같아진다.
+    const upColor = await popup.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--como-up').trim());
+    const muted = await popup.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--como-fg-muted').trim());
+    expect(upColor).toBe(muted);
+    await popup.screenshot({ path: test.info().outputPath('quiet-mode.png') });
+    await popup.evaluate(() => chrome.storage.local.set({ quietMode: false }));
+    await expect(popup.locator('html')).not.toHaveAttribute('data-quiet', '');
+    await expect.poll(() => worker.evaluate(() => chrome.action.getBadgeText({}))).toMatch(/^\d+(\.\d)?M$/);
+  });
+
+  test('미니 창은 즐겨찾기 시세를 1초마다 갱신해 보여 준다', async ({ extContext, extensionId }) => {
+    const mini = await extContext.newPage();
+    await mini.setViewportSize({ width: 300, height: 380 });
+    await mini.goto(`chrome-extension://${extensionId}/popup/index.html?view=mini`);
+    const miniRows = mini.getByTestId('mini-row');
+    await expect(miniRows).toHaveCount(3);
+    await expect(miniRows.first()).toContainText(/[\d,]{5,}/, { timeout: 15_000 });
+    // 원화 종목은 김프도 함께 보여 준다.
+    await expect(miniRows.first()).toContainText(/김프 [+-]\d+\.\d%/, { timeout: 15_000 });
+    const before = await mini.locator('ul').innerText();
+    await expect.poll(() => mini.locator('ul').innerText(), { timeout: 60_000, intervals: [1000] }).not.toBe(before);
+    await mini.screenshot({ path: test.info().outputPath('mini-window.png') });
+    await mini.close();
+  });
+
+  test('인사이트 선물 탭에 롱숏 비율을 보여 준다', async ({ popup }) => {
+    await popup.getByRole('button', { name: '시장 인사이트' }).click();
+    const content = popup.locator('[data-radix-popper-content-wrapper]');
+    await content.getByRole('tab', { name: '선물' }).click();
+    const longShort = content.getByTestId('long-short');
+    await expect(longShort).toContainText(/BTC\s*\d+ : \d+/, { timeout: 20_000 });
+    await expect(longShort).toContainText('ETH');
+    await popup.screenshot({ path: test.info().outputPath('long-short.png') });
+    await popup.keyboard.press('Escape');
+  });
+
+  test('코인원은 처음 고를 때 권한을 묻고, 권한이 없으면 안내를 보여 준다', async ({ popup }) => {
+    await popup.evaluate(() => chrome.storage.local.set({ favoriteCoins: {} }));
+    await switchExchange(popup, '업비트', '코인원');
+    await expect(popup.getByText('코인원 시세를 보려면 권한이 필요해요')).toBeVisible();
+    await expect(popup.getByRole('button', { name: '허용하기' })).toBeVisible();
+    await popup.screenshot({ path: test.info().outputPath('coinone-permission.png') });
+    await switchExchange(popup, '코인원', '업비트');
     await expect(rows(popup).nth(5)).toBeVisible();
   });
 

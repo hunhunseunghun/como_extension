@@ -7,8 +7,12 @@ export type ExchangePlatform =
   | 'coinbase'
   | 'bitget'
   | 'kraken'
-  | 'coindcx';
-export type GlobalExchange = Exclude<ExchangePlatform, 'upbit' | 'bithumb'>;
+  | 'coindcx'
+  | 'coinone'
+  | 'digitalx';
+// 원화 마켓 거래소. 시세를 업비트와 같은 모양(KRW-BTC, trade_price 등)으로 받는다.
+export type KrwExchange = 'upbit' | 'bithumb' | 'coinone' | 'digitalx';
+export type GlobalExchange = Exclude<ExchangePlatform, KrwExchange>;
 export type MarketType = 'KRW' | 'BTC' | 'USDT' | 'USD' | 'INR';
 export type FavoriteCoins = Record<ExchangePlatform, string[]>;
 export type maxChagneRateCoin = { exchange: string; market: string; changeRate: number };
@@ -166,7 +170,7 @@ export type BinanceWebsocketTicker = {
 };
 
 export type KimchiPremiumItem = {
-  exchange: 'upbit' | 'bithumb';
+  exchange: KrwExchange;
   market: string;
   coin: string;
   premium: number;
@@ -178,5 +182,5 @@ export type KimchiPremium = {
   rate: number | null;
   items: Record<string, KimchiPremiumItem>;
   // 거래소별 테더(KRW-USDT) 프리미엄(%)
-  tether?: Partial<Record<'upbit' | 'bithumb', number>>;
+  tether?: Partial<Record<KrwExchange, number>>;
 };

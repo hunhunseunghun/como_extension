@@ -3,9 +3,12 @@
     "message": "COMO: Crypto Price Tracker & Bitcoin Ticker – Alerts, Portfolio"
   },
   "extDescription": {
-    "message": "Live Bitcoin & crypto prices from 9 major exchanges, with price alerts, portfolio profit/loss, charts and a toolbar price badge."
+    "message": "Live Bitcoin & crypto prices from 11 major exchanges, with price alerts, portfolio profit/loss, charts and a toolbar price badge."
   },
   "commandToggle": {
     "message": "Quickly open or close the crypto price popup"
+  },
+  "commandQuiet": {
+    "message": "Toggle quiet mode (hide badge and colors)"
   }
 }

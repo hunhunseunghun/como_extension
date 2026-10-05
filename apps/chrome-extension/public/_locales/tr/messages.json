@@ -3,9 +3,12 @@
     "message": "COMO: Canlı Kripto Para ve Bitcoin Fiyatları – Fiyat Alarmı, Portföy"
   },
   "extDescription": {
-    "message": "9 büyük borsadan canlı Bitcoin ve kripto fiyatları; fiyat alarmları, portföy kâr/zararı, grafikler ve araç çubuğunda fiyat rozeti."
+    "message": "11 büyük borsadan canlı Bitcoin ve kripto fiyatları; fiyat alarmları, portföy kâr/zararı, grafikler ve araç çubuğunda fiyat rozeti."
   },
   "commandToggle": {
     "message": "Kripto fiyat penceresini hızlıca aç veya kapat"
+  },
+  "commandQuiet": {
+    "message": "Sessiz modu aç/kapat (rozeti ve renkleri gizler)"
   }
 }

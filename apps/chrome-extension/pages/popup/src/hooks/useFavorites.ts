@@ -11,6 +11,8 @@ const EMPTY: FavoriteCoins = {
   bitget: [],
   kraken: [],
   coindcx: [],
+  coinone: [],
+  digitalx: [],
 };
 
 export const useFavorites = () => {

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { ExchangePlatform, KimchiPremium } from '@/types';
+import { ExchangePlatform, KimchiPremium, KrwExchange } from '@/types';
+import { isKrwExchange } from '@/constants/exchanges';
 import { useI18n } from '@/i18n';
 import { HoverHint } from '@/components/ui/hoverHint';
 
@@ -14,7 +15,7 @@ const TARGET_COINS: string[] = ['BTC', 'ETH'];
 export const KimchiPremiumBadge = ({ kimchiPremium, exchangePlatform }: Props) => {
   const { t } = useI18n();
   const displays = useMemo<Display[]>(() => {
-    const exch: 'upbit' | 'bithumb' = exchangePlatform === 'bithumb' ? 'bithumb' : 'upbit';
+    const exch: KrwExchange = isKrwExchange(exchangePlatform) ? exchangePlatform : 'upbit';
     const out: Display[] = [];
     for (const coin of TARGET_COINS) {
       const item = kimchiPremium.items[`${exch}:KRW-${coin}`];

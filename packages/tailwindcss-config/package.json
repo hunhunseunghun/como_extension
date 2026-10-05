@@ -1,6 +1,6 @@
 {
   "name": "@packages/tailwindcss-config",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "Shared TailwindCSS Configuration",
   "main": "tailwind.config.ts",
   "private": true

@@ -3,9 +3,12 @@
     "message": "COMO: Precio de Criptomonedas y Bitcoin en Vivo – Alertas, Portafolio"
   },
   "extDescription": {
-    "message": "Bitcoin y cripto en vivo de 9 grandes exchanges: alertas de precio, ganancias/pérdidas del portafolio, gráficos e ícono con precio."
+    "message": "Bitcoin y cripto en vivo de 11 grandes exchanges: alertas de precio, ganancias/pérdidas del portafolio, gráficos e ícono con precio."
   },
   "commandToggle": {
     "message": "Abre o cierra rápido la ventana de precios cripto"
+  },
+  "commandQuiet": {
+    "message": "Activar o desactivar el modo discreto (oculta la insignia y los colores)"
   }
 }

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { RowPinningState } from '@tanstack/react-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,21 +17,17 @@ interface MarketTypeDropDownProps {
   exchangeMarketType: ExchangeMarketType;
   exchangePlatform: ExchangePlatform;
   setExchangeMarketType: (type: ExchangeMarketType) => void;
-  setRowPinning: React.Dispatch<React.SetStateAction<RowPinningState>>;
 }
 
 export function MarketTypeDropDown({
   exchangePlatform,
   exchangeMarketType,
   setExchangeMarketType,
-  setRowPinning,
 }: MarketTypeDropDownProps) {
   const filteredMarketTypes = MARKET_TYPES[exchangePlatform] ?? MARKET_TYPES.upbit;
 
   const dropdownSeletedHandler = (type: ExchangeMarketType) => {
-    const initRowPinning: RowPinningState = { top: [], bottom: [] };
     setExchangeMarketType(type);
-    setRowPinning(initRowPinning);
   };
 
   // 거래소를 바꾸면 그 거래소의 기본 마켓으로 돌아간다.

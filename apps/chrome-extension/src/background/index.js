@@ -1,7 +1,8 @@
 import { evaluatePriceAlert } from './lib/priceAlert.js';
 import { formatBadgePrice, formatPercent, shiftDate } from './lib/format.js';
 import { toGlobalSnapshot, toGlobalTick } from './lib/globalTicks.js';
-import { computeKimchiPremium as computeKimchiPremiumFrom } from './lib/kimchi.js';
+import { computeKimchiPremium as computeKimchiPremiumFrom, KRW_EXCHANGES } from './lib/kimchi.js';
+import { coinOf, pickBadgeFrame } from './lib/badge.js';
 
 // 초기 설정 및 전역 변수
 const allExchangesTickers = {
@@ -14,6 +15,8 @@ const allExchangesTickers = {
   bitget: {},
   kraken: {},
   coindcx: {},
+  coinone: {},
+  digitalx: {},
 };
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
@@ -40,6 +43,9 @@ chrome.alarms.onAlarm.addListener(alarm => {
     exchangeRateManager.updateExchangeRate();
   }
 });
+
+// 알림은 모두 이걸로 띄운다. 조용한 모드에서는 소리 없이 띄운다.
+const createNotification = (id, options) => chrome.notifications.create(id, { ...options, silent: quietMode });
 
 // 지정가 알림 관련 함수
 // 웹소켓 틱마다 storage를 읽지 않도록 알림 설정을 메모리에 캐시하고 storage 변경 시 동기화한다.
@@ -118,7 +124,7 @@ const getLanguage = () => {
 // 방향은 가격 비교로 다시 구하지 않는다. 올라오다 목표가에 딱 닿으면(현재가 = 목표가) 하향으로 잘못 표시된다.
 function sendNotification(exchange, ticker, currentPrice, alertPrice, crossedUp) {
   const notificationId = `${exchange}:${ticker}:${alertPrice}`;
-  chrome.notifications.create(notificationId, {
+  createNotification(notificationId, {
     type: 'basic',
     iconUrl: 'como-logo.png',
     title: `${alertPrice > 10 ? alertPrice.toLocaleString('en-US') : alertPrice} ${ticker} ${exchange.toUpperCase()}`,
@@ -151,6 +157,10 @@ const getTradeUrl = (exchange, market) => {
       return `https://pro.kraken.com/app/trade/${base.toLowerCase()}-${quote.toLowerCase()}`;
     case 'coindcx':
       return `https://coindcx.com/trade/${market}`;
+    case 'coinone':
+      return `https://coinone.co.kr/exchange/trade/${market.slice(4).toLowerCase()}/krw`;
+    case 'digitalx':
+      return `https://exchange.digitalx.miraeasset.com/trade/?symbol=${market.slice(4).toLowerCase()}_krw`;
     default:
       return null;
   }
@@ -233,7 +243,7 @@ async function checkNewListingsOnce() {
     if (added.length > 5) continue;
     added.forEach(market => {
       const name = getLanguage() === 'ko' ? market.korean_name : market.english_name;
-      chrome.notifications.create(`${exchange}:${market.market}:listing`, {
+      createNotification(`${exchange}:${market.market}:listing`, {
         type: 'basic',
         iconUrl: 'como-logo.png',
         title: `${name || market.market} (${market.market.slice(4)}) · ${exchange.toUpperCase()}`,
@@ -283,7 +293,7 @@ function checkAlertRules() {
   let changed = Object.keys(state).length !== Object.keys(ruleCache.state).length;
   let kimchi = null;
   const notify = (id, exchange, market, title, message) => {
-    chrome.notifications.create(`${exchange}:${market}:rule-${id}`, { type: 'basic', iconUrl: 'como-logo.png', title, message });
+    createNotification(`${exchange}:${market}:rule-${id}`, { type: 'basic', iconUrl: 'como-logo.png', title, message });
     chrome.storage.local.set({ alertFiredAt: Date.now() });
   };
 
@@ -353,7 +363,7 @@ async function checkUpbitNotices() {
         .filter(notice => notice.id > lastId)
         .slice(0, 5)
         .forEach(notice => {
-          chrome.notifications.create(`notice:upbit:${notice.id}`, {
+          createNotification(`notice:upbit:${notice.id}`, {
             type: 'basic',
             iconUrl: 'como-logo.png',
             title: notice.title,
@@ -392,25 +402,41 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 chrome.alarms.create('listingCheck', { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(alarm => {
-  if (alarm.name === 'listingCheck') // 시작 직후 거래소 시세 요청과 겹쳐 업비트 요청 한도에 걸리지 않게 조금 늦춘다.
-setTimeout(checkNewListings, 15_000);
+  if (alarm.name === 'listingCheck') checkNewListings();
 });
-checkNewListings();
+// 시작 직후 거래소 시세 요청과 겹쳐 업비트 요청 한도에 걸리지 않게 조금 늦춘다.
+setTimeout(checkNewListings, 15_000);
 
 // 툴바 배지: 고른 종목의 가격을 4글자 안으로 줄여 보여주고, 등락에 따라 배경색을 바꾼다.
 const BADGE_STORAGE_KEY = 'badgeSettings';
 let badgeSettings = null;
 let upDownSetting = null;
 let lastBadge = '';
-const badgeReady = chrome.storage.local.get([BADGE_STORAGE_KEY, 'upDownColors']).then(result => {
-  badgeSettings = result[BADGE_STORAGE_KEY] || null;
-  upDownSetting = result.upDownColors || null;
-});
+// 조용한 모드: 배지를 비우고 알림 소리를 끈다. 팝업은 상승·하락 색을 끈다.
+const QUIET_MODE_KEY = 'quietMode';
+let quietMode = false;
+// 번갈아 표시와 마우스를 올렸을 때 보이는 가격 목록에 쓰는 즐겨찾기
+let favoriteCoins = {};
+const badgeReady = chrome.storage.local
+  .get([BADGE_STORAGE_KEY, 'upDownColors', QUIET_MODE_KEY, 'favoriteCoins'])
+  .then(result => {
+    badgeSettings = result[BADGE_STORAGE_KEY] || null;
+    upDownSetting = result.upDownColors || null;
+    quietMode = !!result[QUIET_MODE_KEY];
+    favoriteCoins = result.favoriteCoins || {};
+  });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
   if (changes[BADGE_STORAGE_KEY]) badgeSettings = changes[BADGE_STORAGE_KEY].newValue || null;
   if (changes.upDownColors) upDownSetting = changes.upDownColors.newValue || null;
-  if (changes[BADGE_STORAGE_KEY] || changes.upDownColors || changes.language) updateBadge();
+  if (changes[QUIET_MODE_KEY]) quietMode = !!changes[QUIET_MODE_KEY].newValue;
+  if (changes.favoriteCoins) favoriteCoins = changes.favoriteCoins.newValue || {};
+  if (changes[BADGE_STORAGE_KEY] || changes.upDownColors || changes.language || changes[QUIET_MODE_KEY]) updateBadge();
+});
+
+// 단축키(기본 Alt+Shift+Q)로 조용한 모드를 켜고 끈다.
+chrome.commands?.onCommand.addListener(command => {
+  if (command === 'toggle-quiet-mode') chrome.storage.local.set({ [QUIET_MODE_KEY]: !quietMode });
 });
 
 const getBadgeSettings = () =>
@@ -419,10 +445,19 @@ const getBadgeSettings = () =>
     ? { enabled: true, exchange: 'upbit', market: 'KRW-BTC' }
     : { enabled: true, exchange: 'binance', market: 'BTCUSDT' });
 
+// 마우스를 올렸을 때 보이는 가격 목록(배지 코인 + 같은 거래소 즐겨찾기 최대 8개)
+const BADGE_TITLE_LIMIT = 9;
+let badgeTick = 0;
+
 function updateBadge() {
   const settings = getBadgeSettings();
-  const ticker = settings.enabled ? allExchangesTickers[settings.exchange]?.[settings.market] : null;
-  if (!ticker?.currentPrice) {
+  const tickers = allExchangesTickers[settings.exchange] ?? {};
+  const favorites = favoriteCoins[settings.exchange] ?? [];
+  const hasPrice = market => !!tickers[market]?.currentPrice;
+  const frame = settings.enabled
+    ? pickBadgeFrame({ market: settings.market, favorites, rotate: settings.rotate, hasPrice, tick: badgeTick++ })
+    : null;
+  if (!frame) {
     if (lastBadge) {
       chrome.action.setBadgeText({ text: '' });
       chrome.action.setTitle({ title: chrome.i18n?.getMessage?.('extName') || 'COMO' });
@@ -431,11 +466,26 @@ function updateBadge() {
     return;
   }
 
+  const ticker = tickers[frame.market];
   const changeRate = ticker.changeRate ?? 0;
   const redUp = (upDownSetting ?? (['ko', 'ja', 'zh'].includes(getLanguage()) ? 'red-up' : 'green-up')) === 'red-up';
-  const color = changeRate >= 0 ? (redUp ? '#ef4444' : '#16a34a') : redUp ? '#3b82f6' : '#ef4444';
-  const text = formatBadgePrice(ticker.currentPrice);
-  const title = `${settings.market} ${ticker.currentPrice.toLocaleString('en-US')} (${changeRate >= 0 ? '+' : ''}${changeRate.toFixed(2)}%) · ${settings.exchange}`;
+  const color = frame.showSymbol
+    ? '#6b7280'
+    : changeRate >= 0
+      ? redUp
+        ? '#ef4444'
+        : '#16a34a'
+      : redUp
+        ? '#3b82f6'
+        : '#ef4444';
+  // 조용한 모드에서는 배지를 비운다. 가격은 마우스를 올리면 보인다.
+  const text = quietMode ? '' : frame.showSymbol ? coinOf(frame.market).slice(0, 4) : formatBadgePrice(ticker.currentPrice);
+  const line = market => {
+    const { currentPrice, changeRate: rate = 0 } = tickers[market];
+    return `${coinOf(market)} ${currentPrice.toLocaleString('en-US')} (${rate >= 0 ? '+' : ''}${rate.toFixed(2)}%)`;
+  };
+  const listed = [...new Set([settings.market, ...favorites])].filter(hasPrice).slice(0, BADGE_TITLE_LIMIT);
+  const title = `${listed.map(line).join('\n')}\n· ${settings.exchange}`;
   const key = `${text}|${color}|${title}`;
   if (key === lastBadge) return;
   lastBadge = key;
@@ -536,6 +586,7 @@ function deletePriceAlertNow(exchange, ticker, priceToDelete, response) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'openPopup') chrome.action.openPopup();
   if (message.action === 'changeExchange') handleExchangeChange(message.exchange);
+  if (message.action === 'pendingExchange') pendingExchange = { name: message.exchange, at: Date.now() };
   if (message.action === 'getActiveExchange' && activePort && activeExchange) {
     activePort.postMessage({ type: 'activeExchange', data: activeExchange });
   }
@@ -560,7 +611,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse(computeKimchiPremium());
   }
   if (message.action === 'getDerivatives') {
-    sendResponse({ funding: derivatives.value, liquidations: summarizeLiquidations() });
+    sendResponse({ funding: derivatives.value, liquidations: summarizeLiquidations(), longShort: longShort.value });
   }
   if (message.action === 'getTrending') {
     sendResponse(trending.value ?? []);
@@ -575,7 +626,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       Object.fromEntries(
         Object.entries(exchanges).map(([name, exchange]) => [
           name,
-          { suspended: exchange.suspended, connected: exchange.socket?.readyState === WebSocket.OPEN || !!exchange.pollTimer },
+          { suspended: exchange.suspended, locked: exchange.locked, connected: exchange.socket?.readyState === WebSocket.OPEN || !!exchange.pollTimer },
         ]),
       ),
     );
@@ -732,11 +783,16 @@ class ExchangeData {
     this.suspended = false;
     this.startTimer = null;
     this.startRetryDelay = START_RETRY_MIN_MS;
+    // 구독 메시지 사이 간격. 일부 거래소(Bitget 등)는 초당 메시지 수를 제한한다.
+    this.subscribeGap = 120;
+    // locked: 선택 권한 거래소인데 아직 허락받지 않았다.
+    this.locked = false;
   }
 
   forwardTicks(updates) {
+    // 원화 거래소 틱은 팝업이 하나씩 받는다(웹소켓은 메시지마다 하나, 폴링은 바뀐 종목 전부).
     if (!this.isGlobal) {
-      this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: updates[0].tick });
+      for (const { tick } of updates) this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: tick });
       return;
     }
     for (const { key, tick } of updates) this.pendingTicks[key] = tick;
@@ -858,9 +914,8 @@ class ExchangeData {
       this.lastMessageAt = Date.now();
       this.isReconnecting = false;
       this.currentReconnectDelay = this.initialReconnectDelay;
-      // 일부 거래소(Bitget 등)는 초당 메시지 수를 제한하므로 구독 메시지를 나눠 보낸다.
       this.getSubscriptions().forEach((subscription, index) =>
-        setTimeout(() => socket.readyState === WebSocket.OPEN && socket.send(subscription), index * 120),
+        setTimeout(() => socket.readyState === WebSocket.OPEN && socket.send(subscription), index * this.subscribeGap),
       );
 
       const heartbeat = this.getHeartbeatMessage();
@@ -965,6 +1020,8 @@ class ExchangeData {
   async start() {
     if (this.suspended) return;
     clearTimeout(this.startTimer);
+    this.locked = !(await hasExchangePermission(this.name));
+    if (this.locked) return;
     const markets = await this.fetchMarkets();
     if (!markets.length) {
       // 처음에 한 번 실패했다고 이 거래소가 세션 내내 비어 있지 않게 다시 시도한다.
@@ -1063,6 +1120,7 @@ class UpbitData extends ExchangeData {
         acc[ticker.market] = { ...ticker, market_event: { ...ticker.market_event, caution } };
         return acc;
       }, {});
+      resolveKrwNames();
       return tickers.map(ticker => ticker.market);
     } catch (error) {
       console.warn(error);
@@ -1081,6 +1139,7 @@ class BithumbData extends ExchangeData {
       const response = await fetch(`${this.apiUrl}/market/all?isDetails=true`);
       const data = await response.json();
       this.marketsInfo = Object.fromEntries(data.map(ticker => [ticker.market, { ...ticker }]));
+      resolveKrwNames();
       return data.map(ticker => ticker.market);
     } catch (error) {
       console.warn(error);
@@ -1434,15 +1493,66 @@ class KrakenData extends ExchangeData {
   }
 }
 
-// CoinDCX: 인도 1위 거래소. 공개 웹소켓이 socket.io라 REST 전체 시세를 주기적으로 받는다.
-// 팝업에서 보고 있을 때만 자주(3초) 받고, 아니면 알림·포트폴리오용으로 1분마다 받는다.
-const COINDCX_ACTIVE_INTERVAL = 3000;
-const COINDCX_IDLE_INTERVAL = 60_000;
+// 웹소켓을 쓸 수 없는 거래소는 REST 전체 시세를 주기적으로 받는다.
+// 팝업·미니 창에서 보고 있을 때만 자주(3초) 받고, 아니면 알림·포트폴리오용으로 1분마다 받는다.
+const POLL_ACTIVE_INTERVAL = 3000;
+const POLL_IDLE_INTERVAL = 60_000;
 
-class CoindcxData extends ExchangeData {
+class PollingExchangeData extends ExchangeData {
+  constructor(...args) {
+    super(...args);
+    this.pollTimer = null;
+  }
+
+  // 하위 클래스: applyUpdates가 받는 갱신 목록을 돌려준다.
+  async fetchUpdates() {
+    return [];
+  }
+
+  async poll() {
+    if (this.suspended) return;
+    try {
+      this.applyUpdates(await this.fetchUpdates());
+    } catch (error) {
+      console.warn(error);
+    }
+    clearTimeout(this.pollTimer);
+    this.pollTimer = setTimeout(() => this.poll(), this.pollInterval());
+  }
+
+  pollInterval() {
+    const watched = (this.isPopupActive && this.port) || isWatchedByMini(this.name);
+    return watched ? POLL_ACTIVE_INTERVAL : POLL_IDLE_INTERVAL;
+  }
+
+  // 시작이 끝나기 전에 화면이 이 거래소를 골랐을 수도 있어, 첫 주기도 보고 있는지에 맞춘다.
+  connectWebSocket() {
+    if (this.suspended) return;
+    if (!this.pollTimer) this.pollTimer = setTimeout(() => this.poll(), this.pollInterval());
+  }
+
+  suspend() {
+    super.suspend();
+    clearTimeout(this.pollTimer);
+    this.pollTimer = null;
+  }
+
+  // 팝업에서 이 거래소를 열면 바로 빠른 주기로 바꾼다.
+  setPopupActive(active) {
+    super.setPopupActive(active);
+    if (active && this.pollTimer) this.poll();
+  }
+
+  connectPopup(port) {
+    super.connectPopup(port);
+    if (this.isPopupActive && this.pollTimer) this.poll();
+  }
+}
+
+// CoinDCX: 인도 1위 거래소. 공개 웹소켓이 socket.io라 폴링한다.
+class CoindcxData extends PollingExchangeData {
   constructor() {
     super('coindcx', 'https://api.coindcx.com/exchange', null, { isGlobal: true });
-    this.pollTimer = null;
   }
 
   static fields(t) {
@@ -1478,41 +1588,240 @@ class CoindcxData extends ExchangeData {
     this.initialList = null;
   }
 
-  async poll() {
-    if (this.suspended) return;
+  async fetchUpdates() {
+    return (await this.fetchTickers()).map(t => globalUpdate(this, t.market, CoindcxData.fields(t)));
+  }
+}
+
+// 코인원·디지털엑스(옛 코빗): 업비트와 같은 모양(KRW-BTC, trade_price 등)으로 바꿔 보내 팝업이 원화 거래소 표를 그대로 쓴다.
+// 두 거래소 API는 코인 이름을 영문으로만 주므로, 업비트·빗썸 마켓 정보에서 한글 이름을 빌려 온다.
+let resolveKrwNames;
+const krwNamesReady = new Promise(resolve => {
+  resolveKrwNames = resolve;
+  setTimeout(resolve, 10_000);
+});
+
+const krwNameOf = coin => {
+  const market = `KRW-${coin}`;
+  const info = exchanges.upbit.marketsInfo[market] ?? exchanges.bithumb.marketsInfo[market];
+  return { korean_name: info?.korean_name ?? coin, english_name: info?.english_name ?? coin };
+};
+
+// base: 등락 기준가(코인원은 24시간 전 가격, 디지털엑스는 전일 종가)
+const toKrwTicker = (coin, { price, base, high, low, volume, timestamp }) => {
+  const change = base ? price - base : 0;
+  return {
+    market: `KRW-${coin}`,
+    code: `KRW-${coin}`,
+    trade_price: price,
+    prev_closing_price: base,
+    high_price: high,
+    low_price: low,
+    signed_change_price: change,
+    signed_change_rate: base ? change / base : 0,
+    change: change > 0 ? 'RISE' : change < 0 ? 'FALL' : 'EVEN',
+    acc_trade_price_24h: volume,
+    timestamp,
+  };
+};
+
+const krwEntry = (exchange, coin, fields) => {
+  const ticker = { ...toKrwTicker(coin, fields), ...exchange.marketsInfo[`KRW-${coin}`] };
+  return {
+    key: ticker.market,
+    ticker,
+    price: ticker.trade_price,
+    changeRate: ticker.signed_change_rate * 100,
+    volume: ticker.acc_trade_price_24h,
+    koreanName: ticker.korean_name ?? null,
+  };
+};
+
+const krwUpdate = (coin, fields) => {
+  const tick = toKrwTicker(coin, fields);
+  return {
+    key: tick.market,
+    tick,
+    price: tick.trade_price,
+    changeRate: tick.signed_change_rate * 100,
+    volume: tick.acc_trade_price_24h || undefined,
+  };
+};
+
+async function loadKrwNames(exchange, coins) {
+  await krwNamesReady;
+  exchange.marketsInfo = Object.fromEntries(coins.map(coin => [`KRW-${coin}`, { market: `KRW-${coin}`, ...krwNameOf(coin) }]));
+}
+
+class CoinoneData extends ExchangeData {
+  constructor() {
+    super('coinone', 'https://api.coinone.co.kr/public/v2', 'wss://stream.coinone.co.kr');
+    // 코인마다 구독 메시지를 하나씩 보내야 해서(약 360개) 간격을 짧게 둔다.
+    this.subscribeGap = 10;
+  }
+
+  static fields(t) {
+    return {
+      price: Number(t.last),
+      base: Number(t.first),
+      high: Number(t.high),
+      low: Number(t.low),
+      volume: Number(t.quote_volume),
+      timestamp: Number(t.timestamp),
+    };
+  }
+
+  async fetchMarkets() {
     try {
-      const updates = (await this.fetchTickers()).map(t => globalUpdate(this, t.market, CoindcxData.fields(t)));
-      this.applyUpdates(updates);
+      const { markets } = await fetchJson(`${this.apiUrl}/markets/KRW`);
+      const coins = markets.filter(m => m.trade_status === 1 && !m.maintenance_status).map(m => m.target_currency);
+      await loadKrwNames(this, coins);
+      return coins.map(coin => `KRW-${coin}`);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchInitialTickers() {
+    try {
+      const { tickers } = await fetchJson(`${this.apiUrl}/ticker_new/KRW`);
+      const listed = new Set(this.markets);
+      this.setSnapshot(
+        tickers
+          .filter(t => listed.has(`KRW-${t.target_currency.toUpperCase()}`))
+          .map(t => krwEntry(this, t.target_currency.toUpperCase(), CoinoneData.fields(t))),
+      );
     } catch (error) {
       console.warn(error);
     }
-    clearTimeout(this.pollTimer);
-    const interval = this.isPopupActive && this.port ? COINDCX_ACTIVE_INTERVAL : COINDCX_IDLE_INTERVAL;
-    this.pollTimer = setTimeout(() => this.poll(), interval);
   }
 
-  connectWebSocket() {
-    if (this.suspended) return;
-    if (!this.pollTimer) this.pollTimer = setTimeout(() => this.poll(), COINDCX_IDLE_INTERVAL);
+  getSubscriptions() {
+    return this.markets.map(market =>
+      JSON.stringify({
+        request_type: 'SUBSCRIBE',
+        channel: 'TICKER',
+        topic: { quote_currency: 'KRW', target_currency: market.slice(4) },
+      }),
+    );
   }
 
-  suspend() {
-    super.suspend();
-    clearTimeout(this.pollTimer);
-    this.pollTimer = null;
+  // 30분 동안 아무것도 보내지 않으면 코인원이 연결을 끊는다.
+  getHeartbeatMessage() {
+    return JSON.stringify({ request_type: 'PING' });
   }
 
-  // 팝업에서 이 거래소를 열면 바로 빠른 주기로 바꾼다.
-  setPopupActive(active) {
-    super.setPopupActive(active);
-    if (active && this.pollTimer) this.poll();
-  }
-
-  connectPopup(port) {
-    super.connectPopup(port);
-    if (this.isPopupActive && this.pollTimer) this.poll();
+  parseMessage(message) {
+    if (message?.response_type !== 'DATA' || message.channel !== 'TICKER') return [];
+    const t = message.data;
+    return [krwUpdate(t.target_currency.toUpperCase(), CoinoneData.fields(t))];
   }
 }
+
+// 디지털엑스 웹소켓은 자기 사이트에서 연 연결만 받아(Origin 확인) 확장에서는 쓸 수 없다. 전체 시세 REST를 폴링한다.
+class DigitalxData extends PollingExchangeData {
+  constructor() {
+    super('digitalx', 'https://api.digitalx.miraeasset.com/v2', null);
+  }
+
+  static fields(t) {
+    return {
+      price: Number(t.close),
+      base: Number(t.prevClose),
+      high: Number(t.high),
+      low: Number(t.low),
+      volume: Number(t.quoteVolume),
+      timestamp: Number(t.lastTradedAt),
+    };
+  }
+
+  // btc_krw → BTC
+  static coinOf(symbol) {
+    return symbol.split('_')[0].toUpperCase();
+  }
+
+  async fetchMarkets() {
+    try {
+      const { data } = await fetchJson(`${this.apiUrl}/currencyPairs`);
+      const coins = data.filter(p => p.status === 'launched' && p.quoteCurrency === 'krw').map(p => DigitalxData.coinOf(p.symbol));
+      await loadKrwNames(this, coins);
+      return coins.map(coin => `KRW-${coin}`);
+    } catch (error) {
+      console.warn(error);
+      return [];
+    }
+  }
+
+  async fetchListedTickers() {
+    const { data } = await fetchJson(`${this.apiUrl}/tickers`);
+    const listed = new Set(this.markets);
+    return data.filter(t => listed.has(`KRW-${DigitalxData.coinOf(t.symbol)}`));
+  }
+
+  async fetchInitialTickers() {
+    try {
+      this.setSnapshot(
+        (await this.fetchListedTickers()).map(t => krwEntry(this, DigitalxData.coinOf(t.symbol), DigitalxData.fields(t))),
+      );
+    } catch (error) {
+      console.warn(error);
+    }
+  }
+
+  // 3초마다 전체를 받으므로, 가격·거래대금이 바뀐 종목만 팝업에 보낸다.
+  async fetchUpdates() {
+    const store = allExchangesTickers[this.name];
+    return (await this.fetchListedTickers())
+      .map(t => krwUpdate(DigitalxData.coinOf(t.symbol), DigitalxData.fields(t)))
+      .filter(({ key, price, volume }) => store[key]?.currentPrice !== price || store[key]?.volume !== volume);
+  }
+}
+
+// 선택 권한 거래소: 기존 사용자에게 업데이트 때 새 권한 확인 창이 뜨지 않도록, 거래소를 처음 고를 때 허락받는다.
+const OPTIONAL_EXCHANGE_ORIGINS = {
+  coinone: ['https://api.coinone.co.kr/*'],
+  digitalx: ['https://api.digitalx.miraeasset.com/*'],
+};
+
+async function hasExchangePermission(name) {
+  const origins = OPTIONAL_EXCHANGE_ORIGINS[name];
+  return origins ? chrome.permissions.contains({ origins }) : true;
+}
+
+// 팝업이 권한 창을 띄우기 전에 고른 거래소. 권한 창이 뜨면 툴바 팝업이 닫혀 버려서, 허락되면 여기서 거래소를 바꾼다.
+// 오래된 요청으로 나중에 엉뚱하게 바뀌지 않도록 2분만 유효하다.
+let pendingExchange = null;
+const PENDING_EXCHANGE_TTL = 2 * 60_000;
+
+chrome.permissions.onAdded.addListener(async () => {
+  for (const name of Object.keys(OPTIONAL_EXCHANGE_ORIGINS)) {
+    const exchange = exchanges[name];
+    if (!exchange.locked || !(await hasExchangePermission(name))) continue;
+    // 화면이 닫혀 있으면 1분 뒤 다른 거래소처럼 쉬게 된다.
+    if (popupPorts.size) exchange.suspended = false;
+    await exchange.start().catch(console.warn);
+    const pending = pendingExchange?.name === name && Date.now() - pendingExchange.at < PENDING_EXCHANGE_TTL;
+    if (pending) pendingExchange = null;
+    if (activeExchange === name) {
+      // 화면이 먼저 이 거래소로 바뀌어 시세를 기다리고 있다.
+      exchange.setPopupActive(true);
+      if (activePort) exchange.connectPopup(activePort);
+    } else if (pending) {
+      await handleExchangeChange(name);
+    }
+  }
+});
+
+chrome.permissions.onRemoved.addListener(async () => {
+  for (const name of Object.keys(OPTIONAL_EXCHANGE_ORIGINS)) {
+    if (await hasExchangePermission(name)) continue;
+    const exchange = exchanges[name];
+    exchange.dropSocket();
+    exchange.started = false;
+    exchange.locked = true;
+  }
+});
 
 // 9. 활성 거래소 관리
 const STORAGE_KEY = 'activeExchangePlatform';
@@ -1564,6 +1873,8 @@ const exchanges = {
   bitget: new BitgetData(),
   kraken: new KrakenData(),
   coindcx: new CoindcxData(),
+  coinone: new CoinoneData(),
+  digitalx: new DigitalxData(),
 };
 
 // 팝업과 사이드 패널이 동시에 열릴 수 있어 연결된 화면 모두에 보낸다.
@@ -1601,6 +1912,11 @@ function exchangesNeededWhenIdle() {
     needed.add(rule.exchange);
     // 김프는 바이낸스 USDT 가격과 비교한다.
     if (rule.type === 'kimchi') needed.add('binance');
+  }
+  for (const list of miniPorts.values()) {
+    list.forEach(exchange => needed.add(exchange));
+    // 미니 창은 원화 종목에 김프를 함께 보여 준다.
+    if (list.some(exchange => KRW_EXCHANGES.includes(exchange))) needed.add('binance');
   }
   return needed;
 }
@@ -1714,6 +2030,30 @@ const derivatives = new PolledData('derivatives', 60 * 1000, async () => {
   return { highest: rates.slice(0, FUNDING_LIST_SIZE), lowest: rates.slice(-FUNDING_LIST_SIZE).reverse(), updatedAt: Date.now() };
 });
 derivatives.post = () => {}; // 팝업이 열 때 메시지로 받아 간다.
+
+// 롱숏 비율(바이낸스 선물, 5분 단위): 전체 계정 중 롱 비율과 상위 트레이더 포지션 중 롱 비율. 5분마다 받는다.
+const LONG_SHORT_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT'];
+const longShort = new PolledData('longShort', 5 * 60 * 1000, async () => {
+  const query = (path, symbol) => fetchJson(`https://fapi.binance.com/futures/data/${path}?symbol=${symbol}&period=5m&limit=1`);
+  const items = await Promise.all(
+    LONG_SHORT_SYMBOLS.map(async symbol => {
+      const [accounts, top] = await Promise.allSettled([
+        query('globalLongShortAccountRatio', symbol),
+        query('topLongShortPositionRatio', symbol),
+      ]);
+      const account = accounts.value?.[0];
+      if (!account) return null;
+      return {
+        symbol,
+        longAccount: Number(account.longAccount),
+        topLong: top.value?.[0] ? Number(top.value[0].longAccount) : null,
+      };
+    }),
+  );
+  const list = items.filter(Boolean);
+  return list.length ? { items: list, updatedAt: Date.now() } : null;
+});
+longShort.post = () => {};
 
 const LIQUIDATION_WINDOW = 60 * 60 * 1000;
 const liquidations = [];
@@ -1897,6 +2237,7 @@ async function initialize() {
   await Promise.all([alertsReady, rulesReady, badgeReady, languageReady]);
   activeExchange = await loadActiveExchange();
   derivatives.start();
+  longShort.start();
   trending.start();
   connectLiquidations();
   const initial = getExchangeInstance(activeExchange);
@@ -1922,6 +2263,41 @@ async function initialize() {
     exchangeRateManager.initialize(),
   ]);
 }
+
+// 미니 창: 즐겨찾기 시세만 1초마다 받아 간다. 열려 있는 동안 그 거래소들은 쉬지 않는다.
+const miniPorts = new Map();
+function isWatchedByMini(exchange) {
+  for (const list of miniPorts.values()) if (list.includes(exchange)) return true;
+  return false;
+}
+chrome.runtime.onConnect.addListener(port => {
+  if (port?.name !== 'mini') return;
+  miniPorts.set(port, []);
+  port.onMessage.addListener(message => {
+    if (message?.type !== 'watch') return;
+    const before = miniPorts.get(port).join();
+    miniPorts.set(port, message.exchanges ?? []);
+    if (!popupPorts.size && before !== miniPorts.get(port).join()) applyIdleConnections();
+    const kimchiItems = computeKimchiPremium().items;
+    const tickers = {};
+    const kimchi = {};
+    for (const key of message.keys ?? []) {
+      const [exchange, market] = key.split(':');
+      const ticker = allExchangesTickers[exchange]?.[market];
+      if (ticker?.currentPrice) tickers[key] = ticker;
+      if (kimchiItems[key]) kimchi[key] = { premium: kimchiItems[key].premium };
+    }
+    try {
+      port.postMessage({ type: 'miniTickers', data: { tickers, kimchi } });
+    } catch {
+      miniPorts.delete(port);
+    }
+  });
+  port.onDisconnect.addListener(() => {
+    miniPorts.delete(port);
+    if (!popupPorts.size) scheduleIdleConnections();
+  });
+});
 
 chrome.runtime.onConnect.addListener(port => {
   if (!port || port.name !== 'popup') return;
@@ -1966,6 +2342,8 @@ chrome.runtime.onConnect.addListener(port => {
     let maxTicker = { exchange: '', market: '', changeRate: 0 };
 
     for (const [exchange, tickers] of Object.entries(allExchangesTickers)) {
+      // 코인원·디지털엑스는 거래가 얇은 종목이 많아 상위 상승 종목에서 뺀다.
+      if (OPTIONAL_EXCHANGE_ORIGINS[exchange]) continue;
       for (const [market, ticker] of Object.entries(tickers)) {
         // 거래가 적은 FDUSD·EUR 등 기타 페어가 상위 상승 종목을 차지하지 않도록 KRW·USDT 마켓만 비교한다.
         const isUsdMarket = (exchange === 'coinbase' || exchange === 'kraken') && market.endsWith('USD');

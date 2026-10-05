@@ -26,10 +26,12 @@ import {
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getUpbitColumns } from '@/columns/upbitColumns';
-import { getBithumbColumns } from '@/columns/bithumbColumns';
+import { getKrwColumns } from '@/columns/krwColumns';
 import { getGlobalColumns } from '@/columns/globalColumns';
-import { EXCHANGES, isGlobalExchange, MARKET_TYPES } from '@/constants/exchanges';
+import { EXCHANGES, isGlobalExchange, isKrwExchange, MARKET_TYPES } from '@/constants/exchanges';
+import { ExchangePermissionGate } from '@/components/ExchangePermissionGate';
+import { useExchangePermission } from '@/lib/exchangePermission';
+import { KIMCHI_COLUMN_KEY, QUIET_MODE_KEY, useStoredFlag } from '@/hooks/useStoredFlag';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { Input } from '@/components/ui/input';
 import { SizeToggle } from '@/components/SizeToggle';
@@ -67,6 +69,9 @@ const SettingsPopover = memo(SettingsPopoverBase);
 
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 const fallbackData: TickerTypes[] = [];
+// 행 id는 마켓 코드로 둔다. 기본값(배열 순번)이면 시세가 바뀔 때 고정 행이 다른 종목을 가리킨다.
+// 바이낸스 스냅샷에도 market 필드가 있어 symbol을 먼저 본다.
+const getRowId = (row: TickerTypes) => ('symbol' in row && row.symbol ? row.symbol : (row as UpbitTicker).market);
 
 const App = () => {
   const { language, t, currency } = useI18n();
@@ -74,8 +79,6 @@ const App = () => {
   // 처음에는 현재가 높은 순. initialState에 두면 state.sorting([])에 덮여 적용되지 않는다.
   const [sorting, setSorting] = useState<SortingState>([{ id: 'trade_price', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowPinning, setRowPinning] = useState<RowPinningState>({ top: [], bottom: [] });
   const [storedWideSize, setWideSize] = useWideSize();
   // 사이드 패널은 폭이 정해져 있지 않아 창 크기에 맞춰 그리고, 넓으면 와이드 컬럼을 쓴다.
   const isSidePanel = useMemo(isSidePanelView, []);
@@ -102,6 +105,16 @@ const App = () => {
   });
   const [timeFrame, setTimeFrame] = useState<string>('1d');
   const [kimchiPremium, setKimchiPremium] = useState<KimchiPremium>({ rate: null, items: {} });
+  // 표의 김프 열은 2초마다 바뀌는 김프를 ref로 읽어, 바뀔 때마다 컬럼을 새로 만들지 않는다.
+  const kimchiRef = useRef(kimchiPremium);
+  kimchiRef.current = kimchiPremium;
+  const [kimchiInNarrow] = useStoredFlag(KIMCHI_COLUMN_KEY);
+  const [quietMode] = useStoredFlag(QUIET_MODE_KEY);
+  // 조용한 모드: 상승·하락 색과 깜빡임을 끄고 회색으로만 보여 준다(스타일은 index.css의 [data-quiet]).
+  useEffect(() => {
+    if (quietMode) document.documentElement.dataset.quiet = '';
+    else delete document.documentElement.dataset.quiet;
+  }, [quietMode]);
   const [walletStatus, setWalletStatus] = useState<WalletStatus>({});
   const [fiatRates, setFiatRates] = useState<FiatRates>({});
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);
@@ -140,7 +153,6 @@ const App = () => {
   const changeExchange = useCallback((exchange: ExchangePlatform) => {
     if (exchange === exchangeRef.current) return;
     exchangeRef.current = exchange;
-    setRowPinning({ top: [], bottom: [] });
     setTickers({});
     setIsLoading(true);
     setExchangePlatform(exchange);
@@ -169,23 +181,42 @@ const App = () => {
   const tableData = useMemo<TickerTypes[]>(() => {
     if (!Object.values(tickers).length) return fallbackData;
 
-    switch (exchangePlatform) {
-      case 'upbit':
-        return Object.values(tickers).filter(
-          (ticker): ticker is UpbitTicker => 'market' in ticker && ticker.market?.startsWith(`${exchangeMarketType}-`),
-        );
-      case 'bithumb':
-        return Object.values(tickers).filter(
-          (ticker): ticker is BithumbTicker =>
-            'market' in ticker && ticker.market?.startsWith(`${exchangeMarketType}-`),
-        );
-      default:
-        if (!isGlobalExchange(exchangePlatform)) return fallbackData;
-        return Object.values(tickers).filter(
-          (ticker): ticker is BinanceTicker => 'symbol' in ticker && ticker.symbol?.endsWith(`${exchangeMarketType}`),
-        );
+    if (isKrwExchange(exchangePlatform)) {
+      return Object.values(tickers).filter(
+        (ticker): ticker is UpbitTicker | BithumbTicker =>
+          'market' in ticker && ticker.market?.startsWith(`${exchangeMarketType}-`),
+      );
     }
+    return Object.values(tickers).filter(
+      (ticker): ticker is BinanceTicker => 'symbol' in ticker && ticker.symbol?.endsWith(`${exchangeMarketType}`),
+    );
   }, [tickers, exchangePlatform, exchangeMarketType]);
+
+  // 즐겨찾기는 사용자가 정한 순서대로 위에 고정한다. 표에 없는 종목(다른 마켓)은 빼야 한다.
+  // 없는 행을 고정 목록에 두면 표가 그 행을 찾다가 오류로 멈춘다.
+  const rowPinning = useMemo<RowPinningState>(() => {
+    if (isLoading || !favoriteFunc) return { top: [], bottom: [] };
+    const ids = new Set(tableData.map(getRowId));
+    return { top: (favoriteCoins[exchangePlatform] ?? []).filter(id => ids.has(id)), bottom: [] };
+  }, [isLoading, favoriteFunc, tableData, favoriteCoins, exchangePlatform]);
+
+  // 즐겨찾기 순서 바꾸기(끌어 놓기, Alt+↑↓)
+  const moveFavorite = useCallback(
+    (from: string, to: string) => {
+      setFavoriteCoins(prev => {
+        const list = [...(prev[exchangePlatform] ?? [])];
+        const fromIndex = list.indexOf(from);
+        const toIndex = list.indexOf(to);
+        if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return prev;
+        list.splice(fromIndex, 1);
+        list.splice(toIndex, 0, from);
+        return { ...prev, [exchangePlatform]: list };
+      });
+    },
+    [exchangePlatform, setFavoriteCoins],
+  );
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const hasExchangePermission = useExchangePermission(exchangePlatform);
 
   const specificMarketType = useMemo(() => {
     if (isGlobalExchange(exchangePlatform)) {
@@ -197,56 +228,40 @@ const App = () => {
   }, [exchangePlatform, exchangeMarketType]);
 
   const columns = useMemo<ColumnDef<TickerTypes>[]>(() => {
-    switch (exchangePlatform) {
-      case 'upbit':
-        return getUpbitColumns(
-          coinNameKR,
-          setCoinNameKR,
-          exchangeRateUSD,
-          exchangeMarketType,
-          favoriteCoins,
-          setFavoriteCoins,
-          favoriteFunc,
-          wideSize,
-          timeFrame,
-          setTimeFrame,
-          t,
-          currency,
-          fiatRates,
-        ) as ColumnDef<TickerTypes>[];
-      case 'bithumb':
-        return getBithumbColumns(
-          coinNameKR,
-          setCoinNameKR,
-          exchangeRateUSD,
-          exchangeMarketType,
-          favoriteCoins,
-          setFavoriteCoins,
-          favoriteFunc,
-          wideSize,
-          timeFrame,
-          setTimeFrame,
-          t,
-          currency,
-          fiatRates,
-        ) as ColumnDef<TickerTypes>[];
-      default:
-        return getGlobalColumns(
-          exchangePlatform,
-          specificMarketType,
-          favoriteCoins,
-          setFavoriteCoins,
-          favoriteFunc,
-          setSorting,
-          wideSize,
-          timeFrame,
-          setTimeFrame,
-          t,
-          currency,
-          exchangeRateUSD,
-          fiatRates,
-        ) as ColumnDef<TickerTypes>[];
+    if (isKrwExchange(exchangePlatform)) {
+      return getKrwColumns({
+        exchange: exchangePlatform,
+        coinNameKR,
+        setCoinNameKR,
+        exchangeRateUSD,
+        exchangeMarketType,
+        favoriteCoins,
+        setFavoriteCoins,
+        favoriteFunc,
+        wideSize,
+        timeframe: timeFrame,
+        setTimeframe: setTimeFrame,
+        t,
+        displayCurrency: currency,
+        fiatRates,
+        kimchiRef,
+      }) as ColumnDef<TickerTypes>[];
     }
+    return getGlobalColumns(
+      exchangePlatform,
+      specificMarketType,
+      favoriteCoins,
+      setFavoriteCoins,
+      favoriteFunc,
+      setSorting,
+      wideSize,
+      timeFrame,
+      setTimeFrame,
+      t,
+      currency,
+      exchangeRateUSD,
+      fiatRates,
+    ) as ColumnDef<TickerTypes>[];
   }, [
     coinNameKR,
     exchangeRateUSD,
@@ -261,16 +276,28 @@ const App = () => {
     fiatRates,
   ]);
 
+  // 좁은 화면은 칸이 모자라 52주 열을 숨긴다. 김프 열은 설정에 따라 거래대금 자리에 보여 준다.
+  const columnVisibility = useMemo<VisibilityState>(
+    () => ({
+      highest_52_week_diff: wideSize,
+      lowest_52_week_diff: wideSize,
+      highest_24h_diff: wideSize,
+      lowest_24h_diff: wideSize,
+      kimchi_premium: wideSize || kimchiInNarrow,
+      acc_trade_price_24h: wideSize || !isKrwExchange(exchangePlatform) || !kimchiInNarrow,
+    }),
+    [wideSize, kimchiInNarrow, exchangePlatform],
+  );
+
   const table = useReactTable<TickerTypes>({
     data: tableData,
     columns: columns,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowPinningChange: setRowPinning,
     state: { sorting, columnFilters, columnVisibility, rowPinning },
     enableRowPinning: favoriteFunc,
     keepPinnedRows: true,
@@ -301,39 +328,6 @@ const App = () => {
     columnId === 'candlestick_chart'
       ? chartColumnWidth
       : Math.floor((remainingWidth * columnWeight(columnId)) / totalWeight) || 100;
-
-  // favoriteCoins와 rowPinning 동기화
-  useEffect(() => {
-    if (isLoading || !favoriteFunc) {
-      table.resetRowPinning(true);
-      return;
-    }
-
-    const rows = table.getRowModel().rows;
-    if (!rows.length) {
-      table.resetRowPinning(true);
-      return;
-    }
-
-    rows.forEach(row => {
-      const market =
-        isGlobalExchange(exchangePlatform)
-          ? (row.original as BinanceTicker).symbol
-          : (row.original as UpbitTicker | BithumbTicker).market;
-      const shouldPin = favoriteCoins[exchangePlatform].includes(market);
-      const isPinned = row.getIsPinned();
-
-      if (shouldPin && !isPinned) {
-        row.pin('top');
-      } else if (!shouldPin && isPinned) {
-        row.pin(false);
-      }
-    });
-  }, [isLoading, exchangeMarketType, exchangePlatform, favoriteCoins, favoriteFunc, table]);
-
-  useEffect(() => {
-    table.getAllColumns().forEach(column => column.toggleVisibility(wideSize));
-  }, [wideSize, exchangePlatform]);
 
   const maxChangeRateCoinhandleLogo = (exchange: string) => EXCHANGES[exchange as ExchangePlatform]?.logo;
 
@@ -384,7 +378,6 @@ const App = () => {
                     exchangePlatform={exchangePlatform}
                     exchangeMarketType={exchangeMarketType}
                     setExchangeMarketType={setExchangeMarketType}
-                    setRowPinning={setRowPinning}
                   />
                   <div className="relative flex justify-center items-center h-6 w-15 text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default">
                     <span>Total</span>
@@ -394,7 +387,7 @@ const App = () => {
                     </HoverHint>
                   </div>
                   {/* 400px보다 좁은 사이드 패널에서는 검색창 자리를 위해 환율을 숨긴다. */}
-                  <div className="relative flex justify-center items-center h-6 w-16 text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default max-[400px]:hidden">
+                  <div className="relative flex justify-center items-center h-6 min-w-16 whitespace-nowrap text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default max-[400px]:hidden">
                     <span className="num">
                       {exchangeRateUSD}
                       <span className="text-fg-faint"> KRW</span>
@@ -483,7 +476,9 @@ const App = () => {
                   <WalletStatusContext.Provider value={walletStatus}>
                   <Table className="table-fixed text-body-s w-full">
                     <TableBody>
-                      {isLoading || !Object.keys(tickers).length ? (
+                      {!hasExchangePermission ? (
+                        <ExchangePermissionGate exchange={exchangePlatform} colSpan={table.getVisibleLeafColumns().length} />
+                      ) : isLoading || !Object.keys(tickers).length ? (
                         <tr>
                           <td colSpan={table.getVisibleLeafColumns().length}>
                             <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
@@ -499,11 +494,38 @@ const App = () => {
                         </tr>
                       ) : (
                         <>
-                          {table.getTopRows()?.map(row => (
+                          {table.getTopRows()?.map((row, index, topRows) => (
                             <TableRow
-                              className="border-transparent sticky bg-layer-raised z-48"
+                              className={`border-transparent sticky bg-layer-raised z-48 cursor-grab active:cursor-grabbing ${draggingId === row.id ? 'opacity-50' : ''}`}
                               key={row.id}
-                              data-state={row.getIsSelected() && 'selected'}>
+                              data-state={row.getIsSelected() && 'selected'}
+                              data-favorite-row={row.id}
+                              draggable
+                              onDragStart={event => {
+                                event.dataTransfer.effectAllowed = 'move';
+                                event.dataTransfer.setData('text/plain', row.id);
+                                setDraggingId(row.id);
+                              }}
+                              onDragOver={event => {
+                                if (!draggingId) return;
+                                event.preventDefault();
+                                if (draggingId !== row.id) moveFavorite(draggingId, row.id);
+                              }}
+                              onDrop={event => event.preventDefault()}
+                              onDragEnd={() => setDraggingId(null)}
+                              onKeyDown={event => {
+                                // 별 버튼에 포커스가 있을 때 Alt+↑↓로 순서를 바꾼다.
+                                if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+                                const target = topRows[index + (event.key === 'ArrowUp' ? -1 : 1)];
+                                if (!target) return;
+                                event.preventDefault();
+                                moveFavorite(row.id, target.id);
+                                requestAnimationFrame(() =>
+                                  document
+                                    .querySelector<HTMLButtonElement>(`[data-favorite-row="${CSS.escape(row.id)}"] button[aria-pressed]`)
+                                    ?.focus(),
+                                );
+                              }}>
                               {row.getVisibleCells().map(cell => {
                                 const adjustedWidth = getColumnWidth(cell.column.id);
                                 return (

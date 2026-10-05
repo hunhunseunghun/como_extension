@@ -1,8 +1,8 @@
 COMO – Precio de Criptomonedas y Bitcoin en Tiempo Real
 
-Precios de Bitcoin, Ethereum y criptomonedas en vivo de 9 exchanges con un solo clic — con alertas de precio, seguimiento de portafolio, gráficos y el precio en vivo en tu barra de herramientas.
+Precios de Bitcoin, Ethereum y criptomonedas en vivo de 11 exchanges con un solo clic — con alertas de precio, seguimiento de portafolio, gráficos y el precio en vivo en tu barra de herramientas.
 
-📈 Precios en tiempo real de 9 exchanges
+📈 Precios en tiempo real de 11 exchanges
 COMO se conecta a nueve de los principales exchanges globales y coreanos. Los precios llegan en vivo por WebSocket, así que la tabla se actualiza con cada operación. Cambia de exchange y de mercado en un segundo.
 
 🔔 Alertas de precio
@@ -35,9 +35,9 @@ La interfaz usa el idioma de tu navegador, y puedes cambiarlo cuando quieras en 
 🔒 Privacidad
 De forma predeterminada, COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión. La sincronización de cuenta opcional usa una clave API de solo lectura que tú introduces; la clave se guarda solo en tu navegador y solo se envía a ese exchange.
 
-Novedades de la versión 3.2.0
-• Alertas de avisos de trading de exchanges coreanos (opcional), gráfico de la prima kimchi y prima de tether
-• Marcas de depósitos y retiros suspendidos en las monedas
-• Copia y restauración de ajustes, y edición del precio promedio de tus tenencias
-• Sincronización de cuenta más segura: se rechazan claves que pueden operar o retirar, y puedes guardarlas solo hasta cerrar el navegador
-• Menos consumo de batería y datos con COMO cerrado, y la ventana abre más rápido
+Novedades de la versión 3.3.0
+• Dos exchanges coreanos más (pide acceso solo la primera vez que eliges uno)
+• Columna de prima kimchi por moneda en la tabla y minigráficos de 24 horas para los favoritos
+• Arrastra los favoritos para reordenarlos
+• Mini ventana siempre encima y modo discreto que oculta colores e insignia (Alt+Shift+Q)
+• La insignia puede alternar entre tus favoritos y las estadísticas muestran el ratio largo/corto

@@ -685,3 +685,11 @@ body {
     transition-duration: 1ms !important;
   }
 }
+
+/* 조용한 모드: 업무 중 화면에 띄워 둬도 눈에 띄지 않게 상승·하락 색과 깜빡임을 없앤다. */
+html:root[data-quiet] {
+  --como-up: var(--como-fg-muted);
+  --como-down: var(--como-fg-muted);
+  --como-up-weak: transparent;
+  --como-down-weak: transparent;
+}

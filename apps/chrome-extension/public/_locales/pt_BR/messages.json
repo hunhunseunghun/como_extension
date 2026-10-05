@@ -3,9 +3,12 @@
     "message": "COMO: Cotação de Criptomoedas e Bitcoin ao Vivo – Alertas, Carteira"
   },
   "extDescription": {
-    "message": "Bitcoin e cripto ao vivo de 9 grandes corretoras, com alertas de preço, lucro/prejuízo da carteira, gráficos e cotação na barra."
+    "message": "Bitcoin e cripto ao vivo de 11 grandes corretoras, com alertas de preço, lucro/prejuízo da carteira, gráficos e cotação na barra."
   },
   "commandToggle": {
     "message": "Abra ou feche rapidamente o popup de preços de cripto"
+  },
+  "commandQuiet": {
+    "message": "Ativar ou desativar o modo discreto (oculta o selo e as cores)"
   }
 }

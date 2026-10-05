@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, Monitor, Moon, PanelRight, Settings, Sun, Upload } from 'lucide-react';
+import { AppWindow, Download, Monitor, Moon, PanelRight, Settings, Sun, Upload } from 'lucide-react';
+import { KIMCHI_COLUMN_KEY, QUIET_MODE_KEY, useStoredFlag } from '@/hooks/useStoredFlag';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { useTheme } from '@/components/ThemeProvider';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,8 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
   const [noticeAlerts, setNoticeAlerts] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canOpenSidePanel = typeof chrome !== 'undefined' && !!chrome.sidePanel?.open && !isSidePanelView();
+  const [kimchiInNarrow, setKimchiInNarrow] = useStoredFlag(KIMCHI_COLUMN_KEY);
+  const [quietMode, setQuietMode] = useStoredFlag(QUIET_MODE_KEY);
 
   useEffect(() => {
     chrome.storage.local.get(BADGE_STORAGE_KEY, result => {
@@ -94,6 +97,18 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
     if (currentWindow.id === undefined) return;
     await chrome.sidePanel.open({ windowId: currentWindow.id });
     // 툴바 팝업일 때만 닫는다. 탭으로 연 화면(개발용 미리보기 등)에서 닫으면 탭이나 창이 함께 사라진다.
+    if (chrome.extension.getViews({ type: 'popup' }).includes(window)) window.close();
+  };
+
+  // 미니 창: 즐겨찾기만 보여 주는 작은 창. 이미 열려 있으면 그 창을 앞으로 가져온다.
+  const openMiniWindow = async () => {
+    const url = chrome.runtime.getURL('popup/index.html?view=mini');
+    const [existing] = (await chrome.runtime.getContexts?.({ contextTypes: [chrome.runtime.ContextType.TAB], documentUrls: [url] })) ?? [];
+    if (existing && existing.windowId >= 0) {
+      await chrome.windows.update(existing.windowId, { focused: true });
+    } else {
+      await chrome.windows.create({ url, type: 'popup', width: 300, height: 380, focused: true });
+    }
     if (chrome.extension.getViews({ type: 'popup' }).includes(window)) window.close();
   };
 
@@ -183,6 +198,13 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
           <SettingRow label={t('favoritePin')}>
             <Switch aria-label={t('favoritePin')} checked={favoriteFunc} onCheckedChange={setFavoriteFunc} />
           </SettingRow>
+          <SettingRow label={t('kimchiColumnNarrow')}>
+            <Switch aria-label={t('kimchiColumnNarrow')} checked={kimchiInNarrow} onCheckedChange={setKimchiInNarrow} />
+          </SettingRow>
+          <SettingRow label={t('quietMode')}>
+            <Switch aria-label={t('quietMode')} checked={quietMode} onCheckedChange={setQuietMode} />
+          </SettingRow>
+          <p className="px-1 pb-1 text-cap-s text-fg-faint">{t('quietModeHint')}</p>
         </Section>
 
         <Section title={t('settingsGroupAlerts')}>
@@ -233,6 +255,14 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
                 onMarketChange={handleBadgeMarket}
                 prices={prices}
               />
+              <label className="mt-1 flex items-center justify-between gap-2 text-cap-s text-fg-subtle">
+                <span>{t('badgeRotate')}</span>
+                <Switch
+                  aria-label={t('badgeRotate')}
+                  checked={!!badge.rotate}
+                  onCheckedChange={checked => saveBadge({ ...badge, rotate: checked })}
+                />
+              </label>
             </div>
           )}
         </Section>
@@ -277,15 +307,24 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
           <p className="px-1 pb-1 text-cap-s text-fg-faint">{t('backupHint')}</p>
         </Section>
 
-        {canOpenSidePanel && (
+        <div className="flex gap-1 mt-1">
+          {canOpenSidePanel && (
+            <Button
+              variant="soft"
+              className="flex-1 h-control-lg text-cap gap-1 hover:cursor-pointer"
+              onClick={openSidePanel}>
+              <PanelRight className="size-3.5" />
+              {t('openSidePanel')}
+            </Button>
+          )}
           <Button
             variant="soft"
-            className="w-full h-control-lg mt-1 text-cap gap-1 hover:cursor-pointer"
-            onClick={openSidePanel}>
-            <PanelRight className="size-3.5" />
-            {t('openSidePanel')}
+            className="flex-1 h-control-lg text-cap gap-1 hover:cursor-pointer"
+            onClick={openMiniWindow}>
+            <AppWindow className="size-3.5" />
+            {t('openMiniWindow')}
           </Button>
-        )}
+        </div>
       </PopoverContent>
     </Popover>
   );

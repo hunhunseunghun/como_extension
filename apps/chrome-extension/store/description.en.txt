@@ -1,9 +1,9 @@
 COMO – Crypto Price Tracker & Bitcoin Ticker
 
-Live Bitcoin, Ethereum and crypto prices from 9 exchanges in one click — with price alerts, portfolio tracking, charts and a live price on your toolbar.
+Live Bitcoin, Ethereum and crypto prices from 11 exchanges in one click — with price alerts, portfolio tracking, charts and a live price on your toolbar.
 
-📈 Real-time prices from 9 exchanges
-COMO connects to nine major global and Korean exchanges. Prices stream in live over WebSocket, so the table updates as trades happen. Switch exchanges and markets in a second.
+📈 Real-time prices from 11 exchanges
+COMO connects to eleven major global and Korean exchanges. Prices stream in live over WebSocket, so the table updates as trades happen. Switch exchanges and markets in a second.
 
 🔔 Price alerts
 Set target prices for any coin and get a desktop notification when the price crosses it. A deadband option prevents repeated alerts when the price hovers around your target. Click the notification to open the coin on the exchange. You can also get alerts for new listings on Korean exchanges, big 24h moves and kimchi premium thresholds.
@@ -35,9 +35,9 @@ The interface follows your browser language, and you can switch it any time in s
 🔒 Privacy
 By default COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required. Optional account sync uses a read-only API key that you enter; the key is stored only in your browser and is sent only to that exchange.
 
-What's new in 3.2.0
-• Trading notice alerts for Korean exchanges (optional), kimchi premium trend chart and tether premium
-• Deposit and withdrawal suspension marks on coins
-• Back up and restore your settings, and edit the average price of your holdings
-• Safer account sync: keys that can trade or withdraw are rejected, and you can keep keys only until the browser closes
-• Uses less battery and data when COMO is closed, and the popup opens faster
+What's new in 3.3.0
+• Two more Korean exchanges (asks for access only when you first pick one)
+• Per-coin kimchi premium column in the price table, and 24-hour mini charts for favorites
+• Drag favorites to reorder them
+• Always-on-top mini window, and quiet mode that hides colors and the badge (Alt+Shift+Q)
+• The toolbar badge can cycle through your favorites, and insights now show long/short ratios

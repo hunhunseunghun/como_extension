@@ -1,8 +1,8 @@
 COMO – Kripto Para Fiyat Takibi ve Canlı Bitcoin Fiyatı
 
-9 borsadan canlı Bitcoin, Ethereum ve kripto para fiyatları tek tıkla — fiyat alarmları, portföy takibi, grafikler ve araç çubuğunda canlı fiyat ile.
+11 borsadan canlı Bitcoin, Ethereum ve kripto para fiyatları tek tıkla — fiyat alarmları, portföy takibi, grafikler ve araç çubuğunda canlı fiyat ile.
 
-📈 9 borsadan anlık fiyatlar
+📈 11 borsadan anlık fiyatlar
 COMO, dokuz büyük küresel ve Kore borsasına bağlanır. Fiyatlar WebSocket üzerinden canlı akar, böylece tablo işlemler gerçekleştikçe güncellenir. Borsalar ve piyasalar arasında bir saniyede geçiş yapın.
 
 🔔 Fiyat alarmları
@@ -35,9 +35,9 @@ Arayüz tarayıcınızın dilini kullanır ve dili istediğiniz zaman ayarlardan
 🔒 Gizlilik
 COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piyasa verilerini okur. Ziyaret ettiğiniz sayfaları okumaz; ayarlarınız, alarmlarınız ve portföyünüz tarayıcınızda kalır. Hesap veya giriş gerekmez. İsteğe bağlı hesap senkronizasyonu, girdiğiniz salt okunur API anahtarını kullanır; anahtar yalnızca tarayıcınızda saklanır ve yalnızca ilgili borsaya gönderilir.
 
-3.2.0 sürümündeki yenilikler
-• Kore borsalarının işlem duyurusu alarmları (isteğe bağlı), kimchi primi grafiği ve tether primi
-• Coinlerde yatırma ve çekme durdurma işaretleri
-• Ayarları yedekleme ve geri yükleme, varlıkların ortalama fiyatını düzenleme
-• Daha güvenli hesap senkronizasyonu: işlem veya çekim yapabilen anahtarlar reddedilir, anahtarları yalnızca tarayıcı kapanana kadar tutabilirsiniz
-• COMO kapalıyken daha az pil ve veri kullanımı, açılır pencere daha hızlı açılır
+3.3.0 sürümündeki yenilikler
+• İki Kore borsası daha (yalnızca ilk seçtiğinizde erişim ister)
+• Fiyat tablosunda coin bazında kimchi primi sütunu ve favoriler için 24 saatlik mini grafikler
+• Favorileri sürükleyerek sıralayın
+• Her zaman üstte duran mini pencere ve renkleri ile rozeti gizleyen sessiz mod (Alt+Shift+Q)
+• Araç çubuğu rozeti favorileri sırayla gösterebilir; içgörülerde long/short oranı

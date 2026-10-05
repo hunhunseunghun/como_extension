@@ -10,7 +10,8 @@ import {
 
 import { ChevronDown } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { EXCHANGES, EXCHANGE_LIST } from '@/constants/exchanges';
+import { EXCHANGES, EXCHANGE_LIST, OPTIONAL_EXCHANGE_ORIGINS } from '@/constants/exchanges';
+import { requestExchangePermission } from '@/lib/exchangePermission';
 
 
 interface MarketDropdownProps {
@@ -43,7 +44,11 @@ export const MarketDropdown = ({
             <DropdownMenuItem
               key={key}
               className="gap-1 px-1 py-1 items-left text-body-s hover:cursor-pointer"
-              onClick={() => setExchangePlatform(key)}>
+              onClick={() => {
+                setExchangePlatform(key);
+                // 코인원·디지털엑스는 처음 고를 때 시세 API 권한을 묻는다(같은 클릭 안에서 물어야 창이 뜬다).
+                if (OPTIONAL_EXCHANGE_ORIGINS[key]) requestExchangePermission(key);
+              }}>
               <img src={logo} className="size-4" />
               <span>{t(labelKey)}</span>
             </DropdownMenuItem>

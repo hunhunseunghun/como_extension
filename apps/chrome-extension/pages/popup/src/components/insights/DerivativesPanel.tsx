@@ -3,7 +3,9 @@ import { useI18n } from '@/i18n';
 
 type FundingItem = { symbol: string; rate: number; nextFundingTime: number };
 type Liquidation = { symbol: string; side: 'long' | 'short'; usd: number; price: number; time: number };
+type LongShortItem = { symbol: string; longAccount: number; topLong: number | null };
 type Derivatives = {
+  longShort?: { items: LongShortItem[]; updatedAt: number } | null;
   funding: { highest: FundingItem[]; lowest: FundingItem[]; updatedAt: number } | null;
   liquidations: { longUsd: number; shortUsd: number; count: number; largest: Liquidation[]; windowMs: number };
 };
@@ -14,7 +16,15 @@ const compactUsd = (value: number, locale: string) =>
   `$${new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)}`;
 const fundingPercent = (rate: number) => `${rate >= 0 ? '+' : ''}${(rate * 100).toFixed(4)}%`;
 
-// 바이낸스 USDT 무기한 선물: 펀딩비 상·하위와 최근 1시간 강제 청산(롱·숏).
+// 왼쪽 롱, 오른쪽 숏 막대. 롱 청산은 하락 쪽 힘이라 청산 막대는 롱을 하락 색으로 칠한다(inverted).
+const RatioBar = ({ long, inverted = false }: { long: number; inverted?: boolean }) => (
+  <div className="flex h-1.5 overflow-hidden rounded-full bg-neutral-weak" aria-hidden>
+    <div className={inverted ? 'bg-down' : 'bg-up'} style={{ width: `${long * 100}%` }} />
+    <div className={`${inverted ? 'bg-up' : 'bg-down'} flex-1`} />
+  </div>
+);
+
+// 바이낸스 USDT 무기한 선물: 펀딩비 상·하위, 롱숏 비율, 최근 1시간 강제 청산(롱·숏).
 export const DerivativesPanel = () => {
   const { t } = useI18n();
   const locale = t('numberLocale');
@@ -63,6 +73,33 @@ export const DerivativesPanel = () => {
         <div className="text-cap-s text-fg-faint mt-1">{t('fundingHint')}</div>
       </section>
 
+      <section className="border-t pt-2" data-testid="long-short">
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-semibold">{t('longShortRatio')}</span>
+          <span className="text-cap-s text-fg-subtle">{t('longShortLegend')}</span>
+        </div>
+        {data?.longShort?.items.map(item => (
+          <div key={item.symbol} className="flex items-center gap-2 py-0.5">
+            <span className="w-8 shrink-0">{item.symbol.replace(/USDT$/, '')}</span>
+            <div className="flex-1 min-w-0">
+              <RatioBar long={item.longAccount} />
+            </div>
+            <span className="num w-[74px] shrink-0 text-right text-cap-s">
+              <span className="text-up">{(item.longAccount * 100).toFixed(0)}</span>
+              <span className="text-fg-faint"> : </span>
+              <span className="text-down">{((1 - item.longAccount) * 100).toFixed(0)}</span>
+            </span>
+            {item.topLong != null && (
+              <span className="num w-10 shrink-0 text-right text-cap-s text-fg-subtle" title={t('longShortTopHint')}>
+                {(item.topLong * 100).toFixed(0)}%
+              </span>
+            )}
+          </div>
+        ))}
+        {!data?.longShort?.items.length && <div className="text-fg-faint">-</div>}
+        <div className="text-cap-s text-fg-faint mt-1">{t('longShortHint')}</div>
+      </section>
+
       <section className="border-t pt-2">
         <div className="flex items-center justify-between mb-1">
           <span className="font-semibold">{t('liquidations')}</span>
@@ -78,10 +115,7 @@ export const DerivativesPanel = () => {
             {t('liqShort')} <b className="num text-up">{compactUsd(liq?.shortUsd ?? 0, locale)}</b>
           </span>
         </div>
-        <div className="flex h-1.5 overflow-hidden rounded-full bg-neutral-weak" aria-hidden>
-          <div className="bg-down" style={{ width: `${longShare}%` }} />
-          <div className="bg-up flex-1" />
-        </div>
+        <RatioBar long={longShare / 100} inverted />
         <div className="mt-1.5">
           {liq?.largest.map(item => (
             <div

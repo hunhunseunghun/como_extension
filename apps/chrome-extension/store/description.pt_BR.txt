@@ -1,8 +1,8 @@
 COMO – Cotação de Criptomoedas e Bitcoin em Tempo Real
 
-Cotação ao vivo de Bitcoin, Ethereum e criptomoedas de 9 corretoras em um clique — com alertas de preço, acompanhamento de carteira, gráficos e a cotação ao vivo na sua barra de ferramentas.
+Cotação ao vivo de Bitcoin, Ethereum e criptomoedas de 11 corretoras em um clique — com alertas de preço, acompanhamento de carteira, gráficos e a cotação ao vivo na sua barra de ferramentas.
 
-📈 Cotações em tempo real de 9 corretoras
+📈 Cotações em tempo real de 11 corretoras
 O COMO se conecta a nove das principais corretoras globais e coreanas. Os preços chegam ao vivo via WebSocket, então a tabela se atualiza a cada negociação. Troque de corretora e de mercado em um segundo.
 
 🔔 Alertas de preço
@@ -35,9 +35,9 @@ A interface segue o idioma do seu navegador, e você pode trocá-lo a qualquer m
 🔒 Privacidade
 Por padrão, o COMO lê apenas dados públicos de mercado das APIs das corretoras e de cotações. Ele não lê as páginas que você visita, e suas configurações, alertas e carteira ficam no seu navegador. Não é preciso criar conta nem fazer login. A sincronização de conta opcional usa uma chave de API somente leitura que você informa; a chave fica salva apenas no seu navegador e é enviada apenas para essa corretora.
 
-Novidades da versão 3.2.0
-• Alertas de avisos de negociação de corretoras coreanas (opcional), gráfico do prêmio kimchi e prêmio do tether
-• Marcas de depósitos e saques suspensos nas moedas
-• Backup e restauração das configurações, e edição do preço médio dos ativos
-• Sincronização de conta mais segura: chaves que podem negociar ou sacar são recusadas, e você pode mantê-las só até fechar o navegador
-• Menos bateria e dados com o COMO fechado, e o popup abre mais rápido
+Novidades da versão 3.3.0
+• Mais duas corretoras coreanas (pede acesso só na primeira vez que você escolhe uma)
+• Coluna de prêmio kimchi por moeda na tabela e minigráficos de 24 horas nos favoritos
+• Arraste os favoritos para reordenar
+• Minijanela sempre no topo e modo discreto que oculta cores e o selo (Alt+Shift+Q)
+• O selo pode alternar entre seus favoritos, e os insights mostram a razão long/short

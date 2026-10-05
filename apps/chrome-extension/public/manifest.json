@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "default_locale": "en",
   "description": "__MSG_extDescription__",
   "permissions": ["storage", "notifications", "alarms", "sidePanel"],
@@ -28,7 +28,9 @@
     "https://www.coindesk.com/*",
     "https://www.blockmedia.co.kr/*",
     "https://defillama-datasets.llama.fi/*",
-    "https://api-manager.upbit.com/*"
+    "https://api-manager.upbit.com/*",
+    "https://api.coinone.co.kr/*",
+    "https://api.digitalx.miraeasset.com/*"
   ],
   "background": {
     "service_worker": "background.iife.js",
@@ -51,6 +53,13 @@
         "mac": "Command+Shift+Space"
       },
       "description": "__MSG_commandToggle__"
+    },
+    "toggle-quiet-mode": {
+      "suggested_key": {
+        "default": "Alt+Shift+Q",
+        "mac": "Alt+Shift+Q"
+      },
+      "description": "__MSG_commandQuiet__"
     }
   }
 }

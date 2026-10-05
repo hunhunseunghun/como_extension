@@ -167,6 +167,17 @@ export const useChartData = (symbol?: string, exchange: Exchange = 'binance', ti
   return { chartData, loading, error, fetchData, cancel: cancelPending };
 };
 
+// 컴포넌트 밖에서 쓰는 캔들 조회(즐겨찾기 미니 차트 등). 차트 툴팁과 같은 캐시를 쓴다.
+export const loadChartData = async (symbol: string, exchange: Exchange, timeframe: string, signal?: AbortSignal) => {
+  const cacheKey = `${exchange}-${symbol}-${timeframe}`;
+  const cached = readCache(cacheKey, timeframe);
+  if (cached) return cached;
+  const { data } = await fetchChartData(symbol, exchange, timeframe, signal);
+  const formatted = formatChartData(data, exchange, Date.now());
+  writeCache(cacheKey, formatted);
+  return formatted;
+};
+
 // CoinDCX 캔들 API는 BTCINR 대신 I-BTC_INR 같은 페어 코드를 쓴다. 마켓 목록은 한 번만 받는다.
 let coindcxPairsPromise: Promise<Record<string, string>> | null = null;
 const getCoindcxPair = async (symbol: string) => {
@@ -211,6 +222,11 @@ const toKlines = (exchange: Exchange, data: any): BinanceKline[] | UpbitCandle[]
     case 'coindcx':
       return (data as { time: number; open: number; high: number; low: number; close: number }[])?.map(candle =>
         asKline(candle.time, candle.open, candle.high, candle.low, candle.close),
+      ) as unknown as BinanceKline[];
+    case 'coinone': // { chart: [{ timestamp(ms), open, high, low, close }] }
+    case 'digitalx': // { data: [...] }
+      return ((exchange === 'coinone' ? data?.chart : data?.data) as Record<string, string | number>[])?.map(candle =>
+        asKline(Number(candle.timestamp), candle.open, candle.high, candle.low, candle.close),
       ) as unknown as BinanceKline[];
     default:
       return data;
@@ -352,7 +368,40 @@ const fetchChartData = async (symbol: string, exchange: Exchange, timeframe: str
     return intervals[tf] || '1d';
   };
 
+  const getCoinoneInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1m',
+      '3m': '3m',
+      '5m': '5m',
+      '10m': '10m',
+      '15m': '15m',
+      '30m': '30m',
+      '60m': '1h',
+      '240m': '4h',
+      '1d': '1d',
+      '1w': '1w',
+      '1M': '1mon',
+    };
+    return intervals[tf] || '1d';
+  };
+
+  // 디지털엑스(옛 코빗)는 분 단위 숫자와 1D·1W를 쓰고 월봉은 없다.
+  const getDigitalxInterval = (tf: string) => {
+    const intervals: Record<string, string> = {
+      '1m': '1',
+      '5m': '5',
+      '15m': '15',
+      '30m': '30',
+      '60m': '60',
+      '240m': '240',
+      '1d': '1D',
+      '1w': '1W',
+    };
+    return intervals[tf] || '1D';
+  };
+
   const coindcxPair = exchange === 'coindcx' ? await getCoindcxPair(symbol) : '';
+  const krwCoin = symbol.startsWith('KRW-') ? symbol.slice(4) : symbol;
 
   const configs: Record<
     Exchange,
@@ -394,6 +443,14 @@ const fetchChartData = async (symbol: string, exchange: Exchange, timeframe: str
     coindcx: {
       url: 'https://public.coindcx.com/market_data/candles',
       params: { pair: coindcxPair, interval: getCoindcxInterval(timeframe), limit: 200 },
+    },
+    coinone: {
+      url: `https://api.coinone.co.kr/public/v2/chart/KRW/${krwCoin}`,
+      params: { interval: getCoinoneInterval(timeframe), size: 200 },
+    },
+    digitalx: {
+      url: 'https://api.digitalx.miraeasset.com/v2/candles',
+      params: { symbol: `${krwCoin.toLowerCase()}_krw`, interval: getDigitalxInterval(timeframe), limit: 200 },
     },
     okx: {
       url: 'https://www.okx.com/api/v5/market/candles',

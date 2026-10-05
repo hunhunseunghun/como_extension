@@ -88,6 +88,8 @@ export const usePort = (
         switch (type) {
           case 'upbitWebsocketTicker':
           case 'bithumbWebsocketTicker':
+          case 'coinoneWebsocketTicker':
+          case 'digitalxWebsocketTicker':
             if (data?.code) queueTicker(data.code, data);
             break;
           case 'binanceWebsocketTicker':
@@ -110,6 +112,8 @@ export const usePort = (
           case 'bitgetTickers':
           case 'krakenTickers':
           case 'coindcxTickers':
+          case 'coinoneTickers':
+          case 'digitalxTickers':
             clearPending();
             setTickers(data);
             setIsLoading(false);
