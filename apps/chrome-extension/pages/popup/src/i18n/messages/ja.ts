@@ -315,4 +315,5 @@ export const ja: Partial<Record<MessageKey, string>> = {
   taxDeduction: '基本控除(年間)',
   taxEstimate: '予想税額(22%)',
   taxDisclaimer: '参考用の推定です。時価の算定方法は施行令で定められます。実際の申告は取引所の資料と税務の専門家の案内に従ってください。',
+  dataConsentDenied: 'キーを取引所に送るにはデータ送信の同意が必要です。もう一度押して許可してください。',
 };

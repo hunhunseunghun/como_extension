@@ -315,4 +315,5 @@ export const pt: Partial<Record<MessageKey, string>> = {
   taxDeduction: 'Dedução anual',
   taxEstimate: 'Imposto estimado (22%)',
   taxDisclaimer: 'Apenas uma estimativa de referência. A regra oficial do preço é definida por decreto; ao declarar, siga os registros da corretora e um contador.',
+  dataConsentDenied: 'Enviar sua chave para a corretora requer seu consentimento de dados. Clique de novo e permita.',
 };

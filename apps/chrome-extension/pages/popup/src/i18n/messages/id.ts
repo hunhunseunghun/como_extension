@@ -315,4 +315,5 @@ export const id: Partial<Record<MessageKey, string>> = {
   taxDeduction: 'Pengurangan tahunan',
   taxEstimate: 'Perkiraan pajak (22%)',
   taxDisclaimer: 'Hanya perkiraan untuk referensi. Aturan harga resmi ditetapkan dengan keputusan pemerintah; saat melapor, ikuti catatan bursa dan konsultan pajak.',
+  dataConsentDenied: 'Mengirim key ke bursa memerlukan persetujuan data Anda. Klik lagi dan izinkan.',
 };

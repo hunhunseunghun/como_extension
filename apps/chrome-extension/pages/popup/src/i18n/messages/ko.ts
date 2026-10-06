@@ -316,6 +316,7 @@ export const ko = {
   taxDeduction: '기본공제(연간)',
   taxEstimate: '예상 세금(22%)',
   taxDisclaimer: '참고용 추정이에요. 시가 산정 방식은 시행령으로 정해지며, 실제 신고는 거래소 자료와 세무 전문가 안내를 따르세요.',
+  dataConsentDenied: '키를 거래소로 보내려면 데이터 전송 동의가 필요해요. 다시 눌러 허용해 주세요.',
 };
 
 export type MessageKey = keyof typeof ko;

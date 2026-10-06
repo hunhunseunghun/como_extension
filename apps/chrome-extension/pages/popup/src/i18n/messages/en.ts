@@ -318,4 +318,5 @@ export const en: Record<MessageKey, string> = {
   taxDeduction: 'Annual deduction',
   taxEstimate: 'Estimated tax (22%)',
   taxDisclaimer: 'An estimate for reference only. The official price rule is set by decree; follow your exchange\'s records and a tax professional when filing.',
+  dataConsentDenied: 'Sending your key to the exchange needs your data consent. Click again and allow it.',
 };

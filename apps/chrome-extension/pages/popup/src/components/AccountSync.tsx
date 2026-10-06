@@ -12,6 +12,8 @@ export type SyncedHolding = { market: string; quantity: number; avgPrice: number
 // 백그라운드(syncExchangeAccount)와 같은 저장 키·형식이다.
 // '이 기기에 저장'을 켜면 storage.local, 끄면 storage.session(브라우저를 닫으면 지워짐)에 둔다.
 const KEYS_STORAGE = 'exchangeApiKeys';
+// Firefox 140+는 매니페스트의 data_collection_permissions에 선언한 선택 데이터를 permissions.request로 동의받는다.
+const FIREFOX_DATA_CONSENT = typeof navigator !== 'undefined' && /Firefox\//.test(navigator.userAgent);
 type StoredKeys = { upbit?: { accessKey: string; secretKey: string }; binance?: { apiKey: string; secretKey: string } };
 
 // 백그라운드가 돌려주는 오류 코드 → 안내 문구
@@ -82,6 +84,18 @@ export const AccountSync = ({ onSynced }: Props) => {
 
   const handleSaveAndSync = () => {
     if (!publicKey.trim() || !secretKey.trim()) return;
+    // Firefox: 키를 거래소로 보내므로 매니페스트에 '인증 정보'를 선택 데이터로 선언했다. 저장 전에 동의를 받는다.
+    // 권한 창은 클릭 처리 안에서 바로 열어야 해서 다른 비동기 작업보다 먼저 요청한다.
+    if (FIREFOX_DATA_CONSENT) {
+      (chrome.permissions.request as (request: object) => Promise<boolean>)({ data_collection: ['authenticationInfo'] })
+        .then(granted => (granted ? saveAndSync() : setStatus({ tone: 'error', text: t('dataConsentDenied') })))
+        .catch(() => saveAndSync());
+      return;
+    }
+    saveAndSync();
+  };
+
+  const saveAndSync = () => {
     const entry =
       exchange === 'upbit'
         ? { upbit: { accessKey: publicKey.trim(), secretKey: secretKey.trim() } }

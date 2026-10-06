@@ -315,4 +315,5 @@ export const tr: Partial<Record<MessageKey, string>> = {
   taxDeduction: 'Yıllık indirim',
   taxEstimate: 'Tahmini vergi (%22)',
   taxDisclaimer: 'Yalnızca referans amaçlı bir tahmindir. Resmî fiyat kuralı kararnameyle belirlenir; beyanda borsanızın kayıtlarını ve bir vergi uzmanını izleyin.',
+  dataConsentDenied: 'Anahtarınızı borsaya göndermek için veri onayınız gerekir. Tekrar tıklayıp izin verin.',
 };

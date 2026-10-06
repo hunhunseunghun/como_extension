@@ -96,7 +96,14 @@ const toFirefoxManifest = manifest => {
   delete firefox.side_panel;
   firefox.permissions = firefox.permissions.filter(permission => permission !== 'sidePanel');
   firefox.browser_specific_settings = {
-    gecko: { id: 'como-crypto-price@como.extension', strict_min_version: '121.0' },
+    gecko: {
+      id: 'como-crypto-price@como.extension',
+      // data_collection_permissions는 Firefox 140(Android 142)부터 지원한다.
+      strict_min_version: '140.0',
+      // 새 부가 기능은 데이터 수집을 선언해야 한다. 공개 시세만 읽고, 거래소 계정 연동(선택)만 사용자가 넣은 키를 그 거래소로 보낸다.
+      data_collection_permissions: { required: ['none'], optional: ['authenticationInfo'] },
+    },
+    gecko_android: { strict_min_version: '142.0' },
   };
   return firefox;
 };

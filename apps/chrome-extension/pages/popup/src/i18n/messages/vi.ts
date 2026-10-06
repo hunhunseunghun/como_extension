@@ -315,4 +315,5 @@ export const vi: Partial<Record<MessageKey, string>> = {
   taxDeduction: 'Khấu trừ hằng năm',
   taxEstimate: 'Thuế ước tính (22%)',
   taxDisclaimer: 'Chỉ là ước tính tham khảo. Cách xác định giá do nghị định quy định; khi kê khai hãy theo dữ liệu của sàn và chuyên gia thuế.',
+  dataConsentDenied: 'Cần bạn đồng ý gửi dữ liệu để gửi khóa đến sàn. Hãy nhấn lại và cho phép.',
 };

@@ -315,4 +315,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   taxDeduction: '基本扣除(每年)',
   taxEstimate: '预计税额(22%)',
   taxDisclaimer: '仅供参考的估算。市价认定方式由施行令规定,实际申报请以交易所资料和税务专业人士意见为准。',
+  dataConsentDenied: '将密钥发送到交易所需要您同意数据传输。请再次点击并允许。',
 };
