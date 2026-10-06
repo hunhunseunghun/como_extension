@@ -3,7 +3,7 @@ COMO – Precio de Criptomonedas y Bitcoin en Tiempo Real
 Precios de Bitcoin, Ethereum y criptomonedas en vivo de 11 exchanges con un solo clic — con alertas de precio, seguimiento de portafolio, gráficos y el precio en vivo en tu barra de herramientas.
 
 📈 Precios en tiempo real de 11 exchanges
-COMO se conecta a nueve de los principales exchanges globales y coreanos. Los precios llegan en vivo por WebSocket, así que la tabla se actualiza con cada operación. Cambia de exchange y de mercado en un segundo.
+COMO se conecta a once de los principales exchanges globales y coreanos. Los precios llegan en vivo por WebSocket, así que la tabla se actualiza con cada operación. Cambia de exchange y de mercado en un segundo.
 
 🔔 Alertas de precio
 Define precios objetivo para cualquier moneda y recibe una notificación de escritorio cuando el precio lo cruce. La opción de banda muerta evita alertas repetidas cuando el precio oscila alrededor de tu objetivo. Haz clic en la notificación para abrir la moneda en el exchange. También puedes recibir alertas de nuevos listados en exchanges coreanos, grandes movimientos en 24 h y umbrales de prima kimchi.

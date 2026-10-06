@@ -3,7 +3,7 @@ COMO – Theo Dõi Giá Coin & Giá Bitcoin Trực Tiếp
 Giá Bitcoin, Ethereum và tiền điện tử trực tiếp từ 11 sàn giao dịch chỉ với một cú nhấp — kèm cảnh báo giá, theo dõi danh mục đầu tư, biểu đồ và giá trực tiếp ngay trên thanh công cụ.
 
 📈 Giá thời gian thực từ 11 sàn
-COMO kết nối với chín sàn giao dịch lớn trên thế giới và tại Hàn Quốc. Giá được truyền trực tiếp qua WebSocket, nên bảng giá cập nhật ngay khi có giao dịch khớp lệnh. Chuyển sàn và thị trường chỉ trong một giây.
+COMO kết nối với 11 sàn giao dịch lớn trên thế giới và tại Hàn Quốc. Giá được truyền trực tiếp qua WebSocket, nên bảng giá cập nhật ngay khi có giao dịch khớp lệnh. Chuyển sàn và thị trường chỉ trong một giây.
 
 🔔 Cảnh báo giá
 Đặt giá mục tiêu cho bất kỳ coin nào và nhận thông báo trên máy tính khi giá vượt qua mức đó. Tùy chọn vùng đệm (deadband) giúp tránh cảnh báo lặp lại khi giá dao động quanh mục tiêu của bạn. Nhấp vào thông báo để mở coin đó trên sàn. Bạn cũng có thể nhận cảnh báo khi có niêm yết mới trên sàn Hàn Quốc, biến động lớn trong 24 giờ và ngưỡng kimchi premium.

@@ -3,7 +3,7 @@ COMO – Kripto Para Fiyat Takibi ve Canlı Bitcoin Fiyatı
 11 borsadan canlı Bitcoin, Ethereum ve kripto para fiyatları tek tıkla — fiyat alarmları, portföy takibi, grafikler ve araç çubuğunda canlı fiyat ile.
 
 📈 11 borsadan anlık fiyatlar
-COMO, dokuz büyük küresel ve Kore borsasına bağlanır. Fiyatlar WebSocket üzerinden canlı akar, böylece tablo işlemler gerçekleştikçe güncellenir. Borsalar ve piyasalar arasında bir saniyede geçiş yapın.
+COMO, on bir büyük küresel ve Kore borsasına bağlanır. Fiyatlar WebSocket üzerinden canlı akar, böylece tablo işlemler gerçekleştikçe güncellenir. Borsalar ve piyasalar arasında bir saniyede geçiş yapın.
 
 🔔 Fiyat alarmları
 Herhangi bir coin için hedef fiyat belirleyin, fiyat hedefi geçtiğinde masaüstü bildirimi alın. Ölü bant seçeneği, fiyat hedefinizin etrafında dalgalanırken tekrarlanan alarmları önler. Coini borsada açmak için bildirime tıklayın. Kore borsalarındaki yeni listelemeler, büyük 24 saatlik hareketler ve kimchi primi eşikleri için de alarm alabilirsiniz.

@@ -3,7 +3,7 @@ COMO – Cotação de Criptomoedas e Bitcoin em Tempo Real
 Cotação ao vivo de Bitcoin, Ethereum e criptomoedas de 11 corretoras em um clique — com alertas de preço, acompanhamento de carteira, gráficos e a cotação ao vivo na sua barra de ferramentas.
 
 📈 Cotações em tempo real de 11 corretoras
-O COMO se conecta a nove das principais corretoras globais e coreanas. Os preços chegam ao vivo via WebSocket, então a tabela se atualiza a cada negociação. Troque de corretora e de mercado em um segundo.
+O COMO se conecta a onze das principais corretoras globais e coreanas. Os preços chegam ao vivo via WebSocket, então a tabela se atualiza a cada negociação. Troque de corretora e de mercado em um segundo.
 
 🔔 Alertas de preço
 Defina preços-alvo para qualquer moeda e receba uma notificação na área de trabalho quando o preço cruzar o alvo. A opção de zona morta evita alertas repetidos quando o preço oscila em torno do seu alvo. Clique na notificação para abrir a moeda na corretora. Você também pode receber alertas de novas listagens em corretoras coreanas, grandes variações em 24h e limites do prêmio kimchi.

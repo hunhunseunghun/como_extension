@@ -3,7 +3,7 @@ COMO – Pantau Harga Kripto & Harga Bitcoin Real-Time
 Harga Bitcoin, Ethereum, dan kripto secara live dari 11 exchange dalam satu klik — dilengkapi alert harga, pelacakan portofolio, grafik, dan harga live di toolbar Anda.
 
 📈 Harga real-time dari 11 exchange
-COMO terhubung ke sembilan exchange besar global dan Korea. Harga dialirkan secara live melalui WebSocket, jadi tabel langsung diperbarui setiap ada transaksi. Ganti exchange dan pasar dalam sekejap.
+COMO terhubung ke sebelas exchange besar global dan Korea. Harga dialirkan secara live melalui WebSocket, jadi tabel langsung diperbarui setiap ada transaksi. Ganti exchange dan pasar dalam sekejap.
 
 🔔 Alert harga
 Atur harga target untuk koin apa pun dan dapatkan notifikasi desktop saat harga melewatinya. Opsi deadband mencegah alert berulang saat harga bergerak naik-turun di sekitar target Anda. Klik notifikasi untuk membuka koin tersebut di exchange. Anda juga bisa mendapat alert untuk listing baru di exchange Korea, pergerakan besar 24 jam, dan ambang premi kimchi.
