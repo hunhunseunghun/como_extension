@@ -158,15 +158,18 @@ export const MiniApp = () => {
   return (
     <ThemeProvider defaultTheme="system" storageKey="como-ui-theme">
       <div ref={homeRef} className="min-h-screen bg-background text-foreground">
-        {pipWindow && (
-          <div className="flex flex-col items-center gap-2 p-4 text-center text-cap text-fg-subtle">
-            <p>{t('miniPipActive')}</p>
-            <Button variant="soft" className="h-control gap-1 text-cap hover:cursor-pointer" onClick={() => pipWindow.close()}>
-              <Undo2 className="size-3" />
-              {t('miniPipReturn')}
-            </Button>
-          </div>
-        )}
+        {/* 감싸개는 늘 둔다. 내용 노드가 PIP 문서로 옮겨 가 있으면 React가 그 노드 앞에 끼워 넣지 못한다. */}
+        <div>
+          {pipWindow && (
+            <div className="flex flex-col items-center gap-2 p-4 text-center text-cap text-fg-subtle">
+              <p>{t('miniPipActive')}</p>
+              <Button variant="soft" className="h-control gap-1 text-cap hover:cursor-pointer" onClick={() => pipWindow.close()}>
+                <Undo2 className="size-3" />
+                {t('miniPipReturn')}
+              </Button>
+            </div>
+          )}
+        </div>
         <div ref={contentRef} className="bg-background text-foreground">
           <header className="flex items-center justify-between px-2 py-1 border-b border-stroke-weak">
             <span className="flex items-center gap-1 text-cap font-semibold">

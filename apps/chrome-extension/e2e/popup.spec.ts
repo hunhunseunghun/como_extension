@@ -547,6 +547,16 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     const before = await mini.locator('ul').innerText();
     await expect.poll(() => mini.locator('ul').innerText(), { timeout: 60_000, intervals: [1000] }).not.toBe(before);
     await mini.screenshot({ path: test.info().outputPath('mini-window.png') });
+
+    // 항상 위에 띄우기(문서 PIP): 내용을 PIP 창으로 옮기고, 원래 창에는 되돌리기 안내를 보여 준다.
+    const miniErrors: string[] = [];
+    mini.on('pageerror', error => miniErrors.push(error.message));
+    await mini.getByRole('button', { name: '항상 위에 띄우기' }).click();
+    await expect(mini.getByRole('button', { name: '이 창으로 되돌리기' })).toBeVisible();
+    await expect(miniRows).toHaveCount(0);
+    await mini.getByRole('button', { name: '이 창으로 되돌리기' }).click();
+    await expect(miniRows).toHaveCount(3);
+    expect(miniErrors).toEqual([]);
     await mini.close();
   });
 
