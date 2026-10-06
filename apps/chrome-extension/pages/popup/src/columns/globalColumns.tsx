@@ -1,11 +1,13 @@
 import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { Translate } from '@/i18n';
-import { BinanceTicker, FavoriteCoins, GlobalExchange, MarketType } from '@/types';
+import { AthMap, BinanceTicker, FavoriteCoins, GlobalExchange, MarketType } from '@/types';
+import type { MutableRefObject } from 'react';
 import { getGlobalTradeUrl, splitGlobalSymbol } from '@/constants/exchanges';
 import type { DisplayCurrency } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
 import { ArrowDownUp } from 'lucide-react';
 import { ChartCell, FavoriteStar, SortableHeader, TimeframeHeader } from './shared';
+import { athColumn } from './athColumn';
 import { toggleFavoriteCoin } from './favorites';
 import FlashCell from '@/components/FlashCell';
 import { getNumberFormat } from '@/lib/format';
@@ -25,6 +27,7 @@ export const getGlobalColumns = (
   displayCurrency: DisplayCurrency,
   exchangeRateUSD: number,
   fiatRates: FiatRates,
+  athRef: MutableRefObject<AthMap>,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -220,6 +223,7 @@ export const getGlobalColumns = (
     },
   },
 
+  athColumn<BinanceTicker>(row => splitGlobalSymbol(row.symbol).base, athRef, t),
   {
     accessorFn: row => Number(row.q ? row.q : row.quoteVolume),
     id: 'acc_trade_price_24h',

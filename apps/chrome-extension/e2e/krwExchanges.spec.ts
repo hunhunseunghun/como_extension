@@ -20,7 +20,8 @@ test.describe.serial('코인원·디지털엑스 (권한을 받은 상태)', () 
     fs.cpSync(DIST, dir, { recursive: true });
     const manifestPath = path.join(dir, 'manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    const optional = ['https://api.coinone.co.kr/*', 'https://api.digitalx.miraeasset.com/*'];
+    // 빗썸 공지(feed-api)도 선택 권한이라 함께 옮겨 공지 흐름을 본다.
+    const optional = ['https://api.coinone.co.kr/*', 'https://api.digitalx.miraeasset.com/*', 'https://feed-api.bithumb.com/*'];
     manifest.host_permissions.push(...optional);
     manifest.optional_host_permissions = manifest.optional_host_permissions.filter((o: string) => !optional.includes(o));
     fs.writeFileSync(manifestPath, JSON.stringify(manifest));
@@ -92,6 +93,35 @@ test.describe.serial('코인원·디지털엑스 (권한을 받은 상태)', () 
     }[];
     expect(tickers.filter(t => t.exchange === 'coinone' && t.currentPrice > 0).length).toBeGreaterThan(100);
     expect(tickers.filter(t => t.exchange === 'digitalx' && t.currentPrice > 0).length).toBeGreaterThan(100);
+  });
+
+  test('빗썸 거래 공지: 켜면 기준을 잡고, 새 공지를 알린다(권한을 받은 상태)', async () => {
+    const [worker] = context.serviceWorkers();
+    const created = await worker.evaluate(async () => {
+      const list: { id: string; message?: string }[] = [];
+      const original = chrome.notifications.create;
+      (chrome.notifications as unknown as { create: (id: string, o: { message?: string }) => void }).create = (id, o) =>
+        list.push({ id, message: o?.message });
+      await chrome.storage.local.set({ bithumbNoticeAlerts: true });
+      // 켜자마자 기준 번호를 잡는다.
+      let lastId;
+      for (let i = 0; i < 50 && lastId == null; i++) {
+        await new Promise(r => setTimeout(r, 200));
+        lastId = (await chrome.storage.local.get('lastBithumbNoticeId')).lastBithumbNoticeId;
+      }
+      if (lastId == null) return { lastId, list };
+      // 가장 최근 공지를 아직 못 본 것처럼 기준을 하나 내리고 확인을 돌린다.
+      await chrome.storage.local.set({ lastBithumbNoticeId: lastId - 1 });
+      await chrome.alarms.create('noticeCheck', { when: Date.now() + 100 });
+      for (let i = 0; i < 50 && !list.length; i++) await new Promise(r => setTimeout(r, 200));
+      chrome.notifications.create = original;
+      await chrome.storage.local.set({ bithumbNoticeAlerts: false });
+      await chrome.alarms.create('noticeCheck', { periodInMinutes: 2 });
+      return { lastId, list };
+    });
+    expect(created.lastId).toEqual(expect.any(Number));
+    expect(created.list.map(item => item.id)).toContain(`notice:bithumb:${created.lastId}`);
+    expect(created.list[0].message).toMatch(/^BITHUMB · /);
   });
 
   test('런타임 에러가 없다', async () => {

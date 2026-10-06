@@ -28,3 +28,31 @@ export const useStoredFlag = (key: string, fallback = false) => {
 
 export const KIMCHI_COLUMN_KEY = 'kimchiColumnNarrow';
 export const QUIET_MODE_KEY = 'quietMode';
+
+// 참·거짓이 아닌 값(선택지·객체)을 storage에 두고 다른 화면과 맞춘다.
+export const useStoredValue = <T,>(key: string, fallback: T) => {
+  const [value, setValue] = useState<T>(fallback);
+
+  useEffect(() => {
+    chrome.storage.local.get(key, result => {
+      if (result?.[key] !== undefined) setValue(result[key] as T);
+    });
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'local' && key in changes) setValue((changes[key].newValue as T | undefined) ?? fallback);
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
+    // fallback은 처음 값만 쓴다(객체를 넘겨도 매번 다시 구독하지 않게).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  const update = useCallback(
+    (next: T) => {
+      setValue(next);
+      chrome.storage.local.set({ [key]: next });
+    },
+    [key],
+  );
+
+  return [value, update] as const;
+};

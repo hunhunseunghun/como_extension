@@ -3,7 +3,8 @@ import { useI18n } from '@/i18n';
 
 type FundingItem = { symbol: string; rate: number; nextFundingTime: number };
 type Liquidation = { symbol: string; side: 'long' | 'short'; usd: number; price: number; time: number };
-type LongShortItem = { symbol: string; longAccount: number; topLong: number | null };
+type OpenInterest = { usd: number | null; change1h: number | null; change24h: number | null };
+type LongShortItem = { symbol: string; longAccount: number; topLong: number | null; openInterest?: OpenInterest | null };
 type Derivatives = {
   longShort?: { items: LongShortItem[]; updatedAt: number } | null;
   funding: { highest: FundingItem[]; lowest: FundingItem[]; updatedAt: number } | null;
@@ -14,6 +15,12 @@ const REFRESH_INTERVAL = 3000;
 
 const compactUsd = (value: number, locale: string) =>
   `$${new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 }).format(value)}`;
+// 소수 첫째 자리에서 반올림해 0이 되면 부호 없이 0.0%로 보인다(-0.0% 방지).
+const signedPercent = (value: number | null) => {
+  if (value == null) return '-';
+  const rounded = Math.round(value * 10) / 10 || 0;
+  return `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)}%`;
+};
 const fundingPercent = (rate: number) => `${rate >= 0 ? '+' : ''}${(rate * 100).toFixed(4)}%`;
 
 // 왼쪽 롱, 오른쪽 숏 막대. 롱 청산은 하락 쪽 힘이라 청산 막대는 롱을 하락 색으로 칠한다(inverted).
@@ -98,6 +105,30 @@ export const DerivativesPanel = () => {
         ))}
         {!data?.longShort?.items.length && <div className="text-fg-faint">-</div>}
         <div className="text-cap-s text-fg-faint mt-1">{t('longShortHint')}</div>
+      </section>
+
+      <section className="border-t pt-2" data-testid="open-interest">
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-semibold">{t('openInterest')}</span>
+          <span className="text-cap-s text-fg-subtle">{t('openInterestLegend')}</span>
+        </div>
+        {data?.longShort?.items
+          .filter(item => item.openInterest)
+          .map(({ symbol, openInterest }) => (
+            <div key={symbol} className="flex items-center gap-2 py-0.5">
+              <span className="w-8 shrink-0">{symbol.replace(/USDT$/, '')}</span>
+              <span className="num flex-1">{openInterest!.usd != null ? compactUsd(openInterest!.usd, locale) : '-'}</span>
+              {[openInterest!.change1h, openInterest!.change24h].map((value, index) => (
+                <span
+                  key={index}
+                  className={`num w-12 shrink-0 text-right text-cap-s ${value == null ? 'text-fg-faint' : value >= 0 ? 'text-up' : 'text-down'}`}>
+                  {signedPercent(value)}
+                </span>
+              ))}
+            </div>
+          ))}
+        {!data?.longShort?.items.some(item => item.openInterest) && <div className="text-fg-faint">-</div>}
+        <div className="text-cap-s text-fg-faint mt-1">{t('openInterestHint')}</div>
       </section>
 
       <section className="border-t pt-2">

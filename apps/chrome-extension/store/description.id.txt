@@ -35,9 +35,9 @@ Tampilan mengikuti bahasa browser Anda, dan Anda dapat mengubahnya kapan saja di
 🔒 Privasi
 Secara bawaan, COMO hanya membaca data pasar publik dari API exchange dan API harga. COMO tidak membaca halaman yang Anda kunjungi, serta pengaturan, alert, dan portofolio Anda tetap tersimpan di browser Anda. Tidak perlu akun atau login. Sinkronisasi akun opsional memakai API key baca-saja yang Anda masukkan; key hanya disimpan di browser Anda dan hanya dikirim ke exchange tersebut.
 
-Yang baru di versi 3.3.0
-• Dua exchange Korea baru (meminta akses hanya saat pertama kali dipilih)
-• Kolom kimchi premium per koin di tabel harga dan grafik mini 24 jam untuk favorit
-• Seret favorit untuk mengubah urutan
-• Jendela mini yang selalu di atas dan mode senyap yang menyembunyikan warna dan lencana (Alt+Shift+Q)
-• Lencana toolbar bisa menampilkan favorit bergantian, dan insight kini menampilkan rasio long/short
+Yang baru di versi 3.4.0
+• Peringatan lonjakan dan penurunan 1, 5, dan 15 menit (naik, turun, atau keduanya)
+• Peringatan transaksi tunggal besar dan perubahan tajam open interest futures
+• Alasan peringatan pasar Korea di setiap koin beserta notifikasi, dan satu sumber pengumuman bursa lagi
+• Jam tenang: peringatan selama periode itu diringkas setelah selesai
+• Kalkulator rata-rata dan titik impas, pratinjau pajak kripto Korea 2027, kolom penurunan dari ATH, dan indeks musim altcoin

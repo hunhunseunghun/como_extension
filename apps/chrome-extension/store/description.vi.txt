@@ -35,9 +35,9 @@ Giao diện tự động theo ngôn ngữ của trình duyệt, và bạn có th
 🔒 Quyền riêng tư
 Theo mặc định, COMO chỉ đọc dữ liệu thị trường công khai từ API của các sàn và API giá. Tiện ích không đọc các trang bạn truy cập, còn cài đặt, cảnh báo và danh mục của bạn được lưu ngay trong trình duyệt. Không cần tài khoản hay đăng nhập. Tính năng đồng bộ tài khoản (tùy chọn) dùng khóa API chỉ đọc do bạn nhập; khóa chỉ được lưu trong trình duyệt của bạn và chỉ được gửi đến sàn đó.
 
-Có gì mới trong phiên bản 3.3.0
-• Thêm hai sàn Hàn Quốc (chỉ xin quyền khi bạn chọn lần đầu)
-• Cột kimchi premium cho từng coin trong bảng giá và biểu đồ mini 24 giờ cho coin yêu thích
-• Kéo thả để sắp xếp coin yêu thích
-• Cửa sổ mini luôn ở trên cùng và chế độ yên lặng ẩn màu và huy hiệu (Alt+Shift+Q)
-• Huy hiệu có thể luân phiên coin yêu thích, mục thông tin có thêm tỷ lệ long/short
+Có gì mới trong phiên bản 3.4.0
+• Cảnh báo tăng/giảm mạnh trong 1, 5 và 15 phút (tăng, giảm hoặc cả hai)
+• Cảnh báo giao dịch đơn lẻ lớn và hợp đồng mở trên futures biến động mạnh
+• Hiển thị lý do cảnh báo thị trường Hàn Quốc trên từng coin kèm thông báo, thêm một nguồn thông báo của sàn
+• Giờ yên lặng: cảnh báo trong khoảng đó được tóm tắt khi kết thúc
+• Máy tính trung bình giá và hòa vốn, xem trước thuế crypto 2027 của Hàn Quốc, cột mức giảm so với ATH và chỉ số mùa altcoin

@@ -1,10 +1,11 @@
 import type { MutableRefObject } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { ArrowRightLeft } from 'lucide-react';
-import { DisplayCurrency, Translate } from '@/i18n';
+import { DisplayCurrency, MessageKey, Translate } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
-import { FavoriteCoins, KimchiPremium, KrwExchange, MarketType, UpbitTicker } from '@/types';
+import { AthMap, FavoriteCoins, KimchiPremium, KrwExchange, MarketType, UpbitTicker } from '@/types';
 import { ChartCell, FavoriteStar, SortableHeader, TimeframeHeader } from './shared';
+import { athColumn } from './athColumn';
 import { toggleFavoriteCoin } from './favorites';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
 import { WalletStatusBadge } from '@/lib/walletStatus';
@@ -14,7 +15,7 @@ import FlashCell from '@/components/FlashCell';
 // 원화 거래소(업비트·빗썸·코인원·디지털엑스) 공통 컬럼. 백그라운드가 시세를 업비트와 같은 모양으로 맞춰 보낸다.
 type KrwRow = UpbitTicker & {
   market_warning?: 'NONE' | 'CAUTION';
-  market_event?: { warning: boolean; caution: boolean };
+  market_event?: { warning: boolean; caution: boolean; cautionReasons?: string[] };
 };
 
 export const getKrwTradeUrl = (exchange: KrwExchange, market: string) => {
@@ -51,6 +52,7 @@ type Options = {
   fiatRates: FiatRates;
   // 김프는 2초마다 바뀐다. 컬럼을 다시 만들지 않도록 ref로 최신 값을 읽는다.
   kimchiRef: MutableRefObject<KimchiPremium>;
+  athRef: MutableRefObject<AthMap>;
 };
 
 export const getKrwColumns = ({
@@ -69,6 +71,7 @@ export const getKrwColumns = ({
   displayCurrency,
   fiatRates,
   kimchiRef,
+  athRef,
 }: Options): ColumnDef<KrwRow>[] => {
   const columns: ColumnDef<KrwRow>[] = [
     {
@@ -101,8 +104,15 @@ export const getKrwColumns = ({
                   {name}
                 </a>
                 <div className="flex shrink-0 gap-[1px] items-center">
-                  {row.original.market_event?.warning && <WarningIcon text={t('warningShort')} />}
-                  {row.original.market_event?.caution && <CautionIcon text={t('cautionShort')} />}
+                  {row.original.market_event?.warning && <WarningIcon text={t('warningShort')} title={t('caution_WARNING')} />}
+                  {row.original.market_event?.caution && (
+                    <CautionIcon
+                      text={t('cautionShort')}
+                      title={(row.original.market_event.cautionReasons ?? [])
+                        .map(reason => t(`caution_${reason}` as MessageKey) ?? reason)
+                        .join(' · ')}
+                    />
+                  )}
                   {row.original.market_warning && row.original.market_warning !== 'NONE' && (
                     <WarningIcon text={t('warningShort')} />
                   )}
@@ -259,6 +269,8 @@ export const getKrwColumns = ({
       },
     );
   }
+
+  if (exchangeMarketType !== 'BTC') columns.push(athColumn<KrwRow>(row => row.market.split('-')[1], athRef, t));
 
   columns.push({
     accessorKey: 'acc_trade_price_24h',

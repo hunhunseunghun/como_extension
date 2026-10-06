@@ -1,7 +1,7 @@
 {
   "name": "chrome-extension",
   "private": true,
-  "version": "3.3.0",
+  "version": "3.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean:node_modules": "rimraf node_modules",
     "dev:background": "pnpx nodemon --exec node src/background/index.js",
-    "test:unit": "node --test \"src/background/lib/*.test.js\"",
+    "test:unit": "node --test \"src/background/lib/*.test.js\" && node --experimental-strip-types --no-warnings --test \"pages/popup/src/lib/*.test.ts\"",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "dev:ext": "node scripts/dev-extension.mjs",

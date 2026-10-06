@@ -3,6 +3,13 @@ import { formatBadgePrice, formatPercent, shiftDate } from './lib/format.js';
 import { toGlobalSnapshot, toGlobalTick } from './lib/globalTicks.js';
 import { computeKimchiPremium as computeKimchiPremiumFrom, KRW_EXCHANGES } from './lib/kimchi.js';
 import { coinOf, pickBadgeFrame } from './lib/badge.js';
+import { addSample, evaluateSurge } from './lib/surge.js';
+import { isInQuietHours } from './lib/quietHours.js';
+import { parseBithumbNotices, pickNewNotices } from './lib/notices.js';
+import { diffMarketEvents, summarizeMarketEvents } from './lib/marketWarning.js';
+import { altseasonCandidates, altseasonIndex, klineReturn, openInterestChange } from './lib/derivatives.js';
+import { matchesWhaleRule, parseBinanceAggTrade, parseUpbitTrade } from './lib/whale.js';
+import { alertText } from './lib/texts.js';
 
 // 초기 설정 및 전역 변수
 const allExchangesTickers = {
@@ -44,8 +51,52 @@ chrome.alarms.onAlarm.addListener(alarm => {
   }
 });
 
-// 알림은 모두 이걸로 띄운다. 조용한 모드에서는 소리 없이 띄운다.
-const createNotification = (id, options) => chrome.notifications.create(id, { ...options, silent: quietMode });
+// 방해 금지 시간대: 그동안 오는 알림은 띄우지 않고 제목만 모아 두었다가, 끝나면 한 번에 요약해 알린다.
+const QUIET_HOURS_KEY = 'quietHours';
+const QUIET_MISSED_KEY = 'quietHoursMissed';
+let quietHours = null;
+const quietHoursReady = chrome.storage.local.get(QUIET_HOURS_KEY).then(result => {
+  quietHours = result[QUIET_HOURS_KEY] ?? null;
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[QUIET_HOURS_KEY]) quietHours = changes[QUIET_HOURS_KEY].newValue ?? null;
+});
+let missedQueue = Promise.resolve();
+function rememberMissed(title) {
+  missedQueue = missedQueue.then(async () => {
+    const result = await chrome.storage.local.get(QUIET_MISSED_KEY);
+    const missed = [...(result[QUIET_MISSED_KEY] ?? []), title].slice(-50);
+    await chrome.storage.local.set({ [QUIET_MISSED_KEY]: missed });
+  });
+}
+async function flushMissedAlerts() {
+  await quietHoursReady;
+  if (isInQuietHours(quietHours, new Date())) return;
+  const result = await chrome.storage.local.get(QUIET_MISSED_KEY);
+  const missed = result[QUIET_MISSED_KEY] ?? [];
+  if (!missed.length) return;
+  await chrome.storage.local.set({ [QUIET_MISSED_KEY]: [] });
+  chrome.notifications.create('quiet-hours-summary', {
+    type: 'basic',
+    iconUrl: 'como-logo.png',
+    title: alertText(getLanguage(), 'quietSummary', { n: missed.length }),
+    message: missed.slice(-3).reverse().join('\n'),
+    silent: quietMode,
+  });
+}
+chrome.alarms.create('quietHoursSummary', { periodInMinutes: 5 });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'quietHoursSummary') flushMissedAlerts();
+});
+
+// 알림은 모두 이걸로 띄운다. 조용한 모드에서는 소리 없이, 방해 금지 시간에는 띄우지 않고 모아 둔다.
+const createNotification = (id, options) => {
+  if (isInQuietHours(quietHours, new Date())) {
+    rememberMissed(options.title);
+    return;
+  }
+  chrome.notifications.create(id, { ...options, silent: quietMode });
+};
 
 // 지정가 알림 관련 함수
 // 웹소켓 틱마다 storage를 읽지 않도록 알림 설정을 메모리에 캐시하고 storage 변경 시 동기화한다.
@@ -273,6 +324,10 @@ const RULE_TEXT = {
   hi: { change: '24 घंटे की चाल', kimchiAbove: 'किमची प्रीमियम ऊपर', kimchiBelow: 'किमची प्रीमियम नीचे' },
 };
 const ruleCache = { rules: [], state: {} };
+// 단기 급등락 규칙의 최근 가격 표본(거래소:마켓 → [{ t, p }]). 서비스 워커가 다시 시작되면 처음부터 쌓는다.
+const surgeSamples = new Map();
+// 바이낸스 선물 미결제약정(기호 → { usd, change1h, change24h }). 롱숏 비율과 함께 5분마다 받는다.
+const openInterest = new Map();
 const rulesReady = chrome.storage.local.get([RULES_KEY, RULE_STATE_KEY]).then(result => {
   ruleCache.rules = result[RULES_KEY] || [];
   ruleCache.state = result[RULE_STATE_KEY] || {};
@@ -284,7 +339,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 function checkAlertRules() {
-  if (!ruleCache.rules.length) return;
+  if (!ruleCache.rules.length) {
+    surgeSamples.clear();
+    return;
+  }
   refreshCurrentDate();
   const text = RULE_TEXT[getLanguage()] ?? RULE_TEXT.en;
   // 지운 규칙의 상태는 남기지 않는다.
@@ -297,9 +355,37 @@ function checkAlertRules() {
     chrome.storage.local.set({ alertFiredAt: Date.now() });
   };
 
+  const now = Date.now();
+  const sampled = new Set();
   for (const rule of ruleCache.rules) {
     const current = { ...state[rule.id] };
-    if (rule.type === 'change') {
+    if (rule.type === 'change' && rule.window) {
+      // 단기 급등락: 10초마다 가격을 쌓아 창 안의 최저·최고가와 비교한다.
+      const key = `${rule.exchange}:${rule.market}`;
+      const price = allExchangesTickers[rule.exchange]?.[rule.market]?.currentPrice;
+      if (!surgeSamples.has(key)) surgeSamples.set(key, []);
+      if (!sampled.has(key)) addSample(surgeSamples.get(key), now, price);
+      sampled.add(key);
+      const move = evaluateSurge(rule, surgeSamples.get(key), now, current.firedAt);
+      if (move != null) {
+        const label = alertText(getLanguage(), move >= 0 ? 'surgeUp' : 'surgeDown', { n: rule.window });
+        notify(rule.id, rule.exchange, rule.market, `${rule.market} ${formatPercent(move)} · ${rule.exchange.toUpperCase()}`, `${label} ≥ ${rule.threshold}%`);
+        current.firedAt = now;
+      }
+    } else if (rule.type === 'oi') {
+      // 미결제약정: 5분마다 받는 1시간 변화율이 기준을 넘으면 알리고 1시간 쉰다.
+      const item = openInterest.get(rule.symbol);
+      if (item?.change1h == null || (current.firedAt && now - current.firedAt < 60 * 60_000)) continue;
+      if (Math.abs(item.change1h) < rule.threshold) continue;
+      createNotification(`binance:${rule.symbol}:rule-${rule.id}`, {
+        type: 'basic',
+        iconUrl: 'como-logo.png',
+        title: `${rule.symbol.replace(/USDT$/, '')} OI ${formatPercent(item.change1h)} · BINANCE`,
+        message: `${alertText(getLanguage(), 'oiChange', { v: formatPercent(item.change1h) })} (≥ ${rule.threshold}%)`,
+      });
+      chrome.storage.local.set({ alertFiredAt: now });
+      current.firedAt = now;
+    } else if (rule.type === 'change') {
       const ticker = allExchangesTickers[rule.exchange]?.[rule.market];
       if (!ticker?.currentPrice || current.firedOn === CURRENT_DATE) continue;
       const rate = ticker.changeRate ?? 0;
@@ -330,6 +416,8 @@ function checkAlertRules() {
       changed = true;
     }
   }
+  // 지운 단기 규칙의 표본은 버린다.
+  for (const key of surgeSamples.keys()) if (!sampled.has(key)) surgeSamples.delete(key);
   if (changed) {
     ruleCache.state = state;
     chrome.storage.local.set({ [RULE_STATE_KEY]: state });
@@ -391,9 +479,94 @@ const NOTICE_TEXT = {
   hi: 'ट्रेडिंग सूचना',
 };
 
+// 빗썸 거래 공지(입출금 중단, 거래유의 지정, 거래지원 종료 등).
+// api.bithumb.com/v1/notices는 feed-api.bithumb.com으로 넘겨 주는데 그쪽은 CORS를 열지 않아, 업비트 공지처럼 선택 권한으로 받는다.
+const BITHUMB_NOTICE_SETTING_KEY = 'bithumbNoticeAlerts';
+const BITHUMB_NOTICE_ORIGIN = 'https://feed-api.bithumb.com/*';
+const BITHUMB_NOTICE_LAST_ID_KEY = 'lastBithumbNoticeId';
+let bithumbNoticeRunning = false;
+async function checkBithumbNotices() {
+  if (bithumbNoticeRunning) return;
+  bithumbNoticeRunning = true;
+  try {
+    const result = await chrome.storage.local.get([BITHUMB_NOTICE_SETTING_KEY, BITHUMB_NOTICE_LAST_ID_KEY]);
+    if (!result[BITHUMB_NOTICE_SETTING_KEY]) return;
+    if (!(await chrome.permissions.contains({ origins: [BITHUMB_NOTICE_ORIGIN] }))) return;
+    const notices = parseBithumbNotices(await fetchJson('https://feed-api.bithumb.com/v1/notices?count=20'));
+    const { fresh, maxId } = pickNewNotices(notices, result[BITHUMB_NOTICE_LAST_ID_KEY]);
+    fresh.forEach(notice =>
+      createNotification(`notice:bithumb:${notice.id}`, {
+        type: 'basic',
+        iconUrl: 'como-logo.png',
+        title: notice.title,
+        message: `BITHUMB · ${notice.category || alertText(getLanguage(), 'exchangeNotice')}`,
+      }),
+    );
+    if (maxId != null && maxId !== result[BITHUMB_NOTICE_LAST_ID_KEY]) await chrome.storage.local.set({ [BITHUMB_NOTICE_LAST_ID_KEY]: maxId });
+  } catch (error) {
+    console.warn(error);
+  } finally {
+    bithumbNoticeRunning = false;
+  }
+}
+
+// 업비트 시장경보: 원화 마켓에 유의 지정이나 주의 사유(가격 급등락·거래량 급등·입금량 급등·글로벌 시세 차이·소수 계정 집중)가
+// 새로 붙으면 알린다. 'watched'는 즐겨찾기·보유 코인만, 'all'은 전체 원화 마켓.
+const MARKET_WARNING_SETTING_KEY = 'marketWarningAlerts';
+const MARKET_EVENTS_KEY = 'upbitMarketEvents';
+let marketWarningRunning = false;
+async function checkMarketWarnings() {
+  if (marketWarningRunning) return;
+  marketWarningRunning = true;
+  try {
+    const result = await chrome.storage.local.get([MARKET_WARNING_SETTING_KEY, MARKET_EVENTS_KEY, 'favoriteCoins', 'portfolio']);
+    const scope = result[MARKET_WARNING_SETTING_KEY];
+    if (scope !== 'watched' && scope !== 'all') return;
+    const current = summarizeMarketEvents(await fetchJson('https://api.upbit.com/v1/market/all?isDetails=true'));
+    // 일시적으로 빈 응답이 오면 기준을 덮어쓰지 않는다.
+    if (!Object.keys(current).length && Object.keys(result[MARKET_EVENTS_KEY] ?? {}).length > 3) return;
+    const coin = market => market.split('-')[1];
+    const watched = new Set([
+      ...Object.values(result.favoriteCoins ?? {}).flat().filter(market => typeof market === 'string' && market.startsWith('KRW-')).map(coin),
+      ...(result.portfolio ?? []).filter(holding => holding.market?.startsWith('KRW-')).map(holding => coin(holding.market)),
+    ]);
+    const include = scope === 'all' ? undefined : market => watched.has(coin(market));
+    const added = diffMarketEvents(result[MARKET_EVENTS_KEY], current, include);
+    const language = getLanguage();
+    // 한꺼번에 많으면 앞의 5개만 알린다.
+    added.slice(0, 5).forEach(({ market, added: flags }) => {
+      const info = exchanges.upbit.marketsInfo[market];
+      const name = (language === 'ko' ? info?.korean_name : info?.english_name) || market;
+      createNotification(`upbit:${market}:warning-${flags.join('-')}`, {
+        type: 'basic',
+        iconUrl: 'como-logo.png',
+        title: `${name} (${coin(market)}) · ${alertText(language, 'marketWarning')}`,
+        message: flags.map(flag => alertText(language, flag)).join(' · '),
+      });
+    });
+    await chrome.storage.local.set({ [MARKET_EVENTS_KEY]: current });
+  } catch (error) {
+    console.warn(error);
+  } finally {
+    marketWarningRunning = false;
+  }
+}
+
 chrome.alarms.create('noticeCheck', { periodInMinutes: 2 });
 chrome.alarms.onAlarm.addListener(alarm => {
-  if (alarm.name === 'noticeCheck') checkUpbitNotices();
+  if (alarm.name === 'noticeCheck') {
+    checkUpbitNotices();
+    checkBithumbNotices();
+    checkMarketWarnings();
+  }
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  // 켜자마자 기준을 잡아 둔다. 범위를 바꿀 때도 다시 잡아 바뀐 범위의 기존 경보를 한꺼번에 알리지 않는다.
+  if (changes[BITHUMB_NOTICE_SETTING_KEY]?.newValue) checkBithumbNotices();
+  if (changes[MARKET_WARNING_SETTING_KEY]) {
+    chrome.storage.local.remove(MARKET_EVENTS_KEY).then(checkMarketWarnings);
+  }
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   // 켜자마자 기준 공지를 잡아 둔다.
@@ -615,6 +788,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.action === 'getTrending') {
     sendResponse(trending.value ?? []);
+  }
+  if (message.action === 'getWhaleFeed') {
+    sendResponse(whaleFeed);
   }
   if (message.action === 'syncExchangeAccount') {
     syncExchangeAccount(message.exchange).then(sendResponse);
@@ -1116,8 +1292,14 @@ class UpbitData extends ExchangeData {
       const response = await fetch(`${this.apiUrl}/market/all?isDetails=true`);
       const tickers = await response.json();
       this.marketsInfo = tickers.reduce((acc, ticker) => {
-        const caution = ticker.market_event?.caution ? Object.values(ticker.market_event.caution).some(Boolean) : false;
-        acc[ticker.market] = { ...ticker, market_event: { ...ticker.market_event, caution } };
+        // 팝업은 caution을 참·거짓으로 읽는다. 어떤 사유인지는 cautionReasons로 따로 넘겨 아이콘에 보여 준다.
+        const reasons = Object.entries(ticker.market_event?.caution ?? {})
+          .filter(([, value]) => value === true)
+          .map(([reason]) => reason);
+        acc[ticker.market] = {
+          ...ticker,
+          market_event: { ...ticker.market_event, caution: reasons.length > 0, cautionReasons: reasons },
+        };
         return acc;
       }, {});
       resolveKrwNames();
@@ -1909,6 +2091,8 @@ function exchangesNeededWhenIdle() {
     if (Object.values(tickers ?? {}).some(list => list?.length)) needed.add(exchange);
   }
   for (const rule of ruleCache.rules) {
+    // OI·대량 체결 규칙은 시세 소켓이 아니라 따로 받는다.
+    if (rule.type !== 'change' && rule.type !== 'kimchi') continue;
     needed.add(rule.exchange);
     // 김프는 바이낸스 USDT 가격과 비교한다.
     if (rule.type === 'kimchi') needed.add('binance');
@@ -2018,6 +2202,47 @@ const polledData = [
   }),
 ];
 
+// 코인 시장 데이터(1시간마다): 시가총액 상위 500개의 역대 최고가(ATH) 대비 하락률과 알트코인 시즌 지수.
+// 시즌 지수 = 시가총액 상위 알트코인 50개(스테이블·래핑 토큰 제외) 중 90일 동안 BTC보다 많이 오른 비율. 12시간마다 다시 계산한다.
+const ALTSEASON_KEY = 'altseason';
+const ALTSEASON_REFRESH_MS = 12 * 60 * 60_000;
+const ALTSEASON_DAYS = 90;
+async function computeAltseason(markets) {
+  const stored = (await chrome.storage.local.get(ALTSEASON_KEY))[ALTSEASON_KEY];
+  if (stored && Date.now() - stored.updatedAt < ALTSEASON_REFRESH_MS) return stored;
+  const klines = symbol =>
+    fetchJson(`https://api.binance.com/api/v3/klines?symbol=${symbol}USDT&interval=1d&limit=${ALTSEASON_DAYS + 1}`).then(klineReturn, () => NaN);
+  // 바이낸스에 없는 코인이 있어 넉넉히 고른 뒤 수익률을 구한 앞의 50개만 쓴다.
+  const candidates = altseasonCandidates(markets, 65);
+  const [btc, ...alts] = await Promise.all([klines('BTC'), ...candidates.map(klines)]);
+  const returns = alts.filter(Number.isFinite).slice(0, 50);
+  const value = altseasonIndex(btc, returns);
+  if (value == null) return stored ?? null;
+  const result = { value, count: returns.length, days: ALTSEASON_DAYS, updatedAt: Date.now() };
+  await chrome.storage.local.set({ [ALTSEASON_KEY]: result });
+  return result;
+}
+const coinMarket = new PolledData('coinMarket', 60 * 60_000, async () => {
+  const pages = await Promise.all(
+    [1, 2].map(page => fetchJson(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}`)),
+  );
+  const markets = pages.flat();
+  // 같은 기호가 여럿이면 시가총액이 큰(먼저 나온) 코인을 쓴다.
+  const ath = {};
+  for (const coin of markets) {
+    const symbol = String(coin?.symbol ?? '').toUpperCase();
+    if (symbol && !(symbol in ath) && Number.isFinite(coin.ath_change_percentage)) {
+      ath[symbol] = { change: coin.ath_change_percentage, price: coin.ath, date: coin.ath_date };
+    }
+  }
+  const altseason = await computeAltseason(markets).catch(error => {
+    console.warn(error);
+    return null;
+  });
+  return { ath, altseason };
+});
+polledData.push(coinMarket);
+
 // 파생 지표: 바이낸스 USDT 무기한 선물의 펀딩비 순위(1분마다)와 강제 청산 스트림(최근 1시간 누적).
 const FUNDING_LIST_SIZE = 5;
 const derivatives = new PolledData('derivatives', 60 * 1000, async () => {
@@ -2037,16 +2262,26 @@ const longShort = new PolledData('longShort', 5 * 60 * 1000, async () => {
   const query = (path, symbol) => fetchJson(`https://fapi.binance.com/futures/data/${path}?symbol=${symbol}&period=5m&limit=1`);
   const items = await Promise.all(
     LONG_SHORT_SYMBOLS.map(async symbol => {
-      const [accounts, top] = await Promise.allSettled([
+      const oiHistory = (period, limit) =>
+        fetchJson(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=${period}&limit=${limit}`);
+      const [accounts, top, oiHour, oiDay] = await Promise.allSettled([
         query('globalLongShortAccountRatio', symbol),
         query('topLongShortPositionRatio', symbol),
+        // 미결제약정: 5분 단위 13개(1시간), 1시간 단위 25개(24시간)
+        oiHistory('5m', 13),
+        oiHistory('1h', 25),
       ]);
+      const hour = openInterestChange(oiHour.value);
+      const day = openInterestChange(oiDay.value);
+      const oi = { usd: hour?.usd ?? day?.usd ?? null, change1h: hour?.change ?? null, change24h: day?.change ?? null };
+      if (oi.usd != null) openInterest.set(symbol, oi);
       const account = accounts.value?.[0];
       if (!account) return null;
       return {
         symbol,
         longAccount: Number(account.longAccount),
         topLong: top.value?.[0] ? Number(top.value[0].longAccount) : null,
+        openInterest: oi.usd != null ? oi : null,
       };
     }),
   );
@@ -2080,6 +2315,90 @@ function connectLiquidations() {
   liquidationSocket.onclose = () => setTimeout(connectLiquidations, 5000);
   liquidationSocket.onerror = () => liquidationSocket?.close();
 }
+// 대량 체결(고래) 알림: 'whale' 규칙이 있는 마켓만 업비트·바이낸스 체결 스트림에 따로 연결한다.
+// 규칙: { id, type: 'whale', exchange: 'upbit'|'binance', market, minAmount, direction? } (금액은 원화 또는 USDT)
+const WHALE_FEED_SIZE = 20;
+const whaleFeed = [];
+const whaleLastAt = new Map();
+const whaleSockets = { upbit: null, binance: null };
+let whaleSignature = '';
+const whaleRules = () => ruleCache.rules.filter(rule => rule.type === 'whale');
+
+function onWhaleTrade(trade) {
+  if (!trade) return;
+  const rules = whaleRules().filter(rule => rule.exchange === trade.exchange && rule.market === trade.market);
+  // 화면에 보여 줄 최근 대량 체결: 이 마켓 규칙 중 가장 낮은 기준 이상
+  const minimum = Math.min(...rules.map(rule => rule.minAmount));
+  if (!(trade.amount >= minimum)) return;
+  whaleFeed.unshift(trade);
+  if (whaleFeed.length > WHALE_FEED_SIZE) whaleFeed.length = WHALE_FEED_SIZE;
+  const language = getLanguage();
+  for (const rule of rules) {
+    if (!matchesWhaleRule(rule, trade, whaleLastAt.get(rule.id))) continue;
+    whaleLastAt.set(rule.id, trade.time);
+    const quote = trade.exchange === 'upbit' ? '₩' : '$';
+    createNotification(`${trade.exchange}:${trade.market}:rule-${rule.id}-${trade.time}`, {
+      type: 'basic',
+      iconUrl: 'como-logo.png',
+      title: `${trade.market} ${quote}${formatBadgePrice(trade.amount)} · ${trade.exchange.toUpperCase()}`,
+      message: `${alertText(language, trade.side === 'buy' ? 'whaleBuy' : 'whaleSell')} @ ${trade.price.toLocaleString('en-US')}`,
+    });
+    chrome.storage.local.set({ alertFiredAt: Date.now() });
+  }
+}
+
+function openWhaleSocket(exchange, markets) {
+  const socket =
+    exchange === 'upbit'
+      ? new WebSocket('wss://api.upbit.com/websocket/v1')
+      : new WebSocket(`wss://stream.binance.com:9443/stream?streams=${markets.map(market => `${market.toLowerCase()}@aggTrade`).join('/')}`);
+  let pingTimer = null;
+  socket.onopen = () => {
+    if (exchange !== 'upbit') return;
+    socket.send(JSON.stringify([{ ticket: `como-whale-${Date.now()}` }, { type: 'trade', codes: markets }]));
+    // 업비트는 2분 동안 오가는 데이터가 없으면 끊는다.
+    pingTimer = setInterval(() => socket.readyState === WebSocket.OPEN && socket.send('PING'), 60_000);
+  };
+  socket.onmessage = async event => {
+    try {
+      let data = event.data;
+      if (data instanceof Blob) data = await data.text();
+      const message = JSON.parse(data);
+      onWhaleTrade(exchange === 'upbit' ? parseUpbitTrade(message) : parseBinanceAggTrade(message));
+    } catch {
+      // PONG 등 JSON이 아닌 메시지
+    }
+  };
+  socket.onclose = () => {
+    clearInterval(pingTimer);
+    // 규칙이 그대로면 5초 뒤 다시 잇는다.
+    if (whaleSockets[exchange] === socket) {
+      whaleSockets[exchange] = null;
+      setTimeout(syncWhaleSockets, 5000);
+    }
+  };
+  socket.onerror = () => socket.close();
+  return socket;
+}
+
+function syncWhaleSockets(force = false) {
+  const byExchange = { upbit: new Set(), binance: new Set() };
+  whaleRules().forEach(rule => byExchange[rule.exchange]?.add(rule.market));
+  const signature = JSON.stringify(Object.entries(byExchange).map(([name, set]) => [name, [...set].sort()]));
+  if (signature === whaleSignature && !force && Object.entries(byExchange).every(([name, set]) => !set.size || whaleSockets[name])) return;
+  whaleSignature = signature;
+  for (const [exchange, set] of Object.entries(byExchange)) {
+    const previous = whaleSockets[exchange];
+    whaleSockets[exchange] = null;
+    previous?.close();
+    if (set.size) whaleSockets[exchange] = openWhaleSocket(exchange, [...set]);
+  }
+}
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[RULES_KEY]) syncWhaleSockets();
+});
+rulesReady.then(() => syncWhaleSockets());
+
 const startedAt = Date.now();
 function summarizeLiquidations() {
   const cutoff = Date.now() - LIQUIDATION_WINDOW;

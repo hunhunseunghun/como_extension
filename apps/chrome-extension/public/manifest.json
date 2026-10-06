@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "default_locale": "en",
   "description": "__MSG_extDescription__",
   "permissions": ["storage", "notifications", "alarms", "sidePanel"],
@@ -29,6 +29,7 @@
     "https://www.blockmedia.co.kr/*",
     "https://defillama-datasets.llama.fi/*",
     "https://api-manager.upbit.com/*",
+    "https://feed-api.bithumb.com/*",
     "https://api.coinone.co.kr/*",
     "https://api.digitalx.miraeasset.com/*"
   ],

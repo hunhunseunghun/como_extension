@@ -8,6 +8,8 @@ import {
   MarketType,
   maxChagneRateCoin,
   KimchiPremium,
+  AthMap,
+  CoinMarket,
 } from '@/types';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useWideSize } from '@/hooks/useWideSize';
@@ -118,14 +120,19 @@ const App = () => {
   const [walletStatus, setWalletStatus] = useState<WalletStatus>({});
   const [fiatRates, setFiatRates] = useState<FiatRates>({});
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);
+  // ATH 대비 하락률과 알트코인 시즌 지수(1시간마다). ATH 열은 컬럼을 다시 만들지 않도록 ref로 읽는다.
+  const [coinMarket, setCoinMarket] = useState<CoinMarket | null>(null);
+  const athRef = useRef<AthMap>({});
+  athRef.current = coinMarket?.ath ?? {};
   const marketContext = useMemo(
-    () => ({ exchangeRateUSD, fiatRates, marketStats }),
-    [exchangeRateUSD, fiatRates, marketStats],
+    () => ({ exchangeRateUSD, fiatRates, marketStats, coinMarket }),
+    [exchangeRateUSD, fiatRates, marketStats, coinMarket],
   );
 
   const handleExtraMessage = useCallback((type: string, data: unknown) => {
     if (type === 'fiatRates') setFiatRates(data as FiatRates);
     if (type === 'marketStats') setMarketStats(data as MarketStats);
+    if (type === 'coinMarket') setCoinMarket(data as CoinMarket);
     if (type === 'walletStatus') setWalletStatus(data as WalletStatus);
   }, []);
 
@@ -245,6 +252,7 @@ const App = () => {
         displayCurrency: currency,
         fiatRates,
         kimchiRef,
+        athRef,
       }) as ColumnDef<TickerTypes>[];
     }
     return getGlobalColumns(
@@ -261,6 +269,7 @@ const App = () => {
       currency,
       exchangeRateUSD,
       fiatRates,
+      athRef,
     ) as ColumnDef<TickerTypes>[];
   }, [
     coinNameKR,
@@ -284,6 +293,7 @@ const App = () => {
       highest_24h_diff: wideSize,
       lowest_24h_diff: wideSize,
       kimchi_premium: wideSize || kimchiInNarrow,
+      ath_diff: wideSize,
       acc_trade_price_24h: wideSize || !isKrwExchange(exchangePlatform) || !kimchiInNarrow,
     }),
     [wideSize, kimchiInNarrow, exchangePlatform],

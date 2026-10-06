@@ -184,3 +184,9 @@ export type KimchiPremium = {
   // 거래소별 테더(KRW-USDT) 프리미엄(%)
   tether?: Partial<Record<KrwExchange, number>>;
 };
+
+// 역대 최고가(ATH, CoinGecko USD 기준): 기호 → 최고가 대비 하락률(%)·최고가·날짜
+export type AthMap = Record<string, { change: number; price: number; date: string }>;
+// 알트코인 시즌 지수: 상위 알트코인 count개 중 days일 동안 BTC보다 많이 오른 비율(0~100)
+export type Altseason = { value: number; count: number; days: number; updatedAt: number };
+export type CoinMarket = { ath: AthMap; altseason: Altseason | null };

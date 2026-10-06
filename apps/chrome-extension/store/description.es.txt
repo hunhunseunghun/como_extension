@@ -35,9 +35,9 @@ La interfaz usa el idioma de tu navegador, y puedes cambiarlo cuando quieras en 
 🔒 Privacidad
 De forma predeterminada, COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión. La sincronización de cuenta opcional usa una clave API de solo lectura que tú introduces; la clave se guarda solo en tu navegador y solo se envía a ese exchange.
 
-Novedades de la versión 3.3.0
-• Dos exchanges coreanos más (pide acceso solo la primera vez que eliges uno)
-• Columna de prima kimchi por moneda en la tabla y minigráficos de 24 horas para los favoritos
-• Arrastra los favoritos para reordenarlos
-• Mini ventana siempre encima y modo discreto que oculta colores e insignia (Alt+Shift+Q)
-• La insignia puede alternar entre tus favoritos y las estadísticas muestran el ratio largo/corto
+Novedades de la versión 3.4.0
+• Alertas de subidas y caídas en 1, 5 y 15 minutos (al alza, a la baja o ambas)
+• Alertas de operaciones individuales grandes y de cambios bruscos del interés abierto en futuros
+• Motivos de las alertas del mercado coreano en cada moneda con avisos, y un nuevo canal de avisos de exchange
+• Horas silenciosas: las alertas de ese periodo se resumen al terminar
+• Calculadora de promedio y punto de equilibrio, vista previa del impuesto cripto 2027 de Corea, columna de caída desde el ATH e índice de temporada alt

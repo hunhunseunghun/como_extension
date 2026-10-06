@@ -37,7 +37,8 @@ const fearGreedColor = (value: number) =>
 
 export const InsightsPopover = () => {
   const { t } = useI18n();
-  const { marketStats } = useMarket();
+  const { marketStats, coinMarket } = useMarket();
+  const altseason = coinMarket?.altseason;
   const [isOpen, setIsOpen] = useState(false);
   const [includeKrw, setIncludeKrw] = useState(true);
   const [spreads, setSpreads] = useState<SpreadItem[]>([]);
@@ -121,7 +122,7 @@ export const InsightsPopover = () => {
                 })}
               />
             </div>
-            <div className="grid grid-cols-3 gap-1 mb-2" data-testid="market-stats">
+            <div className="grid grid-cols-2 gap-1 mb-2" data-testid="market-stats">
               <div className="rounded-md border border-tile-border bg-tile px-2 py-1.5">
                 <div className="text-cap-s text-fg-subtle">{t('fearGreed')}</div>
                 {fearGreed ? (
@@ -146,6 +147,22 @@ export const InsightsPopover = () => {
                   className={`num font-semibold ${marketStats?.fundingRate != null ? (marketStats.fundingRate >= 0 ? 'text-up' : 'text-down') : ''}`}>
                   {marketStats?.fundingRate != null ? `${(marketStats.fundingRate * 100).toFixed(4)}%` : '-'}
                 </div>
+              </div>
+              <div
+                className="rounded-md border border-tile-border bg-tile px-2 py-1.5"
+                data-testid="altseason"
+                title={altseason ? t('altseasonHint').replace('{count}', String(altseason.count)).replace('{days}', String(altseason.days)) : undefined}>
+                <div className="text-cap-s text-fg-subtle">{t('altseason')}</div>
+                {altseason ? (
+                  <div className="flex items-center gap-1 font-semibold">
+                    <span className="num">{altseason.value}</span>
+                    <span className="text-cap-xs font-normal text-fg-subtle truncate">
+                      {t(altseason.value >= 75 ? 'altseasonAlt' : altseason.value <= 25 ? 'altseasonBtc' : 'altseasonNeutral')}
+                    </span>
+                  </div>
+                ) : (
+                  <div>-</div>
+                )}
               </div>
             </div>
 

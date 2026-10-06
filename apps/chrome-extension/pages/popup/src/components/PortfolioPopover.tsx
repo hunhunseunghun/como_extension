@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 
 // 거래소 계정 연동(서명·키 저장)은 보유 자산 팝오버를 열 때 불러온다.
 const AccountSync = lazy(() => import('@/components/AccountSync').then(m => ({ default: m.AccountSync })));
+// 계산기·과세 미리보기도 열 때 불러온다.
+const PortfolioTools = lazy(() => import('@/components/PortfolioTools').then(m => ({ default: m.PortfolioTools })));
 import { Wallet, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -301,6 +303,12 @@ export const PortfolioPopover = () => {
           ))}
         </div>
         <Suspense fallback={null}>
+          <PortfolioTools
+            holdings={holdings}
+            prices={prices}
+            quoteOf={market => getQuote(market) ?? 'USD'}
+            coinOf={holding => getCoin(holding.exchange, holding.market)}
+          />
           <AccountSync onSynced={handleSynced} />
         </Suspense>
       </PopoverContent>

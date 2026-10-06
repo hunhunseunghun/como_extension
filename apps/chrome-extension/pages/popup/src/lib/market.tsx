@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { DisplayCurrency } from '@/i18n';
+import type { CoinMarket } from '@/types';
 
 export type FiatRates = Record<string, number>; // 1 USD 당 각 통화
 export type MarketStats = {
@@ -13,6 +14,7 @@ type MarketContextValue = {
   exchangeRateUSD: number;
   fiatRates: FiatRates;
   marketStats: MarketStats | null;
+  coinMarket?: CoinMarket | null;
 };
 
 export const MarketContext = createContext<MarketContextValue>({ exchangeRateUSD: 0, fiatRates: {}, marketStats: null });

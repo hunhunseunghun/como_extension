@@ -35,9 +35,9 @@ Arayüz tarayıcınızın dilini kullanır ve dili istediğiniz zaman ayarlardan
 🔒 Gizlilik
 COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piyasa verilerini okur. Ziyaret ettiğiniz sayfaları okumaz; ayarlarınız, alarmlarınız ve portföyünüz tarayıcınızda kalır. Hesap veya giriş gerekmez. İsteğe bağlı hesap senkronizasyonu, girdiğiniz salt okunur API anahtarını kullanır; anahtar yalnızca tarayıcınızda saklanır ve yalnızca ilgili borsaya gönderilir.
 
-3.3.0 sürümündeki yenilikler
-• İki Kore borsası daha (yalnızca ilk seçtiğinizde erişim ister)
-• Fiyat tablosunda coin bazında kimchi primi sütunu ve favoriler için 24 saatlik mini grafikler
-• Favorileri sürükleyerek sıralayın
-• Her zaman üstte duran mini pencere ve renkleri ile rozeti gizleyen sessiz mod (Alt+Shift+Q)
-• Araç çubuğu rozeti favorileri sırayla gösterebilir; içgörülerde long/short oranı
+3.4.0 sürümündeki yenilikler
+• 1, 5 ve 15 dakikalık sert yükseliş ve düşüş uyarıları (yukarı, aşağı ya da iki yön)
+• Büyük tekil işlemler ve vadeli açık pozisyondaki ani değişimler için uyarılar
+• Kore piyasa uyarılarının nedenleri coin üzerinde ve bildirimle, ayrıca yeni bir borsa duyuru kaynağı
+• Sessiz saatler: bu süredeki uyarılar bitince özetlenir
+• Maliyet düşürme ve başabaş hesaplayıcı, Kore 2027 kripto vergisi önizlemesi, ATH'den düşüş sütunu ve altcoin sezonu endeksi

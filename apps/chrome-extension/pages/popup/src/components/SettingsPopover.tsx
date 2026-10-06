@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { AppWindow, Download, Monitor, Moon, PanelRight, Settings, Sun, Upload } from 'lucide-react';
-import { KIMCHI_COLUMN_KEY, QUIET_MODE_KEY, useStoredFlag } from '@/hooks/useStoredFlag';
+import { KIMCHI_COLUMN_KEY, QUIET_MODE_KEY, useStoredFlag, useStoredValue } from '@/hooks/useStoredFlag';
+import { Input } from '@/components/ui/input';
 import { exportBackup, importBackup } from '@/lib/backup';
 import { useTheme } from '@/components/ThemeProvider';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,13 @@ import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
 
 const UPBIT_NOTICE_ORIGIN = 'https://api-manager.upbit.com/*';
+const BITHUMB_NOTICE_ORIGIN = 'https://feed-api.bithumb.com/*';
+
+// 백그라운드(lib/quietHours.js)와 같은 형식. 끝이 시작보다 이르면 자정을 넘긴다.
+type QuietHours = { enabled: boolean; start: string; end: string };
+const DEFAULT_QUIET_HOURS: QuietHours = { enabled: false, start: '23:00', end: '07:00' };
+// 업비트 시장경보 알림 범위: 끔, 즐겨찾기·보유 코인만, 원화 마켓 전체
+type MarketWarningScope = 'off' | 'watched' | 'all';
 
 export const CurrencySelect = () => {
   const { t, currency, setCurrency } = useI18n();
@@ -60,6 +68,9 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
   const canOpenSidePanel = typeof chrome !== 'undefined' && !!chrome.sidePanel?.open && !isSidePanelView();
   const [kimchiInNarrow, setKimchiInNarrow] = useStoredFlag(KIMCHI_COLUMN_KEY);
   const [quietMode, setQuietMode] = useStoredFlag(QUIET_MODE_KEY);
+  const [quietHours, setQuietHours] = useStoredValue<QuietHours>('quietHours', DEFAULT_QUIET_HOURS);
+  const [bithumbNotices, setBithumbNotices] = useState(false);
+  const [marketWarnings, setMarketWarnings] = useStoredValue<MarketWarningScope>('marketWarningAlerts', 'off');
 
   useEffect(() => {
     chrome.storage.local.get(BADGE_STORAGE_KEY, result => {
@@ -72,9 +83,9 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
       setListingAlerts((result?.[LISTING_ALERTS_STORAGE_KEY] as boolean | undefined) ?? null);
     });
     // 권한을 브라우저 설정에서 거둬 갔으면 꺼진 것으로 보여 준다.
-    chrome.storage.local.get('noticeAlerts', result => {
-      if (!result?.noticeAlerts) return;
-      chrome.permissions.contains({ origins: [UPBIT_NOTICE_ORIGIN] }, setNoticeAlerts);
+    chrome.storage.local.get(['noticeAlerts', 'bithumbNoticeAlerts'], result => {
+      if (result?.noticeAlerts) chrome.permissions.contains({ origins: [UPBIT_NOTICE_ORIGIN] }, setNoticeAlerts);
+      if (result?.bithumbNoticeAlerts) chrome.permissions.contains({ origins: [BITHUMB_NOTICE_ORIGIN] }, setBithumbNotices);
     });
     // 언어가 바뀌어도 이미 저장한 배지 설정은 유지한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,6 +216,30 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
             <Switch aria-label={t('quietMode')} checked={quietMode} onCheckedChange={setQuietMode} />
           </SettingRow>
           <p className="px-1 pb-1 text-cap-s text-fg-faint">{t('quietModeHint')}</p>
+          <SettingRow label={t('quietHours')}>
+            <Switch
+              aria-label={t('quietHours')}
+              checked={quietHours.enabled}
+              onCheckedChange={enabled => setQuietHours({ ...quietHours, enabled })}
+            />
+          </SettingRow>
+          {quietHours.enabled && (
+            <div className="flex items-center gap-1 px-1 pb-1" data-testid="quiet-hours">
+              {(['start', 'end'] as const).map((edge, index) => (
+                <Fragment key={edge}>
+                  {index === 1 && <span className="text-fg-subtle">~</span>}
+                  <Input
+                    type="time"
+                    aria-label={t(edge === 'start' ? 'quietHoursStart' : 'quietHoursEnd')}
+                    className="num h-control flex-1 px-2 text-cap-s"
+                    value={quietHours[edge]}
+                    onChange={event => event.target.value && setQuietHours({ ...quietHours, [edge]: event.target.value })}
+                  />
+                </Fragment>
+              ))}
+            </div>
+          )}
+          <p className="px-1 pb-1 text-cap-s text-fg-faint">{t('quietHoursHint')}</p>
         </Section>
 
         <Section title={t('settingsGroupAlerts')}>
@@ -235,6 +270,34 @@ export const SettingsPopover = ({ favoriteFunc, setFavoriteFunc }: SettingsPopov
                 });
               }}
             />
+          </SettingRow>
+          <SettingRow label={t('bithumbNoticeAlerts')}>
+            <Switch
+              aria-label={t('bithumbNoticeAlerts')}
+              checked={bithumbNotices}
+              onCheckedChange={checked => {
+                if (!checked) {
+                  setBithumbNotices(false);
+                  chrome.storage.local.set({ bithumbNoticeAlerts: false });
+                  return;
+                }
+                // 빗썸 공지 API(feed-api.bithumb.com)도 선택 권한이다.
+                chrome.permissions.request({ origins: [BITHUMB_NOTICE_ORIGIN] }, granted => {
+                  setBithumbNotices(granted);
+                  chrome.storage.local.set({ bithumbNoticeAlerts: granted });
+                });
+              }}
+            />
+          </SettingRow>
+          <SettingRow label={t('marketWarningAlerts')} description={t('marketWarningHint')}>
+            <NativeSelect
+              aria-label={t('marketWarningAlerts')}
+              value={marketWarnings}
+              onChange={event => setMarketWarnings(event.target.value as MarketWarningScope)}>
+              <option value="off">{t('marketWarningOff')}</option>
+              <option value="watched">{t('marketWarningWatched')}</option>
+              <option value="all">{t('marketWarningAll')}</option>
+            </NativeSelect>
           </SettingRow>
           <SettingRow label={t('toolbarBadge')}>
             <Switch

@@ -13,6 +13,9 @@ const STORAGE_KEYS = [
   'displayCurrency',
   'listingAlerts',
   'wideSize',
+  'quietHours',
+  'marketWarningAlerts',
+  'bithumbNoticeAlerts',
 ] as const;
 const LOCAL_KEYS = ['como-ui-theme', 'como-ds'] as const;
 const FORMAT = 'como-backup';

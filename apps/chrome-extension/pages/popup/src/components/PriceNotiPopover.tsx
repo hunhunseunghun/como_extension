@@ -10,9 +10,9 @@ const AlertRulesPanel = lazy(() => import('@/components/AlertRulesPanel').then(m
 import { HoverHint } from '@/components/ui/hoverHint';
 import { Segmented } from '@/components/ui/segmented';
 
-type AlertTab = 'price' | 'change' | 'kimchi';
+type AlertTab = 'price' | 'change' | 'kimchi' | 'flow';
 
-// 알림 창: 지정가·변동률·김프 탭. 각 탭은 열 때마다 새로 그려 이전 입력이 남지 않는다.
+// 알림 창: 지정가·변동률·김프·고래(대량 체결·OI) 탭. 각 탭은 열 때마다 새로 그려 이전 입력이 남지 않는다.
 export const PriceNotiPopover = () => {
   const { t } = useI18n();
   const [tab, setTab] = useState<AlertTab>('price');
@@ -48,6 +48,7 @@ export const PriceNotiPopover = () => {
               ['price', 'alertTabPrice'],
               ['change', 'alertTabChange'],
               ['kimchi', 'alertTabKimchi'],
+              ['flow', 'alertTabFlow'],
             ] as const
           ).map(([value, label]) => ({ value, label: t(label) }))}
         />

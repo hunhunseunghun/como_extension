@@ -35,9 +35,9 @@ The interface follows your browser language, and you can switch it any time in s
 🔒 Privacy
 By default COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required. Optional account sync uses a read-only API key that you enter; the key is stored only in your browser and is sent only to that exchange.
 
-What's new in 3.3.0
-• Two more Korean exchanges (asks for access only when you first pick one)
-• Per-coin kimchi premium column in the price table, and 24-hour mini charts for favorites
-• Drag favorites to reorder them
-• Always-on-top mini window, and quiet mode that hides colors and the badge (Alt+Shift+Q)
-• The toolbar badge can cycle through your favorites, and insights now show long/short ratios
+What's new in 3.4.0
+• 1, 5 and 15-minute surge and drop alerts (up, down or both)
+• Alerts for large single trades and sudden futures open-interest swings
+• Korean market alert reasons on coins with notifications, plus another exchange notice feed
+• Quiet hours: alerts during that time are summarized when it ends
+• Averaging and break-even calculator, 2027 Korea crypto tax preview, drop-from-ATH column and altcoin season index
