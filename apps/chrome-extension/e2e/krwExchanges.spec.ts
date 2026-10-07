@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { expectLiveUpdates, rows, switchExchange, totalCount } from './fixtures';
+import { installMocks } from './mocks';
 
 // 코인원·디지털엑스는 선택 권한이라 테스트 브라우저에서는 권한 창을 누를 수 없다.
 // 빌드 결과를 복사해 두 거래소 주소를 기본 권한으로 옮긴 확장으로 시세 흐름을 검증한다.
@@ -33,8 +34,8 @@ test.describe.serial('코인원·디지털엑스 (권한을 받은 상태)', () 
       viewport: { width: 420, height: 430 },
       args: [`--disable-extensions-except=${dir}`, `--load-extension=${dir}`],
     });
-    let [worker] = context.serviceWorkers();
-    if (!worker) worker = await context.waitForEvent('serviceworker');
+    await installMocks(context);
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
     worker.on('console', message => message.type() === 'error' && errors.push(message.text()));
     const extensionId = worker.url().split('/')[2];
     popup = await context.newPage();

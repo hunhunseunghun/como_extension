@@ -1,0 +1,47 @@
+# push · PR마다 단위 테스트, lint, 타입 검사·빌드, 스토어 패키지와 Firefox 검사(web-ext lint)를 돌린다.
+# E2E는 실제 거래소에 붙고 바이낸스가 미국 IP를 막아(451) GitHub 러너에서는 돌리지 않는다 — 로컬에서 `pnpm test:e2e`.
+name: CI
+
+on:
+  push:
+    branches: [dev, main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: 단위 테스트
+        run: pnpm --filter chrome-extension test:unit
+      - name: lint (백그라운드 · 스크립트 · E2E)
+        run: pnpm --filter chrome-extension lint
+      - name: lint (팝업)
+        run: pnpm --filter popup lint
+      - name: 타입 검사 · 빌드
+        run: pnpm build
+      - name: 스토어 패키지
+        run: pnpm --filter chrome-extension package
+      - name: Firefox 패키지 검사
+        working-directory: apps/chrome-extension
+        run: |
+          version=$(node -p "require('./package.json').version")
+          mkdir -p release/firefox
+          unzip -q release/como-$version-firefox.zip -d release/firefox
+          npx --yes web-ext@8 lint --source-dir release/firefox --self-hosted=false --warnings-as-errors=false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-zips
+          path: apps/chrome-extension/release/*.zip
+          retention-days: 14

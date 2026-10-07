@@ -2185,7 +2185,7 @@ const broadcastPort = {
     popupPorts.forEach(port => {
       try {
         port.postMessage(message);
-      } catch (error) {
+      } catch {
         popupPorts.delete(port);
       }
     });

@@ -1,6 +1,7 @@
 import { test as base, chromium, type BrowserContext, type Page } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { installMocks } from './mocks';
 
 // 기본은 빌드 결과(dist). COMO_EXTENSION_PATH로 압축을 푼 배포 zip 등을 검증할 수 있다.
 const EXTENSION_PATH =
@@ -21,6 +22,7 @@ export const test = base.extend<object, Fixtures>({
         viewport: { width: 420, height: 430 },
         args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
       });
+      await installMocks(context);
       await use(context);
       await context.close();
     },
@@ -28,8 +30,7 @@ export const test = base.extend<object, Fixtures>({
   ],
   extensionId: [
     async ({ extContext: context }, use) => {
-      let [worker] = context.serviceWorkers();
-      if (!worker) worker = await context.waitForEvent('serviceworker');
+      const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
       await use(worker.url().split('/')[2]);
     },
     { scope: 'worker' },
