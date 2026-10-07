@@ -213,17 +213,21 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
-    const newLeft = Math.max(0, Math.min(rect.left + window.scrollX, window.innerWidth - TOOLTIP_WIDTH));
+    // 툴팁 상자 크기(아래 className의 w·h와 같다). 차트 캔버스 크기(TOOLTIP_WIDTH·HEIGHT)보다 테두리·여백만큼 크다.
+    const boxWidth = wideSize ? 505 : 300;
+    const boxHeight = wideSize ? 300 : 170;
+    const newLeft = Math.max(0, Math.min(rect.left + window.scrollX, window.innerWidth - boxWidth));
+    // 아이콘 아래에 상자가 다 들어가지 않으면 위에 띄운다(팝업 높이를 넘겨 스크롤바가 생기지 않게).
     const newTop =
-      rect.top + window.scrollY + TOOLTIP_HEIGHT > window.innerHeight
-        ? rect.top + window.scrollY - TOOLTIP_HEIGHT
-        : rect.top + window.scrollY + rect.height;
+      rect.bottom + boxHeight > window.innerHeight
+        ? rect.top + window.scrollY - boxHeight
+        : rect.bottom + window.scrollY;
 
     const adjustedTop = Math.max(0, newTop);
     setPosition(prev =>
       prev && prev.left === newLeft && prev.top === adjustedTop ? prev : { left: newLeft, top: adjustedTop },
     );
-  }, []);
+  }, [wideSize]);
 
   // 보조지표와 급등락 표시를 다시 그린다. 지표를 켜고 끌 때도 부른다.
   const applyOverlays = useCallback(async () => {

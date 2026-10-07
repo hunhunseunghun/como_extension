@@ -83,6 +83,34 @@ test.describe.serial('품질 개선', () => {
     await popup.keyboard.press('Escape');
   });
 
+  test('어느 줄에서 차트를 열어도 팝업(420×430) 밖으로 나가지 않는다(좁은·넓은 화면)', async ({ popup }) => {
+    const outside: string[] = [];
+    const check = async (mode: string, width: number, height: number) => {
+      const icons = popup.locator('tbody tr svg.lucide-chart-candlestick');
+      const count = Math.min(await icons.count(), 8);
+      for (let i = 0; i < count; i++) {
+        const icon = icons.nth(i);
+        if (!(await icon.isVisible())) continue;
+        await icon.click();
+        await expect(popup.getByTestId('chart-indicators')).toBeVisible({ timeout: 20_000 });
+        const box = (await popup.locator('.tooltip').boundingBox())!;
+        if (box.x < 0 || box.y < 0 || box.x + box.width > width || box.y + box.height > height)
+          outside.push(`${mode} 줄${i}: ${Math.round(box.x)},${Math.round(box.y)} ${Math.round(box.width)}×${Math.round(box.height)}`);
+        const scroll = await popup.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight]);
+        if (scroll[0] > width || scroll[1] > height) outside.push(`${mode} 줄${i}: 페이지 스크롤 ${scroll.join('×')}`);
+        await popup.keyboard.press('Escape');
+      }
+    };
+    await check('좁은', 420, 430);
+    await popup.locator('button:has(svg.lucide-maximize)').click();
+    await popup.setViewportSize({ width: 800, height: 600 });
+    await expect(popup.locator('thead')).toContainText('ATH대비');
+    await check('넓은', 800, 600);
+    await popup.locator('button:has(svg.lucide-minimize)').click();
+    await popup.setViewportSize({ width: 420, height: 430 });
+    expect(outside).toEqual([]);
+  });
+
   test('별을 잘못 눌러도 아래 안내에서 되돌릴 수 있다', async ({ popup }) => {
     const firstName = async () => (await rows(popup).first().locator('a').first().innerText()).trim();
     const target = rows(popup).nth(3);
