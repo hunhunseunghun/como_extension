@@ -286,6 +286,10 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     if (markersRef.current) markersRef.current.setMarkers(markers);
     else markersRef.current = createSeriesMarkers(candleSeries, markers);
   }, [chartData, indicators]); // eslint-disable-line react-hooks/exhaustive-deps
+  // renderChart는 chartData가 바뀔 때만 새로 만들어진다. 캐시로 같은 데이터를 다시 열면 예전 지표 설정을 들고 있으므로
+  // 늘 최신 applyOverlays를 ref로 부른다.
+  const applyOverlaysRef = useRef(applyOverlays);
+  applyOverlaysRef.current = applyOverlays;
 
   // 지표 설정이 바뀌면 열린 차트에 바로 반영한다.
   useEffect(() => {
@@ -359,7 +363,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     }
 
     seriesRef.current!.setData(chartData);
-    await applyOverlays();
+    await applyOverlaysRef.current();
     const config = getTimeframeConfig(timeframe);
     chartRef.current!.applyOptions({
       localization: {

@@ -49,7 +49,7 @@ export const AlertHistoryPanel = () => {
           variant="soft"
           className="h-control px-2 text-cap-s hover:cursor-pointer"
           disabled={!entries.length}
-          onClick={() => chrome.storage.local.set({ [ALERT_HISTORY_KEY]: [] })}>
+          onClick={() => chrome.runtime.sendMessage({ action: 'clearAlertHistory' })}>
           {t('alertHistoryClear')}
         </Button>
       </div>

@@ -11,7 +11,8 @@ import { altseasonCandidates, altseasonIndex, klineReturn, openInterestChange } 
 import { matchesWhaleRule, parseBinanceAggTrade, parseUpbitTrade } from './lib/whale.js';
 import { alertText } from './lib/texts.js';
 import { parseEconCalendar, upcomingEvents } from './lib/econ.js';
-import { kstDate, portfolioValueUsd, upsertSnapshot } from './lib/portfolioHistory.js';
+import { kstDate, portfolioAmounts, upsertSnapshot } from './lib/portfolioHistory.js';
+import { aggregateUpbitWallet } from './lib/walletStatus.js';
 
 // 초기 설정 및 전역 변수
 const allExchangesTickers = {
@@ -53,6 +54,13 @@ chrome.alarms.onAlarm.addListener(alarm => {
   }
 });
 
+// 같은 이름으로 다시 만들면 일정이 처음부터 다시 잡힌다. 서비스 워커가 깨어날 때마다 긴 주기 알람이 밀리지 않도록 없을 때만 만든다.
+function ensureAlarm(name, info) {
+  chrome.alarms.get(name).then(existing => {
+    if (!existing) chrome.alarms.create(name, info);
+  });
+}
+
 // 방해 금지 시간대: 그동안 오는 알림은 띄우지 않고 제목만 모아 두었다가, 끝나면 한 번에 요약해 알린다.
 const QUIET_HOURS_KEY = 'quietHours';
 const QUIET_MISSED_KEY = 'quietHoursMissed';
@@ -86,7 +94,7 @@ async function flushMissedAlerts() {
     silent: quietMode,
   });
 }
-chrome.alarms.create('quietHoursSummary', { periodInMinutes: 5 });
+ensureAlarm('quietHoursSummary', { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'quietHoursSummary') flushMissedAlerts();
 });
@@ -592,6 +600,7 @@ async function refreshEconCalendar() {
 async function checkEconAlerts() {
   const result = await chrome.storage.local.get(['econAlerts', ECON_EVENTS_KEY, ECON_ALERTED_KEY]);
   if (!result.econAlerts) return;
+  if (!(await chrome.permissions.contains({ origins: [ECON_ORIGIN] }))) return;
   const events = result[ECON_EVENTS_KEY]?.events ?? [];
   const now = Date.now();
   // 지난 일정의 알림 기록은 정리한다.
@@ -612,8 +621,8 @@ async function checkEconAlerts() {
     await chrome.storage.local.set({ [ECON_ALERTED_KEY]: [...alerted, ...soon.map(item => item.id)] });
   }
 }
-chrome.alarms.create('econCalendar', { periodInMinutes: 60 });
-chrome.alarms.create('econCheck', { periodInMinutes: 5 });
+ensureAlarm('econCalendar', { periodInMinutes: 60 });
+ensureAlarm('econCheck', { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'econCalendar') refreshEconCalendar();
   if (alarm.name === 'econCheck') checkEconAlerts();
@@ -621,24 +630,26 @@ chrome.alarms.onAlarm.addListener(alarm => {
 chrome.permissions.onAdded.addListener(permissions => {
   if (permissions.origins?.includes(ECON_ORIGIN)) refreshEconCalendar();
 });
+// 브라우저 설정에서 권한을 빼면 받아 둔 일정과 알림 설정을 지운다(팝업은 권한이 없으면 스위치를 숨긴다).
+chrome.permissions.onRemoved.addListener(permissions => {
+  if (permissions.origins?.includes(ECON_ORIGIN)) {
+    chrome.storage.local.remove([ECON_EVENTS_KEY, ECON_ALERTED_KEY]);
+    chrome.storage.local.set({ econAlerts: false });
+  }
+});
 
 // 보유 자산 일별 기록: 1시간마다 오늘 칸을 덮어 쓴다(팝업이 열려 있으면 팝업도 기록한다).
-// 원화는 팝업 합계와 같은 고시 환율, 루피는 법정화폐 환율로 USD로 바꾼다. 가격이 비면 그 시각은 건너뛴다.
+// 통화별 원래 금액으로 남겨 환율 변동이 손익에 섞이지 않게 한다. 가격이 비면 그 시각은 건너뛴다.
 const PORTFOLIO_HISTORY_KEY = 'portfolioHistory';
 async function snapshotPortfolio() {
   const result = await chrome.storage.local.get(['portfolio', PORTFOLIO_HISTORY_KEY]);
   const holdings = (result.portfolio ?? []).filter(holding => holding.quantity > 0);
-  const fiat = polledData.find(data => data.type === 'fiatRates')?.value;
-  const value = portfolioValueUsd(
-    holdings,
-    (exchange, market) => allExchangesTickers[exchange]?.[market]?.currentPrice,
-    { KRW: exchangeRateManager.exchangeRateUSD || liveUsdKrw, INR: fiat?.INR },
-  );
+  const value = portfolioAmounts(holdings, (exchange, market) => allExchangesTickers[exchange]?.[market]?.currentPrice);
   if (!value) return;
   const history = upsertSnapshot(result[PORTFOLIO_HISTORY_KEY] ?? [], { d: kstDate(Date.now()), ...value });
   await chrome.storage.local.set({ [PORTFOLIO_HISTORY_KEY]: history });
 }
-chrome.alarms.create('portfolioSnapshot', { periodInMinutes: 60, delayInMinutes: 2 });
+ensureAlarm('portfolioSnapshot', { periodInMinutes: 60, delayInMinutes: 2 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'portfolioSnapshot') snapshotPortfolio().catch(console.warn);
 });
@@ -885,6 +896,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.action === 'refreshEcon') {
     refreshEconCalendar().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (message.action === 'clearAlertHistory') {
+    // recordAlert와 같은 큐에서 비워, 동시에 들어온 알림이 지운 목록을 되살리지 않게 한다.
+    alertHistoryQueue = alertHistoryQueue.then(() => chrome.storage.local.set({ [ALERT_HISTORY_KEY]: [] }));
+    alertHistoryQueue.then(() => sendResponse({ ok: true }));
     return true;
   }
   if (message.action === 'openAlertTarget') {
@@ -2298,6 +2315,10 @@ const polledData = [
       result.bithumb = bithumb;
     }
     if (upbitResult.value) result.upbit = upbitResult.value;
+    // 한쪽 조회가 잠깐 실패해도 직전 값을 지워 경고 표시가 사라지지 않게 한다.
+    const previous = polledData.find(data => data.type === 'walletStatus')?.value;
+    if (!result.bithumb && previous?.bithumb) result.bithumb = previous.bithumb;
+    if (!result.upbit && previous?.upbit && upbitResult.status === 'rejected') result.upbit = previous.upbit;
     return Object.keys(result).length ? result : null;
   }),
   // USD 기준 166개 법정화폐 환율
@@ -2610,7 +2631,7 @@ async function upbitAuthHeader({ accessKey, secretKey }) {
   return `Bearer ${header}.${payload}.${signature}`;
 }
 
-// 업비트 입출금 상태(연동 키가 있을 때만). 정상(working)이 아닌 코인만 { deposit, withdraw }로 돌려준다.
+// 업비트 입출금 상태(연동 키가 있을 때만). 네트워크별 응답을 코인 단위로 합쳐 막힌 코인만 돌려준다(lib/walletStatus.js).
 async function loadUpbitWalletStatus() {
   const keys = await loadAccountKeys('upbit');
   if (!keys) return null;
@@ -2618,12 +2639,7 @@ async function loadUpbitWalletStatus() {
     headers: { Authorization: await upbitAuthHeader(keys), Accept: 'application/json' },
   });
   if (!response.ok) return null;
-  const upbit = {};
-  for (const { currency, wallet_state: state } of await response.json()) {
-    if (state === 'working' || !currency) continue;
-    upbit[currency] = { deposit: state === 'deposit_only', withdraw: state === 'withdraw_only' };
-  }
-  return upbit;
+  return aggregateUpbitWallet(await response.json());
 }
 
 const ACCOUNT_LOADERS = {

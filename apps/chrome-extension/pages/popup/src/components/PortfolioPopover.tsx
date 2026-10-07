@@ -20,6 +20,7 @@ import type { SyncExchange, SyncedHolding } from '@/components/AccountSync';
 import { HoverHint } from '@/components/ui/hoverHint';
 import { IconButton } from '@/components/ui/iconButton';
 import { PortfolioHistory } from '@/components/PortfolioHistory';
+import type { Amounts } from '@/lib/portfolioCalc';
 
 // source: 거래소 API로 불러온 항목('upbit-api' 등). 다시 동기화하면 같은 source 항목만 바꾼다.
 type Holding = {
@@ -99,6 +100,17 @@ export const PortfolioPopover = () => {
     { value: 0, cost: 0, incomplete: false },
   );
   const totalPnl = totals.value - totals.cost;
+  // 기간별 손익 기록용 통화별 원래 금액(가격이 하나라도 없으면 기록하지 않는다)
+  const historyAmounts = rows.length && rows.every(row => row.value !== null)
+    ? rows.reduce(
+        (acc, row) => {
+          acc.v[row.quote] = (acc.v[row.quote] ?? 0) + row.value!;
+          acc.c[row.quote] = (acc.c[row.quote] ?? 0) + row.cost;
+          return acc;
+        },
+        { v: {} as Amounts, c: {} as Amounts },
+      )
+    : null;
 
   const handleSynced = (syncExchange: SyncExchange, synced: SyncedHolding[]) => {
     const source = `${syncExchange}-api`;
@@ -184,7 +196,7 @@ export const PortfolioPopover = () => {
             </span>
           </div>
           {totals.incomplete && <div className="text-cap-s text-fg-faint">{t('portfolioIncomplete')}</div>}
-          <PortfolioHistory value={totals.value} cost={totals.cost} complete={!totals.incomplete && rows.length > 0} />
+          <PortfolioHistory amounts={historyAmounts} />
           <div className="flex justify-end">
             <ShareButton
               disabled={!rows.length || totals.cost <= 0}

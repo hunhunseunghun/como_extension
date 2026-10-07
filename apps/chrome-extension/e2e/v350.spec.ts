@@ -71,6 +71,8 @@ test.describe.serial('3.5.0 새 기능 (실시간 거래소 API)', () => {
     const toolbar = popup.getByTestId('chart-indicators');
     await expect(toolbar).toBeVisible({ timeout: 20_000 });
     const canvases = () => popup.locator('.chart-container canvas').count();
+    // 버튼은 데이터가 오면 바로 뜨고, 캔버스는 차트 라이브러리를 불러온 뒤 생긴다.
+    await expect.poll(canvases, { timeout: 15_000 }).toBeGreaterThan(0);
     const before = await canvases();
     for (const name of ['MA', 'BB', 'RSI']) {
       await toolbar.getByRole('button', { name }).click();
@@ -80,6 +82,12 @@ test.describe.serial('3.5.0 새 기능 (실시간 거래소 API)', () => {
     // RSI 칸(pane)이 생기면 캔버스가 늘어난다.
     await expect.poll(canvases).toBeGreaterThan(before);
     await popup.screenshot({ path: test.info().outputPath('chart-indicators.png') });
+    // 차트를 닫았다가 다시 열어도 켜 둔 지표(RSI 칸)를 그린다(캐시로 같은 데이터가 와도).
+    const withRsi = await canvases();
+    await popup.keyboard.press('Escape');
+    await rows(popup).first().locator('svg.lucide-chart-candlestick').click();
+    await expect(toolbar.getByRole('button', { name: 'RSI' })).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(canvases, { timeout: 15_000 }).toBe(withRsi);
     await toolbar.getByRole('button', { name: 'RSI' }).click();
     await expect.poll(canvases).toBe(before);
     await popup.keyboard.press('Escape');
@@ -108,13 +116,13 @@ test.describe.serial('3.5.0 새 기능 (실시간 거래소 API)', () => {
 
   test('보유 자산 기간별 손익: 지난 기록과 비교해 1·7·30일 손익을 보여 주고 오늘 칸을 기록한다', async ({ popup }) => {
     const day = (offset: number) => new Date(Date.now() + 9 * 3_600_000 - offset * 86_400_000).toISOString().slice(0, 10);
-    // 평단 1억 원 BTC 0.01개(원금 100만 원). 1일 전·8일 전·31일 전 기록(USD)을 넣어 둔다.
+    // 평단 1억 원 BTC 0.01개(원금 100만 원). 1일 전·8일 전·31일 전 기록(통화별 원래 금액)을 넣어 둔다.
     await setStorage(popup, {
       portfolio: [{ id: 'h', exchange: 'upbit', market: 'KRW-BTC', quantity: 0.01, avgPrice: 100_000_000 }],
       portfolioHistory: [
-        { d: day(31), v: 500, c: 700 },
-        { d: day(8), v: 600, c: 700 },
-        { d: day(1), v: 700, c: 700 },
+        { d: day(31), v: { KRW: 900_000 }, c: { KRW: 1_000_000 } },
+        { d: day(8), v: { KRW: 1_000_000 }, c: { KRW: 1_000_000 } },
+        { d: day(1), v: { KRW: 1_100_000 }, c: { KRW: 1_000_000 } },
       ],
     });
     await popup.reload();
@@ -141,8 +149,8 @@ test.describe.serial('3.5.0 새 기능 (실시간 거래소 API)', () => {
     });
     await worker.evaluate(() => chrome.alarms.create('portfolioSnapshot', { when: Date.now() + 100 }));
     await expect
-      .poll(async () => ((await getStorage(popup, 'portfolioHistory')) as { v: number }[] | undefined)?.[0]?.v ?? 0, { timeout: 15_000 })
-      .toBeGreaterThan(100);
+      .poll(async () => ((await getStorage(popup, 'portfolioHistory')) as { v: { KRW?: number } }[] | undefined)?.[0]?.v?.KRW ?? 0, { timeout: 15_000 })
+      .toBeGreaterThan(100_000);
     await worker.evaluate(() => chrome.alarms.create('portfolioSnapshot', { periodInMinutes: 60 }));
     await setStorage(popup, { portfolio: [], portfolioHistory: [] });
   });

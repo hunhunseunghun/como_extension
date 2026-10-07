@@ -50,8 +50,11 @@ export const estimateCryptoTax = (holdings: TaxHolding[]) => {
   };
 };
 
-// 보유 자산 일별 기록: 하루 한 칸(한국 시각 날짜), USD 기준 평가금액(v)·원금(c). 같은 날은 마지막 값으로 덮는다.
-export type PortfolioSnapshot = { d: string; v: number; c: number };
+// 보유 자산 일별 기록: 하루 한 칸(한국 시각 날짜). 평가금액(v)·원금(c)을 통화별 원래 금액으로 남긴다.
+// USD로 바꿔 두면 원화 원금이 매일 환율에 따라 달라져 매매가 없어도 손익이 생긴다(환율 효과가 섞임).
+export type Quote = 'KRW' | 'USD' | 'INR';
+export type Amounts = Partial<Record<Quote, number>>;
+export type PortfolioSnapshot = { d: string; v: Amounts; c: Amounts };
 export const HISTORY_MAX_DAYS = 400;
 
 export const kstDate = (time: number) => new Date(time + 9 * 3_600_000).toISOString().slice(0, 10);
@@ -59,11 +62,35 @@ export const kstDate = (time: number) => new Date(time + 9 * 3_600_000).toISOStr
 export const upsertSnapshot = (history: PortfolioSnapshot[], snapshot: PortfolioSnapshot) =>
   [...history.filter(item => item.d !== snapshot.d), snapshot].sort((a, b) => a.d.localeCompare(b.d)).slice(-HISTORY_MAX_DAYS);
 
-// days일 전(그날이 없으면 그 이전 가장 가까운 날) 대비 평가금액 변화. 원금이 바뀌었으면(추가 매수·매도) 원금 변화만큼 뺀다.
-export const periodChange = (history: PortfolioSnapshot[], today: string, days: number, current: { v: number; c: number }) => {
+// 통화별 금액을 화면 통화로 합친다(지금 환율). 하나라도 바꿀 수 없으면 null.
+export const sumIn = (amounts: Amounts, toDisplay: (amount: number, quote: Quote) => number | null) => {
+  let total = 0;
+  for (const [quote, amount] of Object.entries(amounts) as [Quote, number][]) {
+    const converted = toDisplay(amount, quote);
+    if (converted == null) return null;
+    total += converted;
+  }
+  return total;
+};
+
+// days일 전(그날이 없으면 그 이전 가장 가까운 날) 대비 손익. 통화마다 (평가금액 변화 - 원금 변화)를 구해 지금 환율로 합친다.
+export const periodChange = (
+  history: PortfolioSnapshot[],
+  today: string,
+  days: number,
+  current: { v: Amounts; c: Amounts },
+  toDisplay: (amount: number, quote: Quote) => number | null,
+) => {
   const target = kstDate(Date.parse(`${today}T00:00:00+09:00`) - days * 86_400_000);
   const base = [...history].reverse().find(item => item.d <= target);
-  if (!base || !(base.v > 0)) return null;
-  const change = current.v - base.v - (current.c - base.c);
-  return { change, rate: (change / base.v) * 100, from: base.d };
+  if (!base) return null;
+  const quotes = new Set([...Object.keys(current.v), ...Object.keys(base.v)] as Quote[]);
+  const delta: Amounts = {};
+  for (const quote of quotes) {
+    delta[quote] = (current.v[quote] ?? 0) - (base.v[quote] ?? 0) - ((current.c[quote] ?? 0) - (base.c[quote] ?? 0));
+  }
+  const change = sumIn(delta, toDisplay);
+  const baseValue = sumIn(base.v, toDisplay);
+  if (change == null || !baseValue || !(baseValue > 0)) return null;
+  return { change, rate: (change / baseValue) * 100, from: base.d };
 };

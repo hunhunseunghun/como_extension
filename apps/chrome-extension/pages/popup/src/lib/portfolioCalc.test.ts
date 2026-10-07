@@ -46,17 +46,26 @@ test('2027 과세: 의제취득가와 250만 원 공제, 22%', () => {
   assert.equal(estimateCryptoTax([]).tax, 0);
 });
 
-test('일별 기록: 같은 날은 덮고, 기간 손익은 원금 변화를 뺀다', async () => {
+test('일별 기록: 같은 날은 덮고, 기간 손익은 통화별로 원금 변화를 빼고 지금 환율로 합친다', async () => {
   const { upsertSnapshot, periodChange, kstDate } = await import('./portfolioCalc.ts');
   assert.equal(kstDate(Date.parse('2026-10-06T16:00:00Z')), '2026-10-07');
-  let history = upsertSnapshot([], { d: '2026-10-01', v: 1000, c: 800 });
-  history = upsertSnapshot(history, { d: '2026-10-06', v: 1100, c: 800 });
-  history = upsertSnapshot(history, { d: '2026-10-06', v: 1150, c: 800 });
+  let history = upsertSnapshot([], { d: '2026-10-01', v: { KRW: 1_000_000 }, c: { KRW: 800_000 } });
+  history = upsertSnapshot(history, { d: '2026-10-06', v: { KRW: 1_100_000 }, c: { KRW: 800_000 } });
+  history = upsertSnapshot(history, { d: '2026-10-06', v: { KRW: 1_150_000 }, c: { KRW: 800_000 } });
   assert.deepEqual(history.map(item => item.d), ['2026-10-01', '2026-10-06']);
-  // 1일 전(10/06) 대비: 1200 - 1150 = +50
-  assert.deepEqual(periodChange(history, '2026-10-07', 1, { v: 1200, c: 800 }), { change: 50, rate: (50 / 1150) * 100, from: '2026-10-06' });
-  // 7일 전 기록이 없으면(9/30 이전 없음) null, 6일 전은 10/01 기준
-  assert.equal(periodChange(history, '2026-10-07', 7, { v: 1200, c: 800 }), null);
-  // 그사이 200을 더 샀으면 그만큼 빼고 본다: 1400 - 1000 - 200 = +200
-  assert.equal(periodChange(history, '2026-10-07', 6, { v: 1400, c: 1000 })!.change, 200);
+  const krw = (amount: number, quote: string) => (quote === 'KRW' ? amount : quote === 'USD' ? amount * 1_400 : null);
+  // 1일 전(10/06) 대비 +50,000원. 원화만 있으면 환율과 상관없다.
+  assert.deepEqual(periodChange(history, '2026-10-07', 1, { v: { KRW: 1_200_000 }, c: { KRW: 800_000 } }, krw), {
+    change: 50_000,
+    rate: (50_000 / 1_150_000) * 100,
+    from: '2026-10-06',
+  });
+  // 7일 전 기록이 없으면 null, 6일 전은 10/01 기준. 그사이 20만 원을 더 샀으면 그만큼 뺀다: 140만 - 100만 - 20만 = +20만
+  assert.equal(periodChange(history, '2026-10-07', 7, { v: { KRW: 1_200_000 }, c: { KRW: 800_000 } }, krw), null);
+  assert.equal(periodChange(history, '2026-10-07', 6, { v: { KRW: 1_400_000 }, c: { KRW: 1_000_000 } }, krw)!.change, 200_000);
+  // 달러 보유분은 달러로 변화를 구해 지금 환율로 바꾼다: (+$10) × 1,400
+  const mixed = [{ d: '2026-10-06', v: { KRW: 1_000_000, USD: 100 }, c: { KRW: 1_000_000, USD: 100 } }];
+  assert.equal(periodChange(mixed, '2026-10-07', 1, { v: { KRW: 1_000_000, USD: 110 }, c: { KRW: 1_000_000, USD: 100 } }, krw)!.change, 14_000);
+  // 바꿀 수 없는 통화가 있으면 null
+  assert.equal(periodChange([{ d: '2026-10-06', v: { INR: 1 }, c: { INR: 1 } }], '2026-10-07', 1, { v: { INR: 2 }, c: { INR: 1 } }, krw), null);
 });
