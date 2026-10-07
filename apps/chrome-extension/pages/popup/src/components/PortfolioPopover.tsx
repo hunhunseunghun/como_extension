@@ -19,6 +19,7 @@ import { ShareButton } from '@/components/ShareButton';
 import type { SyncExchange, SyncedHolding } from '@/components/AccountSync';
 import { HoverHint } from '@/components/ui/hoverHint';
 import { IconButton } from '@/components/ui/iconButton';
+import { PortfolioHistory } from '@/components/PortfolioHistory';
 
 // source: 거래소 API로 불러온 항목('upbit-api' 등). 다시 동기화하면 같은 source 항목만 바꾼다.
 type Holding = {
@@ -183,6 +184,7 @@ export const PortfolioPopover = () => {
             </span>
           </div>
           {totals.incomplete && <div className="text-cap-s text-fg-faint">{t('portfolioIncomplete')}</div>}
+          <PortfolioHistory value={totals.value} cost={totals.cost} complete={!totals.incomplete && rows.length > 0} />
           <div className="flex justify-end">
             <ShareButton
               disabled={!rows.length || totals.cost <= 0}

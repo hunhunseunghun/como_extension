@@ -343,6 +343,8 @@ const App = () => {
 
   return (
     <MarketContext.Provider value={marketContext}>
+      {/* 입출금 상태는 시세 표와 인사이트(김프 차익 계산기)가 함께 쓴다. */}
+      <WalletStatusContext.Provider value={walletStatus}>
       <ChartProvider>
         <ThemeProvider defaultTheme="system" storageKey="como-ui-theme">
           <div
@@ -483,7 +485,6 @@ const App = () => {
                 className={`overflow-y-scroll overflow-x-hidden light-scrollbar dark-scrollbar ${isSidePanel ? '' : wideSize ? 'h-[500px]' : 'h-[330px]'}`}
                 style={isSidePanel ? { height: panelSize.height - 100 } : undefined}>
                 <div style={{ height: `${virtualizer.getTotalSize()}px` }}>
-                  <WalletStatusContext.Provider value={walletStatus}>
                   <Table className="table-fixed text-body-s w-full">
                     <TableBody>
                       {!hasExchangePermission ? (
@@ -588,7 +589,6 @@ const App = () => {
                       )}
                     </TableBody>
                   </Table>
-                  </WalletStatusContext.Provider>
                 </div>
               </div>
               {updatedVersion ? (
@@ -607,6 +607,7 @@ const App = () => {
           </div>
         </ThemeProvider>
       </ChartProvider>
+      </WalletStatusContext.Provider>
     </MarketContext.Provider>
   );
 };

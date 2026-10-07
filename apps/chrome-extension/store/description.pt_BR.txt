@@ -35,9 +35,9 @@ A interface segue o idioma do seu navegador, e você pode trocá-lo a qualquer m
 🔒 Privacidade
 Por padrão, o COMO lê apenas dados públicos de mercado das APIs das corretoras e de cotações. Ele não lê as páginas que você visita, e suas configurações, alertas e carteira ficam no seu navegador. Não é preciso criar conta nem fazer login. A sincronização de conta opcional usa uma chave de API somente leitura que você informa; a chave fica salva apenas no seu navegador e é enviada apenas para essa corretora.
 
-Novidades da versão 3.4.0
-• Alertas de alta e queda em 1, 5 e 15 minutos (alta, queda ou ambas)
-• Alertas de negociações individuais grandes e de variações bruscas dos contratos em aberto em futuros
-• Motivos dos alertas do mercado coreano em cada moeda com notificações, e mais um canal de avisos de corretora
-• Horário silencioso: os alertas desse período são resumidos ao terminar
-• Calculadora de preço médio e equilíbrio, prévia do imposto cripto 2027 da Coreia, coluna de queda desde o ATH e índice de altseason
+Novidades da versão 3.5.0
+• Histórico de alertas: veja todos de novo, inclusive os retidos no horário silencioso
+• Indicadores no gráfico (médias móveis, Bollinger, RSI) e marcas em velas grandes com notícias do momento
+• Calendário econômico (FOMC, CPI e mais) com aviso opcional 30 minutos antes
+• Calculadora de arbitragem do prêmio kimchi com taxas e custos de saque
+• Resultado da carteira em 1, 7 e 30 dias, e status de depósitos e saques com conta coreana vinculada

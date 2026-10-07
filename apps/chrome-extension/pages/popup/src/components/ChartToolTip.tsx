@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import type { IChartApi, ISeriesApi } from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, ISeriesMarkersPluginApi, Time } from 'lightweight-charts';
 
 // 차트 라이브러리는 차트를 처음 열 때만 불러와 팝업 초기 번들을 줄인다.
 let chartLibPromise: Promise<typeof import('lightweight-charts')> | null = null;
@@ -8,8 +8,19 @@ import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { useChartData } from '@/hooks/useChartData';
-import { useI18n } from '@/i18n';
+import { useI18n, type MessageKey } from '@/i18n';
 import type { ExchangePlatform } from '@/types';
+import { useStoredValue } from '@/hooks/useStoredFlag';
+import { bigMoves, bollinger, newsNear, rsi, sma, timeframeSeconds, type BigMove, type Candle, type NewsItem } from '@/lib/indicators';
+import { loadGrantedNews } from '@/lib/news';
+
+// 보조지표 켜기·끄기(모든 차트에 같이 적용, 저장해 둔다)
+type Indicators = { ma: boolean; bb: boolean; rsi: boolean };
+const DEFAULT_INDICATORS: Indicators = { ma: false, bb: false, rsi: false };
+const INDICATOR_KEYS = ['ma', 'bb', 'rsi'] as const;
+const INDICATOR_LABEL: Record<(typeof INDICATOR_KEYS)[number], string> = { ma: 'MA', bb: 'BB', rsi: 'RSI' };
+const coinOfSymbol = (symbol?: string) =>
+  !symbol ? '' : symbol.includes('-') ? symbol.split('-')[1] : symbol.replace(/(USDT|USDC|USD|INR|BTC)$/, '');
 
 interface ChartTooltipProps {
   children: React.ReactNode;
@@ -128,6 +139,16 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  // 보조지표 선(이름 → 시리즈)과 급등락 표시
+  const overlayRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map());
+  const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const movesRef = useRef<BigMove[]>([]);
+  const newsRef = useRef<NewsItem[]>([]);
+  const [indicators, setIndicators] = useStoredValue<Indicators>('chartIndicators', DEFAULT_INDICATORS);
+  const [hoverMove, setHoverMove] = useState<{ move: BigMove; news: NewsItem[] } | null>(null);
+  // 마우스 이벤트 처리기는 차트를 만들 때 한 번 붙이므로 최신 값은 ref로 읽는다.
+  const hoverContextRef = useRef({ keywords: [coinOfSymbol(symbol)], interval: timeframeSeconds(timeframe) });
+  hoverContextRef.current = { keywords: [coinOfSymbol(symbol)], interval: timeframeSeconds(timeframe) };
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
@@ -144,6 +165,9 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     chartRef.current?.remove();
     chartRef.current = null;
     seriesRef.current = null;
+    overlayRef.current.clear();
+    markersRef.current = null;
+    setHoverMove(null);
     setPosition(null);
   }, [cancel, setActiveChart]);
 
@@ -191,6 +215,82 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
       prev && prev.left === newLeft && prev.top === adjustedTop ? prev : { left: newLeft, top: adjustedTop },
     );
   }, []);
+
+  // 보조지표와 급등락 표시를 다시 그린다. 지표를 켜고 끌 때도 부른다.
+  const applyOverlays = useCallback(async () => {
+    const chart = chartRef.current;
+    const candleSeries = seriesRef.current;
+    if (!chart || !candleSeries || !chartData.length) return;
+    const { LineSeries, createSeriesMarkers } = await loadChartLib();
+    const candles = chartData as unknown as Candle[];
+    const rootStyle = getComputedStyle(document.documentElement);
+    const token = (name: string, fallback: string) => rootStyle.getPropertyValue(name).trim() || fallback;
+    const lines = overlayRef.current;
+    const setLine = (name: string, data: { time: number; value: number }[], options: Record<string, unknown>, pane = 0) => {
+      let line = lines.get(name);
+      if (!line) {
+        line = chart.addSeries(
+          LineSeries,
+          { lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, ...options },
+          pane,
+        );
+        lines.set(name, line);
+      }
+      line.setData(data as { time: Time; value: number }[]);
+    };
+    const dropLine = (name: string) => {
+      const line = lines.get(name);
+      if (line) chart.removeSeries(line);
+      lines.delete(name);
+    };
+    if (indicators.ma) {
+      setLine('ma20', sma(candles, 20), { color: token('--como-chart-ma1', '#f59e0b') });
+      setLine('ma60', sma(candles, 60), { color: token('--como-chart-ma2', '#a855f7') });
+    } else {
+      dropLine('ma20');
+      dropLine('ma60');
+    }
+    if (indicators.bb) {
+      const band = bollinger(candles, 20, 2);
+      const color = token('--como-chart-band', 'rgba(120, 144, 156, 0.9)');
+      setLine('bbUpper', band.upper, { color, lineStyle: 2 });
+      setLine('bbLower', band.lower, { color, lineStyle: 2 });
+    } else {
+      dropLine('bbUpper');
+      dropLine('bbLower');
+    }
+    if (indicators.rsi) {
+      setLine('rsi', rsi(candles, 14), { color: token('--como-chart-rsi', '#14b8a6'), priceFormat: { type: 'price', precision: 0, minMove: 1 } }, 1);
+      const rsiLine = lines.get('rsi')!;
+      if (!rsiLine.priceLines().length) {
+        const guide = token('--como-chart-grid', '#888888');
+        rsiLine.createPriceLine({ price: 70, color: guide, lineStyle: 2, lineWidth: 1, axisLabelVisible: false });
+        rsiLine.createPriceLine({ price: 30, color: guide, lineStyle: 2, lineWidth: 1, axisLabelVisible: false });
+      }
+      chart.panes()[1]?.setHeight(Math.round(TOOLTIP_HEIGHT * 0.3));
+    } else {
+      dropLine('rsi');
+    }
+    // 급등락 봉 표시(평소보다 크게 움직인 봉 최대 3개)
+    const moves = bigMoves(candles);
+    movesRef.current = moves;
+    // 근처 뉴스는 권한을 켠 피드만, 5분 캐시(lib/news)
+    if (moves.length) loadGrantedNews().then(items => (newsRef.current = items));
+    const markers = moves.map(move => ({
+      time: move.time as Time,
+      position: move.change >= 0 ? ('aboveBar' as const) : ('belowBar' as const),
+      shape: move.change >= 0 ? ('arrowDown' as const) : ('arrowUp' as const),
+      color: move.change >= 0 ? token('--como-up', '#ef4444') : token('--como-down', '#3b82f6'),
+      text: `${move.change >= 0 ? '+' : ''}${move.change.toFixed(1)}%`,
+    }));
+    if (markersRef.current) markersRef.current.setMarkers(markers);
+    else markersRef.current = createSeriesMarkers(candleSeries, markers);
+  }, [chartData, indicators]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 지표 설정이 바뀌면 열린 차트에 바로 반영한다.
+  useEffect(() => {
+    if (isOpen && chartRef.current) applyOverlays();
+  }, [indicators, isOpen, applyOverlays]);
 
   const renderChart = useCallback(async () => {
     if (!chartData.length) return;
@@ -243,6 +343,12 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
         handleScroll: true,
         handleScale: true,
       });
+      // 급등락 봉에 마우스를 올리면 그 시각 근처 뉴스를 보여 준다(뉴스 권한을 켠 경우).
+      chartRef.current.subscribeCrosshairMove(param => {
+        const move = movesRef.current.find(item => item.time === Number(param.time));
+        const { keywords, interval } = hoverContextRef.current;
+        setHoverMove(move ? { move, news: newsNear(newsRef.current, move, interval, keywords).slice(0, 2) } : null);
+      });
       seriesRef.current = chartRef.current.addSeries(CandlestickSeries, {
         upColor,
         downColor,
@@ -253,6 +359,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     }
 
     seriesRef.current!.setData(chartData);
+    await applyOverlays();
     const config = getTimeframeConfig(timeframe);
     chartRef.current!.applyOptions({
       localization: {
@@ -264,8 +371,8 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
         secondsVisible: config.secondsVisible,
       },
     });
-    chartRef.current.timeScale().fitContent();
-  }, [chartData]);
+    chartRef.current?.timeScale().fitContent();
+  }, [chartData]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   useEffect(() => {
@@ -321,6 +428,9 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
       chartRef.current?.remove();
       chartRef.current = null;
       seriesRef.current = null;
+      overlayRef.current.clear();
+      markersRef.current = null;
+      setHoverMove(null);
       setPosition(null);
     }
   }, [activeChart, symbol, isOpen, cancel]);
@@ -337,6 +447,54 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
           className="chart-container w-full h-full"
           style={{ display: chartData.length && !loading && !error ? 'block' : 'none' }}
         />
+        {chartData.length > 0 && !loading && !error && (
+          <div className="absolute left-1.5 top-1 z-10 flex gap-0.5" data-testid="chart-indicators">
+            {INDICATOR_KEYS.map(key => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={indicators[key]}
+                title={t(`indicator_${key}` as MessageKey)}
+                onMouseDown={event => event.stopPropagation()}
+                onClick={event => {
+                  event.stopPropagation();
+                  setIndicators({ ...indicators, [key]: !indicators[key] });
+                }}
+                className={cn(
+                  'rounded px-1 text-[10px] leading-4 hover:cursor-pointer',
+                  indicators[key]
+                    ? 'bg-chart-fg text-chart'
+                    : 'border border-(--como-chart-panel-border) bg-chart/70 text-chart-fg-muted',
+                )}>
+                {INDICATOR_LABEL[key]}
+              </button>
+            ))}
+          </div>
+        )}
+        {hoverMove && (
+          <div
+            className="absolute inset-x-1 bottom-1 z-10 truncate rounded bg-chart/90 px-1.5 py-0.5 text-[10px] leading-4 text-chart-fg"
+            data-testid="chart-move">
+            <span className={hoverMove.move.change >= 0 ? 'text-up' : 'text-down'}>
+              {hoverMove.move.change >= 0 ? '▲ +' : '▼ '}
+              {hoverMove.move.change.toFixed(1)}%
+            </span>{' '}
+            {hoverMove.news.length ? (
+              hoverMove.news.map(item => (
+                <button
+                  key={item.link}
+                  type="button"
+                  className="block w-full truncate text-left hover:cursor-pointer hover:underline"
+                  onMouseDown={event => event.stopPropagation()}
+                  onClick={() => item.link.startsWith('http') && chrome.tabs.create({ url: item.link })}>
+                  {item.title}
+                </button>
+              ))
+            ) : (
+              <span className="text-chart-fg-muted">{t('chartMoveNoNews')}</span>
+            )}
+          </div>
+        )}
         {(loading || error || !chartData.length) && (
           <div className="w-full h-full flex items-center justify-center text-chart-fg">
             {loading && (
@@ -359,7 +517,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
         )}
       </div>
     ),
-    [position, chartData, loading, error, fetchData, wideSize, t],
+    [position, chartData, loading, error, fetchData, wideSize, t, indicators, setIndicators, hoverMove],
   );
 
   return (

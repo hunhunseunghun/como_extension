@@ -49,3 +49,21 @@ export const estimateCryptoTax = (holdings: TaxHolding[]) => {
     tax: Math.round(taxable * TAX_RATE),
   };
 };
+
+// 보유 자산 일별 기록: 하루 한 칸(한국 시각 날짜), USD 기준 평가금액(v)·원금(c). 같은 날은 마지막 값으로 덮는다.
+export type PortfolioSnapshot = { d: string; v: number; c: number };
+export const HISTORY_MAX_DAYS = 400;
+
+export const kstDate = (time: number) => new Date(time + 9 * 3_600_000).toISOString().slice(0, 10);
+
+export const upsertSnapshot = (history: PortfolioSnapshot[], snapshot: PortfolioSnapshot) =>
+  [...history.filter(item => item.d !== snapshot.d), snapshot].sort((a, b) => a.d.localeCompare(b.d)).slice(-HISTORY_MAX_DAYS);
+
+// days일 전(그날이 없으면 그 이전 가장 가까운 날) 대비 평가금액 변화. 원금이 바뀌었으면(추가 매수·매도) 원금 변화만큼 뺀다.
+export const periodChange = (history: PortfolioSnapshot[], today: string, days: number, current: { v: number; c: number }) => {
+  const target = kstDate(Date.parse(`${today}T00:00:00+09:00`) - days * 86_400_000);
+  const base = [...history].reverse().find(item => item.d <= target);
+  if (!base || !(base.v > 0)) return null;
+  const change = current.v - base.v - (current.c - base.c);
+  return { change, rate: (change / base.v) * 100, from: base.d };
+};

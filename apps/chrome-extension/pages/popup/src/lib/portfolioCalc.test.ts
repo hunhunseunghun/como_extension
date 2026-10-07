@@ -45,3 +45,18 @@ test('2027 과세: 의제취득가와 250만 원 공제, 22%', () => {
   assert.equal(mixed.tax, 110_000);
   assert.equal(estimateCryptoTax([]).tax, 0);
 });
+
+test('일별 기록: 같은 날은 덮고, 기간 손익은 원금 변화를 뺀다', async () => {
+  const { upsertSnapshot, periodChange, kstDate } = await import('./portfolioCalc.ts');
+  assert.equal(kstDate(Date.parse('2026-10-06T16:00:00Z')), '2026-10-07');
+  let history = upsertSnapshot([], { d: '2026-10-01', v: 1000, c: 800 });
+  history = upsertSnapshot(history, { d: '2026-10-06', v: 1100, c: 800 });
+  history = upsertSnapshot(history, { d: '2026-10-06', v: 1150, c: 800 });
+  assert.deepEqual(history.map(item => item.d), ['2026-10-01', '2026-10-06']);
+  // 1일 전(10/06) 대비: 1200 - 1150 = +50
+  assert.deepEqual(periodChange(history, '2026-10-07', 1, { v: 1200, c: 800 }), { change: 50, rate: (50 / 1150) * 100, from: '2026-10-06' });
+  // 7일 전 기록이 없으면(9/30 이전 없음) null, 6일 전은 10/01 기준
+  assert.equal(periodChange(history, '2026-10-07', 7, { v: 1200, c: 800 }), null);
+  // 그사이 200을 더 샀으면 그만큼 빼고 본다: 1400 - 1000 - 200 = +200
+  assert.equal(periodChange(history, '2026-10-07', 6, { v: 1400, c: 1000 })!.change, 200);
+});

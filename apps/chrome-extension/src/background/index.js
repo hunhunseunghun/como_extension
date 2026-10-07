@@ -10,6 +10,8 @@ import { diffMarketEvents, summarizeMarketEvents } from './lib/marketWarning.js'
 import { altseasonCandidates, altseasonIndex, klineReturn, openInterestChange } from './lib/derivatives.js';
 import { matchesWhaleRule, parseBinanceAggTrade, parseUpbitTrade } from './lib/whale.js';
 import { alertText } from './lib/texts.js';
+import { parseEconCalendar, upcomingEvents } from './lib/econ.js';
+import { kstDate, portfolioValueUsd, upsertSnapshot } from './lib/portfolioHistory.js';
 
 // 초기 설정 및 전역 변수
 const allExchangesTickers = {
@@ -91,12 +93,27 @@ chrome.alarms.onAlarm.addListener(alarm => {
 
 // 알림은 모두 이걸로 띄운다. 조용한 모드에서는 소리 없이, 방해 금지 시간에는 띄우지 않고 모아 둔다.
 const createNotification = (id, options) => {
-  if (isInQuietHours(quietHours, new Date())) {
+  const muted = isInQuietHours(quietHours, new Date());
+  recordAlert(id, options, muted);
+  if (muted) {
     rememberMissed(options.title);
     return;
   }
   chrome.notifications.create(id, { ...options, silent: quietMode });
 };
+
+// 알림 기록함: OS 알림을 놓쳐도 팝업에서 다시 볼 수 있게 최근 200건을 남긴다(방해 금지로 띄우지 않은 것도 포함).
+const ALERT_HISTORY_KEY = 'alertHistory';
+const ALERT_HISTORY_MAX = 200;
+let alertHistoryQueue = Promise.resolve();
+function recordAlert(id, options, muted) {
+  const entry = { id, title: options.title, message: options.message, time: Date.now(), ...(muted ? { muted: true } : {}) };
+  alertHistoryQueue = alertHistoryQueue.then(async () => {
+    const result = await chrome.storage.local.get(ALERT_HISTORY_KEY);
+    const list = [entry, ...(result[ALERT_HISTORY_KEY] ?? [])].slice(0, ALERT_HISTORY_MAX);
+    await chrome.storage.local.set({ [ALERT_HISTORY_KEY]: list });
+  });
+}
 
 // 지정가 알림 관련 함수
 // 웹소켓 틱마다 storage를 읽지 않도록 알림 설정을 메모리에 캐시하고 storage 변경 시 동기화한다.
@@ -217,16 +234,21 @@ const getTradeUrl = (exchange, market) => {
   }
 };
 
-chrome.notifications.onClicked.addListener(notificationId => {
-  // 공지 알림: notice:<거래소>:<공지 id>
+// 알림 id로 열 페이지. 알림을 누를 때와 알림 기록함에서 누를 때 같이 쓴다.
+//   notice:<거래소>:<공지 id> → 공지, econ:<일정 id> → 없음, <거래소>:<마켓>:... → 거래 화면
+const alertTargetUrl = notificationId => {
   if (notificationId.startsWith('notice:')) {
     const [, exchange, id] = notificationId.split(':');
-    if (exchange === 'upbit') chrome.tabs.create({ url: `https://upbit.com/service_center/notice?id=${id}` });
-    chrome.notifications.clear(notificationId);
-    return;
+    if (exchange === 'upbit') return `https://upbit.com/service_center/notice?id=${id}`;
+    if (exchange === 'bithumb') return `https://feed.bithumb.com/notice/${id}`;
+    return null;
   }
   const [exchange, market] = notificationId.split(':');
-  const url = market && getTradeUrl(exchange, market);
+  return (market && getTradeUrl(exchange, market)) || null;
+};
+
+chrome.notifications.onClicked.addListener(notificationId => {
+  const url = alertTargetUrl(notificationId);
   if (url) chrome.tabs.create({ url });
   chrome.notifications.clear(notificationId);
 });
@@ -552,6 +574,75 @@ async function checkMarketWarnings() {
   }
 }
 
+// 경제 일정: 이번 주 미국 고영향 지표(FOMC·CPI 등). 선택 권한이라 트렌드 탭에서 켤 때 허락받는다.
+// 1시간마다 받아 두고(요청 한도), 'econAlerts'를 켰으면 발표 30분 전에 한 번 알린다.
+const ECON_ORIGIN = 'https://nfs.faireconomy.media/*';
+const ECON_EVENTS_KEY = 'econEvents';
+const ECON_ALERTED_KEY = 'econAlerted';
+const ECON_LEAD_MS = 30 * 60_000;
+async function refreshEconCalendar() {
+  try {
+    if (!(await chrome.permissions.contains({ origins: [ECON_ORIGIN] }))) return;
+    const events = parseEconCalendar(await fetchJson('https://nfs.faireconomy.media/ff_calendar_thisweek.json'));
+    if (events.length) await chrome.storage.local.set({ [ECON_EVENTS_KEY]: { events, updatedAt: Date.now() } });
+  } catch (error) {
+    console.warn(error);
+  }
+}
+async function checkEconAlerts() {
+  const result = await chrome.storage.local.get(['econAlerts', ECON_EVENTS_KEY, ECON_ALERTED_KEY]);
+  if (!result.econAlerts) return;
+  const events = result[ECON_EVENTS_KEY]?.events ?? [];
+  const now = Date.now();
+  // 지난 일정의 알림 기록은 정리한다.
+  const alerted = (result[ECON_ALERTED_KEY] ?? []).filter(id => events.some(item => item.id === id && item.time > now - 86_400_000));
+  const soon = upcomingEvents(events, now, ECON_LEAD_MS, alerted);
+  const language = getLanguage();
+  soon.forEach(item => {
+    const minutes = Math.max(1, Math.round((item.time - now) / 60_000));
+    const detail = [item.forecast && `F ${item.forecast}`, item.previous && `P ${item.previous}`].filter(Boolean).join(' · ');
+    createNotification(`econ:${item.id}`, {
+      type: 'basic',
+      iconUrl: 'como-logo.png',
+      title: `${alertText(language, 'econSoon', { n: minutes })} · ${item.title}`,
+      message: `${item.country}${detail ? ` · ${detail}` : ''}`,
+    });
+  });
+  if (soon.length || alerted.length !== (result[ECON_ALERTED_KEY] ?? []).length) {
+    await chrome.storage.local.set({ [ECON_ALERTED_KEY]: [...alerted, ...soon.map(item => item.id)] });
+  }
+}
+chrome.alarms.create('econCalendar', { periodInMinutes: 60 });
+chrome.alarms.create('econCheck', { periodInMinutes: 5 });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'econCalendar') refreshEconCalendar();
+  if (alarm.name === 'econCheck') checkEconAlerts();
+});
+chrome.permissions.onAdded.addListener(permissions => {
+  if (permissions.origins?.includes(ECON_ORIGIN)) refreshEconCalendar();
+});
+
+// 보유 자산 일별 기록: 1시간마다 오늘 칸을 덮어 쓴다(팝업이 열려 있으면 팝업도 기록한다).
+// 원화는 팝업 합계와 같은 고시 환율, 루피는 법정화폐 환율로 USD로 바꾼다. 가격이 비면 그 시각은 건너뛴다.
+const PORTFOLIO_HISTORY_KEY = 'portfolioHistory';
+async function snapshotPortfolio() {
+  const result = await chrome.storage.local.get(['portfolio', PORTFOLIO_HISTORY_KEY]);
+  const holdings = (result.portfolio ?? []).filter(holding => holding.quantity > 0);
+  const fiat = polledData.find(data => data.type === 'fiatRates')?.value;
+  const value = portfolioValueUsd(
+    holdings,
+    (exchange, market) => allExchangesTickers[exchange]?.[market]?.currentPrice,
+    { KRW: exchangeRateManager.exchangeRateUSD || liveUsdKrw, INR: fiat?.INR },
+  );
+  if (!value) return;
+  const history = upsertSnapshot(result[PORTFOLIO_HISTORY_KEY] ?? [], { d: kstDate(Date.now()), ...value });
+  await chrome.storage.local.set({ [PORTFOLIO_HISTORY_KEY]: history });
+}
+chrome.alarms.create('portfolioSnapshot', { periodInMinutes: 60, delayInMinutes: 2 });
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === 'portfolioSnapshot') snapshotPortfolio().catch(console.warn);
+});
+
 chrome.alarms.create('noticeCheck', { periodInMinutes: 2 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'noticeCheck') {
@@ -791,6 +882,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.action === 'getWhaleFeed') {
     sendResponse(whaleFeed);
+  }
+  if (message.action === 'refreshEcon') {
+    refreshEconCalendar().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (message.action === 'openAlertTarget') {
+    const url = alertTargetUrl(String(message.id ?? ''));
+    if (url) chrome.tabs.create({ url });
+    sendResponse({ opened: !!url });
   }
   if (message.action === 'syncExchangeAccount') {
     syncExchangeAccount(message.exchange).then(sendResponse);
@@ -2135,6 +2235,7 @@ setInterval(() => Object.values(exchanges).forEach(exchange => exchange.checkSta
 setInterval(() => Object.values(exchanges).forEach(exchange => exchange.refreshMarkets().catch(console.warn)), 30 * 60_000);
 
 // 주기적으로 받아오는 부가 데이터(법정화폐 환율, 시장 지표). 팝업이 연결되면 마지막 값을 바로 보낸다.
+const POLL_RETRY_MS = 2 * 60_000;
 class PolledData {
   constructor(type, intervalMs, load) {
     this.type = type;
@@ -2146,11 +2247,20 @@ class PolledData {
   async refresh() {
     try {
       const value = await this.load();
-      if (!value) return;
-      this.value = value;
-      this.post(activePort);
+      if (value) {
+        this.value = value;
+        this.post(activePort);
+        return;
+      }
     } catch (error) {
       console.warn(error);
+    }
+    // 아직 한 번도 받지 못했는데 실패하면(요청 한도 429 등) 다음 주기(최대 1시간)까지 비워 두지 않고 2분 뒤 다시 받는다.
+    if (!this.value && this.intervalMs > POLL_RETRY_MS && !this.retryTimer) {
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = null;
+        this.refresh();
+      }, POLL_RETRY_MS);
     }
   }
 
@@ -2172,14 +2282,23 @@ const fetchJson = async url => {
 
 const polledData = [
   // 입출금이 멈춘 코인. 빗썸만 공개 API로 준다(업비트는 인증이 필요하다). 멈춘 코인만 보내 메시지를 작게 둔다.
+  // 업비트는 인증이 필요해 거래소 계정 연동(읽기 전용 키)을 한 사용자에게만 보여 준다.
   new PolledData('walletStatus', 10 * 60 * 1000, async () => {
-    const { status, data } = await fetchJson('https://api.bithumb.com/public/assetsstatus/ALL');
-    if (status !== '0000' || !data) return null;
-    const bithumb = {};
-    for (const [coin, { deposit_status: deposit, withdrawal_status: withdraw }] of Object.entries(data)) {
-      if (deposit !== 1 || withdraw !== 1) bithumb[coin] = { deposit: deposit === 1, withdraw: withdraw === 1 };
+    const [bithumbResult, upbitResult] = await Promise.allSettled([
+      fetchJson('https://api.bithumb.com/public/assetsstatus/ALL'),
+      loadUpbitWalletStatus(),
+    ]);
+    const result = {};
+    const { status, data } = bithumbResult.value ?? {};
+    if (status === '0000' && data) {
+      const bithumb = {};
+      for (const [coin, { deposit_status: deposit, withdrawal_status: withdraw }] of Object.entries(data)) {
+        if (deposit !== 1 || withdraw !== 1) bithumb[coin] = { deposit: deposit === 1, withdraw: withdraw === 1 };
+      }
+      result.bithumb = bithumb;
     }
-    return { bithumb };
+    if (upbitResult.value) result.upbit = upbitResult.value;
+    return Object.keys(result).length ? result : null;
   }),
   // USD 기준 166개 법정화폐 환율
   new PolledData('fiatRates', 6 * 60 * 60 * 1000, async () => {
@@ -2483,14 +2602,35 @@ async function assertBinanceReadOnly({ apiKey, secretKey }) {
   if (dangerous.some(key => data?.[key] === true)) throw new AccountSyncError('tradeKey');
 }
 
+// 업비트 인증 헤더: JWT(HS256) { access_key, nonce }. 쿼리가 없는 조회 API에 쓴다.
+async function upbitAuthHeader({ accessKey, secretKey }) {
+  const header = base64Url(encoder.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+  const payload = base64Url(encoder.encode(JSON.stringify({ access_key: accessKey, nonce: crypto.randomUUID() })));
+  const signature = base64Url(await hmacSha256(secretKey, `${header}.${payload}`));
+  return `Bearer ${header}.${payload}.${signature}`;
+}
+
+// 업비트 입출금 상태(연동 키가 있을 때만). 정상(working)이 아닌 코인만 { deposit, withdraw }로 돌려준다.
+async function loadUpbitWalletStatus() {
+  const keys = await loadAccountKeys('upbit');
+  if (!keys) return null;
+  const response = await fetch('https://api.upbit.com/v1/status/wallet', {
+    headers: { Authorization: await upbitAuthHeader(keys), Accept: 'application/json' },
+  });
+  if (!response.ok) return null;
+  const upbit = {};
+  for (const { currency, wallet_state: state } of await response.json()) {
+    if (state === 'working' || !currency) continue;
+    upbit[currency] = { deposit: state === 'deposit_only', withdraw: state === 'withdraw_only' };
+  }
+  return upbit;
+}
+
 const ACCOUNT_LOADERS = {
-  // 업비트: JWT(HS256) { access_key, nonce }. 평균 매수가(avg_buy_price)를 함께 준다.
-  async upbit({ accessKey, secretKey }) {
-    const header = base64Url(encoder.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
-    const payload = base64Url(encoder.encode(JSON.stringify({ access_key: accessKey, nonce: crypto.randomUUID() })));
-    const signature = base64Url(await hmacSha256(secretKey, `${header}.${payload}`));
+  // 업비트: 평균 매수가(avg_buy_price)를 함께 준다.
+  async upbit(keys) {
     const response = await fetch('https://api.upbit.com/v1/accounts', {
-      headers: { Authorization: `Bearer ${header}.${payload}.${signature}`, Accept: 'application/json' },
+      headers: { Authorization: await upbitAuthHeader(keys), Accept: 'application/json' },
     });
     const data = await response.json();
     if (!response.ok) {
@@ -2536,6 +2676,8 @@ async function syncExchangeAccount(exchange) {
   if (!keys || !ACCOUNT_LOADERS[exchange]) return { ok: false, code: 'noKeys' };
   try {
     const holdings = await ACCOUNT_LOADERS[exchange](keys);
+    // 업비트 키가 새로 생겼으면 입출금 상태도 바로 받아 둔다.
+    if (exchange === 'upbit') polledData.find(data => data.type === 'walletStatus')?.refresh();
     // 평균 매수가가 없으면 지금 가격으로 두고 avgEstimated로 표시한다. 팝업은 이미 있던 평균가를 유지한다.
     return {
       ok: true,

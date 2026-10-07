@@ -3,6 +3,7 @@
 
 export const ALERT_TEXT = {
   ko: {
+    econSoon: '{n}분 후 발표',
     quietSummary: '방해 금지 시간 동안 알림 {n}건',
     surgeUp: '{n}분 급등',
     surgeDown: '{n}분 급락',
@@ -19,6 +20,7 @@ export const ALERT_TEXT = {
     whaleSell: '대량 매도 체결',
   },
   en: {
+    econSoon: 'Due in {n} min',
     quietSummary: '{n} alerts during quiet hours',
     surgeUp: '{n}-min surge',
     surgeDown: '{n}-min drop',
@@ -35,6 +37,7 @@ export const ALERT_TEXT = {
     whaleSell: 'Large sell',
   },
   es: {
+    econSoon: 'En {n} min',
     quietSummary: '{n} alertas durante las horas silenciosas',
     surgeUp: 'Subida en {n} min',
     surgeDown: 'Caída en {n} min',
@@ -51,6 +54,7 @@ export const ALERT_TEXT = {
     whaleSell: 'Venta grande',
   },
   pt: {
+    econSoon: 'Em {n} min',
     quietSummary: '{n} alertas durante o horário silencioso',
     surgeUp: 'Alta em {n} min',
     surgeDown: 'Queda em {n} min',
@@ -67,6 +71,7 @@ export const ALERT_TEXT = {
     whaleSell: 'Venda grande',
   },
   vi: {
+    econSoon: 'Còn {n} phút',
     quietSummary: '{n} cảnh báo trong giờ yên lặng',
     surgeUp: 'Tăng mạnh trong {n} phút',
     surgeDown: 'Giảm mạnh trong {n} phút',
@@ -83,6 +88,7 @@ export const ALERT_TEXT = {
     whaleSell: 'Lệnh bán lớn',
   },
   tr: {
+    econSoon: '{n} dk sonra',
     quietSummary: 'Sessiz saatlerde {n} uyarı',
     surgeUp: '{n} dk içinde sert yükseliş',
     surgeDown: '{n} dk içinde sert düşüş',
@@ -99,6 +105,7 @@ export const ALERT_TEXT = {
     whaleSell: 'Büyük satış',
   },
   id: {
+    econSoon: '{n} menit lagi',
     quietSummary: '{n} peringatan selama jam tenang',
     surgeUp: 'Lonjakan {n} menit',
     surgeDown: 'Penurunan {n} menit',
@@ -115,6 +122,7 @@ export const ALERT_TEXT = {
     whaleSell: 'Penjualan besar',
   },
   ja: {
+    econSoon: '{n}分後に発表',
     quietSummary: 'おやすみ時間中の通知 {n}件',
     surgeUp: '{n}分間で急騰',
     surgeDown: '{n}分間で急落',
@@ -131,6 +139,7 @@ export const ALERT_TEXT = {
     whaleSell: '大口売り約定',
   },
   zh: {
+    econSoon: '{n}分钟后公布',
     quietSummary: '免打扰期间的提醒 {n} 条',
     surgeUp: '{n}分钟急涨',
     surgeDown: '{n}分钟急跌',
@@ -147,6 +156,7 @@ export const ALERT_TEXT = {
     whaleSell: '大额卖出成交',
   },
   hi: {
+    econSoon: '{n} मिनट में',
     quietSummary: 'शांत समय में {n} अलर्ट',
     surgeUp: '{n} मिनट में तेज़ उछाल',
     surgeDown: '{n} मिनट में तेज़ गिरावट',

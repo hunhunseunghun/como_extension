@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { useStoredFlag } from '@/hooks/useStoredFlag';
 import { useI18n } from '@/i18n';
+import type { NewsItem } from '@/lib/indicators';
+import { NEWS_FEEDS, parseRss } from '@/lib/news';
 
 type TrendingCoin = {
   id: string;
@@ -10,18 +14,9 @@ type TrendingCoin = {
   rank: number | null;
   change24h: number | null;
 };
-type NewsItem = { title: string; link: string; time: number };
 type Emission = { name: string; emission7d: number; emission30d: number };
 
-// 뉴스·언락 데이터는 처음 쓸 때 사용자에게 권한을 받아 가져온다(manifest optional_host_permissions).
-const NEWS_FEEDS = {
-  ko: { origin: 'https://www.blockmedia.co.kr/*', url: 'https://www.blockmedia.co.kr/feed', source: 'Blockmedia' },
-  global: {
-    origin: 'https://www.coindesk.com/*',
-    url: 'https://www.coindesk.com/arc/outboundfeeds/rss',
-    source: 'CoinDesk',
-  },
-};
+// 뉴스 피드는 차트 급등락 표시와 함께 쓴다(lib/news). 언락 데이터도 처음 쓸 때 권한을 받는다(manifest optional_host_permissions).
 const EMISSIONS = {
   origin: 'https://defillama-datasets.llama.fi/*',
   url: 'https://defillama-datasets.llama.fi/emissionsBreakdown',
@@ -38,13 +33,6 @@ const relativeTime = (time: number, locale: string) => {
   if (Math.abs(hours) < 24) return format.format(hours, 'hour');
   return format.format(Math.round(hours / 24), 'day');
 };
-
-const parseRss = (xml: string): NewsItem[] =>
-  [...new DOMParser().parseFromString(xml, 'text/xml').querySelectorAll('item')].slice(0, 8).map(item => ({
-    title: item.querySelector('title')?.textContent?.trim() ?? '',
-    link: item.querySelector('link')?.textContent?.trim() ?? '',
-    time: Date.parse(item.querySelector('pubDate')?.textContent ?? '') || 0,
-  }));
 
 const usePermission = (origin: string) => {
   const [granted, setGranted] = useState<boolean | null>(null);
@@ -145,6 +133,79 @@ const News = () => {
   );
 };
 
+// 경제 일정(미국 고영향 지표). 백그라운드가 1시간마다 받아 두고(econEvents), 켜 두면 발표 30분 전에 알린다.
+const ECON_ORIGIN = 'https://nfs.faireconomy.media/*';
+type EconEvent = { id: string; title: string; time: number; country: string; forecast: string; previous: string };
+
+const EconCalendar = () => {
+  const { t } = useI18n();
+  const locale = t('numberLocale');
+  const [granted, request] = usePermission(ECON_ORIGIN);
+  const [events, setEvents] = useState<EconEvent[] | null>(null);
+  const [alerts, setAlerts] = useStoredFlag('econAlerts');
+
+  useEffect(() => {
+    if (!granted) return;
+    const load = () =>
+      chrome.storage.local.get('econEvents', result => {
+        const stored = result?.econEvents as { events: EconEvent[]; updatedAt: number } | undefined;
+        setEvents(stored?.events ?? []);
+        // 처음 켰거나 오래됐으면 지금 받아 온다.
+        if (!stored || Date.now() - stored.updatedAt > 60 * 60_000) chrome.runtime.sendMessage({ action: 'refreshEcon' });
+      });
+    load();
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'local' && changes.econEvents) load();
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
+  }, [granted]);
+
+  const now = Date.now();
+  const upcoming = (events ?? []).filter(item => item.time > now - 60 * 60_000).slice(0, 6);
+  const when = (time: number) =>
+    new Date(time).toLocaleString(locale, { weekday: 'short', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <section className="border-t pt-2" data-testid="econ-calendar">
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-semibold">{t('econCalendar')}</span>
+        <span className="text-cap-s text-fg-faint">ForexFactory</span>
+      </div>
+      {granted === false && (
+        <Button variant="soft" className="h-control w-full text-cap-s hover:cursor-pointer" onClick={request}>
+          {t('allowEcon')}
+        </Button>
+      )}
+      {granted && (
+        <>
+          {upcoming.map(item => (
+            <div key={item.id} className="flex items-center justify-between gap-2 py-0.5" data-testid="econ-event">
+              <span className="min-w-0 truncate">
+                {item.title}
+                {(item.forecast || item.previous) && (
+                  <span className="ml-1 text-cap-s text-fg-faint">
+                    {[item.forecast && `F ${item.forecast}`, item.previous && `P ${item.previous}`].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </span>
+              <span className={`num shrink-0 text-cap-s ${item.time < now ? 'text-fg-faint line-through' : 'text-fg-subtle'}`}>
+                {when(item.time)}
+              </span>
+            </div>
+          ))}
+          {events && !upcoming.length && <div className="text-fg-faint">{t('econEmpty')}</div>}
+          <label className="mt-1 flex items-center justify-between gap-2 text-cap-s text-fg-subtle">
+            <span>{t('econAlerts')}</span>
+            <Switch aria-label={t('econAlerts')} checked={alerts} onCheckedChange={setAlerts} />
+          </label>
+          <div className="text-cap-s text-fg-faint mt-0.5">{t('econHint')}</div>
+        </>
+      )}
+    </section>
+  );
+};
+
 const Unlocks = () => {
   const { t } = useI18n();
   const locale = t('numberLocale');
@@ -210,6 +271,7 @@ export const TrendsPanel = () => (
   <div className="flex flex-col gap-2">
     <Trending />
     <News />
+    <EconCalendar />
     <Unlocks />
   </div>
 );

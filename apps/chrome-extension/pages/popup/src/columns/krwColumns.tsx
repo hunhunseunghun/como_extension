@@ -116,7 +116,7 @@ export const getKrwColumns = ({
                   {row.original.market_warning && row.original.market_warning !== 'NONE' && (
                     <WarningIcon text={t('warningShort')} />
                   )}
-                  {exchange === 'bithumb' && <WalletStatusBadge exchange="bithumb" coin={coin} />}
+                  {(exchange === 'bithumb' || exchange === 'upbit') && <WalletStatusBadge exchange={exchange} coin={coin} />}
                 </div>
               </div>
               <span className="block truncate text-cap text-fg-subtle font-medium">{`${coin}/${quote}`}</span>

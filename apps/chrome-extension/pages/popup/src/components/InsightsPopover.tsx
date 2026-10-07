@@ -10,13 +10,14 @@ import type { ExchangePlatform } from '@/types';
 // 선물·트렌드 탭은 누를 때 불러온다.
 const DerivativesPanel = lazy(() => import('@/components/insights/DerivativesPanel').then(m => ({ default: m.DerivativesPanel })));
 const TrendsPanel = lazy(() => import('@/components/insights/TrendsPanel').then(m => ({ default: m.TrendsPanel })));
+const ArbitragePanel = lazy(() => import('@/components/insights/ArbitragePanel').then(m => ({ default: m.ArbitragePanel })));
 import { KimchiTrend } from '@/components/insights/KimchiTrend';
 import { ShareButton } from '@/components/ShareButton';
 import { HoverHint } from '@/components/ui/hoverHint';
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
 
-type InsightsTab = 'overview' | 'derivatives' | 'trends';
+type InsightsTab = 'overview' | 'derivatives' | 'trends' | 'arbitrage';
 
 type SpreadQuote = { exchange: ExchangePlatform; market: string; price: number; usdPrice: number };
 type SpreadItem = { coin: string; spread: number; low: SpreadQuote; high: SpreadQuote; exchanges: number };
@@ -91,12 +92,14 @@ export const InsightsPopover = () => {
               ['overview', 'insightsOverview'],
               ['derivatives', 'insightsDerivatives'],
               ['trends', 'insightsTrends'],
+              ['arbitrage', 'insightsArbitrage'],
             ] as const
           ).map(([value, label]) => ({ value, label: t(label) }))}
         />
         <Suspense fallback={<div className="grid h-24 place-content-center"><Loader2 className="size-4 animate-spin text-fg-subtle" /></div>}>
           {tab === 'derivatives' && <DerivativesPanel />}
           {tab === 'trends' && <TrendsPanel />}
+          {tab === 'arbitrage' && <ArbitragePanel />}
         </Suspense>
         {tab === 'overview' && (
           <>

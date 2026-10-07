@@ -21,7 +21,7 @@ test.describe.serial('코인원·디지털엑스 (권한을 받은 상태)', () 
     const manifestPath = path.join(dir, 'manifest.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     // 빗썸 공지(feed-api)도 선택 권한이라 함께 옮겨 공지 흐름을 본다.
-    const optional = ['https://api.coinone.co.kr/*', 'https://api.digitalx.miraeasset.com/*', 'https://feed-api.bithumb.com/*'];
+    const optional = ['https://api.coinone.co.kr/*', 'https://api.digitalx.miraeasset.com/*', 'https://feed-api.bithumb.com/*', 'https://nfs.faireconomy.media/*'];
     manifest.host_permissions.push(...optional);
     manifest.optional_host_permissions = manifest.optional_host_permissions.filter((o: string) => !optional.includes(o));
     fs.writeFileSync(manifestPath, JSON.stringify(manifest));
@@ -122,6 +122,41 @@ test.describe.serial('코인원·디지털엑스 (권한을 받은 상태)', () 
     expect(created.lastId).toEqual(expect.any(Number));
     expect(created.list.map(item => item.id)).toContain(`notice:bithumb:${created.lastId}`);
     expect(created.list[0].message).toMatch(/^BITHUMB · /);
+  });
+
+  test('경제 일정: 받아 와서 트렌드 탭에 보여 주고, 발표 30분 전에 알린다(권한을 받은 상태)', async () => {
+    const [worker] = context.serviceWorkers();
+    await popup.evaluate(() => chrome.runtime.sendMessage({ action: 'refreshEcon' }));
+    await expect
+      .poll(() => popup.evaluate(() => chrome.storage.local.get('econEvents').then(r => r.econEvents?.events?.length ?? 0)), { timeout: 20_000 })
+      .toBeGreaterThan(0);
+    await popup.getByRole('button', { name: '시장 인사이트' }).click();
+    const content = popup.locator('[data-radix-popper-content-wrapper]');
+    await content.getByRole('tab', { name: '트렌드' }).click();
+    const calendar = content.getByTestId('econ-calendar');
+    await expect(calendar).toBeVisible();
+    await calendar.getByRole('switch', { name: '발표 30분 전 알림' }).click();
+    await popup.keyboard.press('Escape');
+
+    // 20분 뒤 발표될 가짜 일정을 넣고 확인을 돌린다.
+    const created = await worker.evaluate(async () => {
+      const list: { id: string; title?: string }[] = [];
+      const original = chrome.notifications.create;
+      (chrome.notifications as unknown as { create: (id: string, o: { title?: string }) => void }).create = (id, o) => list.push({ id, title: o?.title });
+      const event = { id: 'e2e', title: 'CPI m/m', time: Date.now() + 20 * 60_000, country: 'USD', forecast: '0.3%', previous: '0.4%' };
+      await chrome.storage.local.set({ econEvents: { events: [event], updatedAt: Date.now() }, econAlerted: [] });
+      await chrome.alarms.create('econCheck', { when: Date.now() + 100 });
+      for (let i = 0; i < 30 && !list.length; i++) await new Promise(r => setTimeout(r, 200));
+      // 같은 일정은 다시 알리지 않는다.
+      await chrome.alarms.create('econCheck', { when: Date.now() + 100 });
+      await new Promise(r => setTimeout(r, 1500));
+      chrome.notifications.create = original;
+      await chrome.alarms.create('econCheck', { periodInMinutes: 5 });
+      await chrome.storage.local.set({ econAlerts: false });
+      return list;
+    });
+    expect(created.map(item => item.id)).toEqual(['econ:e2e']);
+    expect(created[0].title).toMatch(/^(19|20)분 후 발표 · CPI m\/m$/);
   });
 
   test('런타임 에러가 없다', async () => {
