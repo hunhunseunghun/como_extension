@@ -23,6 +23,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: 릴리스 점검(버전·스토어 설명·권한 사유)
+        run: node apps/chrome-extension/scripts/check-release.mjs
       - name: 단위 테스트
         run: pnpm --filter chrome-extension test:unit
       - name: lint (백그라운드 · 스크립트 · E2E)

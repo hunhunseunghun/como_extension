@@ -14,7 +14,8 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "dev:ext": "node scripts/dev-extension.mjs",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "publish:store": "node scripts/publish.mjs"
   },
   "dependencies": {
     "react": "^19.0.0",

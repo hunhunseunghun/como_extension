@@ -41,3 +41,6 @@ yarn-error.log*
 e2e/.results
 playwright-report
 release
+
+# 스토어 업로드 자격 증명(scripts/publish.mjs)
+.env.store
