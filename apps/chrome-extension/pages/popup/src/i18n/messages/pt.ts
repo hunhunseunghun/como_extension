@@ -350,4 +350,5 @@ export const pt: Partial<Record<MessageKey, string>> = {
   historyFrom: 'Desde {date}',
   historyNotYet: 'Ainda sem registro dessa data',
   historyCollecting: 'Seu total é registrado uma vez por dia para mostrar o resultado por período.',
+  chartMoveNoRelatedNews: 'Sem notícias sobre esta moeda neste horário',
 };

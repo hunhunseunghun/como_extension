@@ -350,4 +350,5 @@ export const hi: Partial<Record<MessageKey, string>> = {
   historyFrom: '{date} से',
   historyNotYet: 'उस तारीख का रिकॉर्ड अभी नहीं',
   historyCollecting: 'अवधि के हिसाब से लाभ/हानि दिखाने के लिए कुल मूल्य दिन में एक बार दर्ज होता है।',
+  chartMoveNoRelatedNews: 'इस समय इस कॉइन की कोई खबर नहीं',
 };

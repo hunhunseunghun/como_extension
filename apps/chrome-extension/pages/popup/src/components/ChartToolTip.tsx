@@ -29,6 +29,8 @@ interface ChartTooltipProps {
   exchange?: ExchangePlatform;
   wideSize: boolean;
   timeframe: string;
+  // 급등락 봉 뉴스를 고를 때 쓰는 코인 이름(한글·영문)
+  names?: string[];
 }
 
 const formatPrice = (price: number): string => {
@@ -135,6 +137,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
   exchange = 'binance',
   wideSize,
   timeframe,
+  names = [],
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -144,11 +147,17 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
   const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const movesRef = useRef<BigMove[]>([]);
   const newsRef = useRef<NewsItem[]>([]);
+  const newsGrantedRef = useRef(false);
   const [indicators, setIndicators] = useStoredValue<Indicators>('chartIndicators', DEFAULT_INDICATORS);
-  const [hoverMove, setHoverMove] = useState<{ move: BigMove; news: NewsItem[] } | null>(null);
+  const [hoverMove, setHoverMove] = useState<{ move: BigMove; news: NewsItem[]; newsOn: boolean } | null>(null);
   // 마우스 이벤트 처리기는 차트를 만들 때 한 번 붙이므로 최신 값은 ref로 읽는다.
-  const hoverContextRef = useRef({ keywords: [coinOfSymbol(symbol)], interval: timeframeSeconds(timeframe) });
-  hoverContextRef.current = { keywords: [coinOfSymbol(symbol)], interval: timeframeSeconds(timeframe) };
+  const hoverContext = {
+    keywords: [coinOfSymbol(symbol), ...names],
+    interval: timeframeSeconds(timeframe),
+    marketWide: coinOfSymbol(symbol) === 'BTC',
+  };
+  const hoverContextRef = useRef(hoverContext);
+  hoverContextRef.current = hoverContext;
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
@@ -275,7 +284,11 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     const moves = bigMoves(candles);
     movesRef.current = moves;
     // 근처 뉴스는 권한을 켠 피드만, 5분 캐시(lib/news)
-    if (moves.length) loadGrantedNews().then(items => (newsRef.current = items));
+    if (moves.length)
+      loadGrantedNews().then(({ items, granted }) => {
+        newsRef.current = items;
+        newsGrantedRef.current = granted;
+      });
     const markers = moves.map(move => ({
       time: move.time as Time,
       position: move.change >= 0 ? ('aboveBar' as const) : ('belowBar' as const),
@@ -350,8 +363,12 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
       // 급등락 봉에 마우스를 올리면 그 시각 근처 뉴스를 보여 준다(뉴스 권한을 켠 경우).
       chartRef.current.subscribeCrosshairMove(param => {
         const move = movesRef.current.find(item => item.time === Number(param.time));
-        const { keywords, interval } = hoverContextRef.current;
-        setHoverMove(move ? { move, news: newsNear(newsRef.current, move, interval, keywords).slice(0, 2) } : null);
+        const { keywords, interval, marketWide } = hoverContextRef.current;
+        setHoverMove(
+          move
+            ? { move, news: newsNear(newsRef.current, move, interval, keywords, marketWide).slice(0, 2), newsOn: newsGrantedRef.current }
+            : null,
+        );
       });
       seriesRef.current = chartRef.current.addSeries(CandlestickSeries, {
         upColor,
@@ -495,7 +512,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
                 </button>
               ))
             ) : (
-              <span className="text-chart-fg-muted">{t('chartMoveNoNews')}</span>
+              <span className="text-chart-fg-muted">{t(hoverMove.newsOn ? 'chartMoveNoRelatedNews' : 'chartMoveNoNews')}</span>
             )}
           </div>
         )}

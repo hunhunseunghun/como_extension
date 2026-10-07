@@ -350,4 +350,5 @@ export const ja: Partial<Record<MessageKey, string>> = {
   historyFrom: '{date}比',
   historyNotYet: 'その日の記録はまだありません',
   historyCollecting: '1日1回評価額を記録して期間別の損益を表示します。',
+  chartMoveNoRelatedNews: 'この時間帯にこのコインのニュースはありません',
 };

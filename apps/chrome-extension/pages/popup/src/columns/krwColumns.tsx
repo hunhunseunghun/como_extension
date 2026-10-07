@@ -147,6 +147,7 @@ export const getKrwColumns = ({
           timeframe={timeframe}
           wideSize={wideSize}
           pinned={row.getIsPinned() !== false}
+          names={[row.original.korean_name, row.original.english_name].filter((name): name is string => !!name)}
         />
       ),
       enableHiding: false,

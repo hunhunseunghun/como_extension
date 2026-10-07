@@ -350,4 +350,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   historyFrom: '相比 {date}',
   historyNotYet: '还没有那天的记录',
   historyCollecting: '每天记录一次总值,用于显示区间盈亏。',
+  chartMoveNoRelatedNews: '该时段没有关于此币种的新闻',
 };

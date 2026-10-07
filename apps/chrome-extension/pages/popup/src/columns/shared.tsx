@@ -78,12 +78,14 @@ export const ChartCell = ({
   timeframe,
   wideSize,
   pinned,
+  names,
 }: {
   symbol: string;
   exchange: ExchangePlatform;
   timeframe: string;
   wideSize: boolean;
   pinned: boolean;
+  names?: string[];
 }) => (
   <div className="flex justify-center items-center">
     <ChartToolTip
@@ -91,7 +93,8 @@ export const ChartCell = ({
       symbol={symbol}
       exchange={exchange}
       timeframe={timeframe}
-      wideSize={wideSize}>
+      wideSize={wideSize}
+      names={names}>
       {pinned ? <Sparkline symbol={symbol} exchange={exchange} /> : <ChartCandlestick size={16} />}
     </ChartToolTip>
   </div>

@@ -20,14 +20,17 @@ export const parseRss = (xml: string, limit = 8): NewsItem[] =>
 
 // 차트 급등락 표시에 쓰는 최근 뉴스. 권한을 받은 피드만 읽고 5분 동안 재사용한다.
 const CACHE_MS = 5 * 60_000;
-let cache: { at: number; items: NewsItem[] } | null = null;
-export const loadGrantedNews = async (): Promise<NewsItem[]> => {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache.items;
+let cache: { at: number; items: NewsItem[]; granted: boolean } | null = null;
+// granted: 뉴스 피드를 하나라도 켰는지(없으면 화면이 '뉴스를 켜면 보여요'라고 안내한다)
+export const loadGrantedNews = async (): Promise<{ items: NewsItem[]; granted: boolean }> => {
+  if (cache && Date.now() - cache.at < CACHE_MS) return cache;
   const feeds = Object.values(NEWS_FEEDS);
+  let granted = false;
   const lists = await Promise.all(
     feeds.map(async feed => {
-      const granted = await chrome.permissions.contains({ origins: [feed.origin] }).catch(() => false);
-      if (!granted) return [];
+      const allowed = await chrome.permissions.contains({ origins: [feed.origin] }).catch(() => false);
+      if (!allowed) return [];
+      granted = true;
       try {
         const response = await fetch(feed.url);
         return parseRss(await response.text(), 50);
@@ -36,6 +39,6 @@ export const loadGrantedNews = async (): Promise<NewsItem[]> => {
       }
     }),
   );
-  cache = { at: Date.now(), items: lists.flat() };
-  return cache.items;
+  cache = { at: Date.now(), items: lists.flat(), granted };
+  return cache;
 };

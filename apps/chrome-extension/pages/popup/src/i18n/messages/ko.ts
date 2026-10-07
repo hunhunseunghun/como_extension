@@ -351,6 +351,7 @@ export const ko = {
   historyFrom: '{date} 대비',
   historyNotYet: '그 날짜의 기록이 아직 없어요',
   historyCollecting: '하루 한 번 평가금액을 기록해 기간별 손익을 보여 줘요.',
+  chartMoveNoRelatedNews: '이 시간대에 이 코인 관련 뉴스가 없어요',
 };
 
 export type MessageKey = keyof typeof ko;

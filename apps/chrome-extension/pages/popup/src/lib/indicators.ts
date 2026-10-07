@@ -80,12 +80,17 @@ export const timeframeSeconds = (timeframe: string) => {
 
 export type NewsItem = { title: string; link: string; time: number };
 
-// 급등락 봉 시각 근처의 뉴스: 봉 시작 1개 봉 전 ~ 2개 봉 뒤. 코인 이름이 들어간 기사를 먼저 고른다.
-export const newsNear = (news: NewsItem[], move: BigMove, intervalSeconds: number, keywords: string[]) => {
+// 급등락 봉 시각 근처의 뉴스: 봉 시작 1개 봉 전 ~ 2개 봉 뒤. 코인 이름(기호·한글·영문)이 들어간 기사만 고른다.
+// marketWide(비트코인)일 때만 이름이 없는 시장 기사도 보여 준다. 다른 코인에 상관없는 기사를 붙이면 원인처럼 읽힌다.
+// 'ETH'가 'ETHENA'에 걸리지 않도록 영문 기호·이름은 단어 경계로 찾는다.
+export const newsNear = (news: NewsItem[], move: BigMove, intervalSeconds: number, keywords: string[], marketWide = false) => {
   const from = (move.time - intervalSeconds) * 1000;
   const to = (move.time + 2 * intervalSeconds) * 1000;
   const inWindow = news.filter(item => item.time >= from && item.time <= to);
-  const lowered = keywords.filter(Boolean).map(word => word.toLowerCase());
-  const matched = inWindow.filter(item => lowered.some(word => item.title.toLowerCase().includes(word)));
-  return (matched.length ? matched : inWindow).sort((a, b) => b.time - a.time);
+  const escape = (word: string) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const patterns = keywords
+    .filter(word => word && word.length >= 2)
+    .map(word => (/^[ -~]+$/.test(word) ? new RegExp(`(^|[^a-z0-9])${escape(word.toLowerCase())}($|[^a-z0-9])`) : new RegExp(escape(word.toLowerCase()))));
+  const matched = inWindow.filter(item => patterns.some(pattern => pattern.test(item.title.toLowerCase())));
+  return (matched.length || !marketWide ? matched : inWindow).sort((a, b) => b.time - a.time);
 };

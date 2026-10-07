@@ -350,4 +350,5 @@ export const vi: Partial<Record<MessageKey, string>> = {
   historyFrom: 'So với {date}',
   historyNotYet: 'Chưa có dữ liệu ngày đó',
   historyCollecting: 'Tổng giá trị được ghi mỗi ngày một lần để hiển thị lãi/lỗ theo kỳ.',
+  chartMoveNoRelatedNews: 'Không có tin về coin này trong khung giờ này',
 };

@@ -54,6 +54,15 @@ test('봉 길이와 근처 뉴스: 코인 이름이 들어간 기사를 먼저',
   ];
   const near = newsNear(news, { time: 1000, change: 3 }, 60, ['BTC', 'bitcoin']);
   assert.deepEqual(near.map(item => item.link), ['a']);
-  // 코인 이름이 없으면 그 시간대 기사 전체
-  assert.deepEqual(newsNear(news, { time: 1000, change: 3 }, 60, ['XRP']).map(item => item.link), ['b', 'a']);
+  // 이름이 든 기사가 없으면 비우고, 비트코인(시장 전체)만 그 시간대 기사를 보여 준다
+  assert.deepEqual(newsNear(news, { time: 1000, change: 3 }, 60, ['XRP']), []);
+  assert.deepEqual(newsNear(news, { time: 1000, change: 3 }, 60, ['XRP'], true).map(item => item.link), ['b', 'a']);
+  // 한글 이름으로 찾고, 영문 기호는 단어 경계로만 찾는다(ETH가 Ethena에 걸리지 않게)
+  const korean = [
+    { title: '비트텐서, 서브넷 확장', link: 'k', time: 1_000_000 },
+    { title: 'Ethena launches', link: 'e', time: 1_000_000 },
+    { title: 'ETH ETF inflow', link: 'f', time: 1_000_000 },
+  ];
+  assert.deepEqual(newsNear(korean, { time: 1000, change: 3 }, 60, ['TAO', '비트텐서']).map(item => item.link), ['k']);
+  assert.deepEqual(newsNear(korean, { time: 1000, change: 3 }, 60, ['ETH', '이더리움']).map(item => item.link), ['f']);
 });

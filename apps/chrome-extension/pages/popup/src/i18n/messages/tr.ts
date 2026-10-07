@@ -350,4 +350,5 @@ export const tr: Partial<Record<MessageKey, string>> = {
   historyFrom: '{date} tarihinden beri',
   historyNotYet: 'O tarih için kayıt yok',
   historyCollecting: 'Dönem K/Z\'sini göstermek için toplam değer günde bir kez kaydedilir.',
+  chartMoveNoRelatedNews: 'Bu saatte bu coinle ilgili haber yok',
 };

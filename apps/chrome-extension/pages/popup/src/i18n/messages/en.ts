@@ -353,4 +353,5 @@ export const en: Record<MessageKey, string> = {
   historyFrom: 'Since {date}',
   historyNotYet: 'No record for that date yet',
   historyCollecting: 'Your total is recorded once a day to show period P&L.',
+  chartMoveNoRelatedNews: 'No news about this coin around this time',
 };

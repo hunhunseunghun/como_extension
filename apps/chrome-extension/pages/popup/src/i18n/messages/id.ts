@@ -350,4 +350,5 @@ export const id: Partial<Record<MessageKey, string>> = {
   historyFrom: 'Sejak {date}',
   historyNotYet: 'Belum ada catatan untuk tanggal itu',
   historyCollecting: 'Total dicatat sekali sehari untuk menampilkan untung/rugi per periode.',
+  chartMoveNoRelatedNews: 'Tidak ada berita tentang koin ini di waktu ini',
 };
