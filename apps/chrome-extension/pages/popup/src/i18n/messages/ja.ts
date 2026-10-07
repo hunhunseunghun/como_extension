@@ -83,6 +83,9 @@ export const ja: Partial<Record<MessageKey, string>> = {
   designV1: 'クラシック (v1)',
   designV2: '新デザイン (v2)',
   favoritePin: 'お気に入りを上部に固定',
+  favoriteAdded: '{coin}をお気に入りに追加しました',
+  favoriteRemoved: '{coin}をお気に入りから外しました',
+  undo: '元に戻す',
   listingAlerts: '新規上場アラート（Upbit・Bithumb ウォン）',
   greenUp: '緑が上昇 · 赤が下落',
   redUp: '赤が上昇 · 青が下落',
@@ -351,4 +354,5 @@ export const ja: Partial<Record<MessageKey, string>> = {
   historyNotYet: 'その日の記録はまだありません',
   historyCollecting: '1日1回評価額を記録して期間別の損益を表示します。',
   chartMoveNoRelatedNews: 'この時間帯にこのコインのニュースはありません',
+  chartSummary: '{symbol} チャート: 終値 {last}、この期間 {change}、高値 {high}、安値 {low}',
 };

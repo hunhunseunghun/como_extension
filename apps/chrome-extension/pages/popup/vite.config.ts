@@ -27,6 +27,8 @@ export default defineConfig({
       external: ['chrome'],
     },
     reportCompressedSize: true,
+    // 거래소 로고는 JS에 base64로 넣지 않고 파일로 둔다(첫 화면 번들을 늘리지 않게).
+    assetsInlineLimit: file => (/[\\/]assets[\\/]exchanges[\\/]/.test(file) ? false : undefined),
     sourcemap: false, // 소스맵 제거
     minify: 'esbuild', // 압축 적용
   },

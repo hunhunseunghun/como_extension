@@ -83,6 +83,9 @@ export const id: Partial<Record<MessageKey, string>> = {
   designV1: 'Klasik (v1)',
   designV2: 'Baru (v2)',
   favoritePin: 'Sematkan favorit di atas',
+  favoriteAdded: '{coin} ditambahkan ke favorit',
+  favoriteRemoved: '{coin} dihapus dari favorit',
+  undo: 'Urungkan',
   listingAlerts: 'Peringatan listing baru (Upbit·Bithumb KRW)',
   greenUp: 'Hijau naik · merah turun',
   redUp: 'Merah naik · biru turun',
@@ -351,4 +354,5 @@ export const id: Partial<Record<MessageKey, string>> = {
   historyNotYet: 'Belum ada catatan untuk tanggal itu',
   historyCollecting: 'Total dicatat sekali sehari untuk menampilkan untung/rugi per periode.',
   chartMoveNoRelatedNews: 'Tidak ada berita tentang koin ini di waktu ini',
+  chartSummary: 'Grafik {symbol}: terakhir {last}, {change} dalam rentang ini, tertinggi {high}, terendah {low}',
 };

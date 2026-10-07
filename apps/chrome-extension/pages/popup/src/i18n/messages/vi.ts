@@ -83,6 +83,9 @@ export const vi: Partial<Record<MessageKey, string>> = {
   designV1: 'Cổ điển (v1)',
   designV2: 'Mới (v2)',
   favoritePin: 'Ghim mục yêu thích lên đầu',
+  favoriteAdded: 'Đã thêm {coin} vào yêu thích',
+  favoriteRemoved: 'Đã bỏ {coin} khỏi yêu thích',
+  undo: 'Hoàn tác',
   listingAlerts: 'Thông báo niêm yết mới (Upbit·Bithumb KRW)',
   greenUp: 'Xanh tăng · đỏ giảm',
   redUp: 'Đỏ tăng · xanh dương giảm',
@@ -110,7 +113,7 @@ export const vi: Partial<Record<MessageKey, string>> = {
 
   // 변동률·김프 알림
   alertTabPrice: 'Giá',
-  alertTabChange: '% biến động',
+  alertTabChange: 'Biến động',
   alertTabKimchi: 'K-Prem',
   changeThreshold: 'Ngưỡng biến động (%)',
   changeRuleHelp: 'Thông báo mỗi ngày một lần khi biến động 24h vượt ngưỡng.',
@@ -351,4 +354,5 @@ export const vi: Partial<Record<MessageKey, string>> = {
   historyNotYet: 'Chưa có dữ liệu ngày đó',
   historyCollecting: 'Tổng giá trị được ghi mỗi ngày một lần để hiển thị lãi/lỗ theo kỳ.',
   chartMoveNoRelatedNews: 'Không có tin về coin này trong khung giờ này',
+  chartSummary: 'Biểu đồ {symbol}: giá cuối {last}, {change} trong khoảng này, cao nhất {high}, thấp nhất {low}',
 };

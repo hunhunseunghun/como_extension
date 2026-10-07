@@ -27,9 +27,14 @@ export const SortableHeader = <T,>({ column, label }: { column: Column<T, unknow
   </button>
 );
 
-// 즐겨찾기 별: 누르면 상단 고정을 켜고 끈다.
+// 즐겨찾기 별: 누르면 상단 고정을 켜고 끈다. 별은 12px이지만 누르는 칸은 앞뒤 여백까지 넓힌다(잘못 누르면 아래에서 되돌린다).
 export const FavoriteStar = ({ pinned, onToggle, label }: { pinned: boolean; onToggle: () => void; label: string }) => (
-  <button type="button" aria-label={label} aria-pressed={pinned} onClick={onToggle} className="mt-[2px] flex h-3 hover:cursor-pointer">
+  <button
+    type="button"
+    aria-label={label}
+    aria-pressed={pinned}
+    onClick={onToggle}
+    className="-my-1 -ml-1 flex h-5 w-4 shrink-0 items-start justify-center pt-[6px] hover:cursor-pointer">
     <Star
       className={
         pinned ? 'size-3 text-star fill-star' : 'size-3 text-fg-faint hover:text-star hover:fill-star'

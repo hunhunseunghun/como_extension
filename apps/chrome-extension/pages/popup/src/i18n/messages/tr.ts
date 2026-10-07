@@ -83,6 +83,9 @@ export const tr: Partial<Record<MessageKey, string>> = {
   designV1: 'Klasik (v1)',
   designV2: 'Yeni (v2)',
   favoritePin: 'Favorileri üste sabitle',
+  favoriteAdded: '{coin} favorilere eklendi',
+  favoriteRemoved: '{coin} favorilerden çıkarıldı',
+  undo: 'Geri al',
   listingAlerts: 'Yeni listeleme uyarıları (Upbit·Bithumb KRW)',
   greenUp: 'Yeşil yükseliş · kırmızı düşüş',
   redUp: 'Kırmızı yükseliş · mavi düşüş',
@@ -351,4 +354,5 @@ export const tr: Partial<Record<MessageKey, string>> = {
   historyNotYet: 'O tarih için kayıt yok',
   historyCollecting: 'Dönem K/Z\'sini göstermek için toplam değer günde bir kez kaydedilir.',
   chartMoveNoRelatedNews: 'Bu saatte bu coinle ilgili haber yok',
+  chartSummary: '{symbol} grafiği: son {last}, bu aralıkta {change}, en yüksek {high}, en düşük {low}',
 };

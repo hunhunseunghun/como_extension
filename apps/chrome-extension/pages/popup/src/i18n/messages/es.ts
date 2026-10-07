@@ -83,6 +83,9 @@ export const es: Partial<Record<MessageKey, string>> = {
   designV1: 'Clásico (v1)',
   designV2: 'Nuevo (v2)',
   favoritePin: 'Fijar favoritos arriba',
+  favoriteAdded: '{coin} añadido a favoritos',
+  favoriteRemoved: '{coin} quitado de favoritos',
+  undo: 'Deshacer',
   listingAlerts: 'Alertas de nuevos listados (Upbit·Bithumb KRW)',
   greenUp: 'Verde sube · rojo baja',
   redUp: 'Rojo sube · azul baja',
@@ -351,4 +354,5 @@ export const es: Partial<Record<MessageKey, string>> = {
   historyNotYet: 'Aún no hay registro de esa fecha',
   historyCollecting: 'Tu total se registra una vez al día para mostrar el resultado por periodo.',
   chartMoveNoRelatedNews: 'No hay noticias de esta moneda en este momento',
+  chartSummary: 'Gráfico de {symbol}: último {last}, {change} en este rango, máximo {high}, mínimo {low}',
 };

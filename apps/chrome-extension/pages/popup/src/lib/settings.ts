@@ -12,6 +12,9 @@ export const defaultBadgeSettings = (language: Language): BadgeSettings =>
     : { enabled: true, exchange: 'binance', market: 'BTCUSDT' };
 
 export const isSidePanelView = () => new URLSearchParams(window.location.search).get('view') === 'sidepanel';
+// 창 크기에 맞춰 그리는 화면: 사이드 패널, 그리고 팝업을 전체 화면으로 여는 Firefox Android.
+// (데스크톱 팝업은 그리기 전 innerWidth가 작게 잡힐 수 있어 너비가 아니라 기기로 판단한다.)
+export const isFluidView = () => isSidePanelView() || /Android/i.test(navigator.userAgent);
 
 // 신규 상장 알림: 설정이 없으면 한국어 사용자에게만 켠다. 백그라운드(isListingAlertsEnabled)와 같은 규칙이다.
 export const LISTING_ALERTS_STORAGE_KEY = 'listingAlerts';

@@ -83,6 +83,9 @@ export const zh: Partial<Record<MessageKey, string>> = {
   designV1: '经典 (v1)',
   designV2: '新设计 (v2)',
   favoritePin: '自选置顶',
+  favoriteAdded: '已将 {coin} 加入收藏',
+  favoriteRemoved: '已将 {coin} 移出收藏',
+  undo: '撤销',
   listingAlerts: '新上币提醒（Upbit·Bithumb 韩元）',
   greenUp: '绿涨 · 红跌',
   redUp: '红涨 · 蓝跌',
@@ -351,4 +354,5 @@ export const zh: Partial<Record<MessageKey, string>> = {
   historyNotYet: '还没有那天的记录',
   historyCollecting: '每天记录一次总值,用于显示区间盈亏。',
   chartMoveNoRelatedNews: '该时段没有关于此币种的新闻',
+  chartSummary: '{symbol} 图表：最新 {last}，本区间 {change}，最高 {high}，最低 {low}',
 };

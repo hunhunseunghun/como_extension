@@ -43,10 +43,13 @@ export const Segmented = <T extends string>({
           aria-selected={variant === 'tabs' ? selected : undefined}
           aria-pressed={variant === 'toggle' ? selected : undefined}
           aria-label={option.ariaLabel}
+          title={option.ariaLabel}
           onClick={() => onChange(option.value)}
           className={cn(
             'inline-flex h-6 min-w-6 items-center justify-center gap-1 rounded-sm border px-2 text-cap font-medium whitespace-nowrap transition-colors duration-(--como-duration-d2) ease-como hover:cursor-pointer focus-visible:outline-2 focus-visible:outline-stroke-focus [&_svg]:size-3.5',
-            fill && 'flex-1',
+            // 칸을 나눠 가질 때는 좌우 여백을 줄여 긴 언어(스페인어·베트남어 등)도 칸 안에 들어가게 한다.
+            // 아이콘만 있는 칸은 아이콘 너비만 차지한다.
+            fill && (typeof option.label === 'string' ? 'flex-1 px-1' : 'flex-none'),
             selected
               ? 'border-transparent bg-seg-thumb text-seg-thumb-fg shadow-seg'
               : 'border-seg-item-border text-seg-item-fg hover:text-fg-neutral',

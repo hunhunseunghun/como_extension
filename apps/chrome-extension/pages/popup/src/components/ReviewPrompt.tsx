@@ -11,8 +11,9 @@ const DAY = 24 * 60 * 60 * 1000;
 const getReviewUrl = () => {
   const userAgent = navigator.userAgent;
   if (userAgent.includes('Whale')) return 'https://store.whale.naver.com/detail/gbjlmpnhijdgcobpfpgeiepdfegdhkgl';
-  // Edge Add-ons에는 아직 등록하지 않았다.
-  if (userAgent.includes('Edg/')) return null;
+  if (userAgent.includes('Edg/')) return 'https://microsoftedge.microsoft.com/addons/detail/nikdopfhkilmeedoblhlbbalkhiogmkd';
+  // Firefox(AMO)는 신규 등록 심사 중이라 목록 주소가 정해지면 넣는다. 그 전에는 묻지 않는다(크롬 웹스토어로 보내지 않게).
+  if (userAgent.includes('Firefox/')) return null;
   return 'https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok/reviews';
 };
 

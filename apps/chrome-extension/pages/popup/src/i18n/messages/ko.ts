@@ -84,6 +84,9 @@ export const ko = {
   designV1: '클래식 (v1)',
   designV2: '새 디자인 (v2)',
   favoritePin: '즐겨찾기 상단 고정',
+  favoriteAdded: '{coin} 즐겨찾기에 추가했어요',
+  favoriteRemoved: '{coin} 즐겨찾기에서 뺐어요',
+  undo: '되돌리기',
   listingAlerts: '신규 상장 알림 (업비트·빗썸 원화)',
   greenUp: '초록 상승 · 빨강 하락',
   redUp: '빨강 상승 · 파랑 하락',
@@ -352,6 +355,7 @@ export const ko = {
   historyNotYet: '그 날짜의 기록이 아직 없어요',
   historyCollecting: '하루 한 번 평가금액을 기록해 기간별 손익을 보여 줘요.',
   chartMoveNoRelatedNews: '이 시간대에 이 코인 관련 뉴스가 없어요',
+  chartSummary: '{symbol} 차트: 마지막 {last}, 이 구간 {change}, 최고 {high}, 최저 {low}',
 };
 
 export type MessageKey = keyof typeof ko;

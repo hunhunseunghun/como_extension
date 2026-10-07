@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { Bell, Loader2 } from 'lucide-react';
+import { Bell, History, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useI18n } from '@/i18n';
@@ -67,15 +67,18 @@ export const PriceNotiPopover = () => {
           className="mb-2"
           value={tab}
           onChange={setTab}
-          options={(
-            [
-              ['price', 'alertTabPrice'],
-              ['change', 'alertTabChange'],
-              ['kimchi', 'alertTabKimchi'],
-              ['flow', 'alertTabFlow'],
-              ['history', 'alertTabHistory'],
-            ] as const
-          ).map(([value, label]) => ({ value, label: t(label) }))}
+          options={[
+            ...(
+              [
+                ['price', 'alertTabPrice'],
+                ['change', 'alertTabChange'],
+                ['kimchi', 'alertTabKimchi'],
+                ['flow', 'alertTabFlow'],
+              ] as const
+            ).map(([value, label]) => ({ value, label: t(label) })),
+            // 기록은 아이콘 탭으로 둬 나머지 네 탭에 자리를 준다(읽는 이름과 툴팁은 그대로 '기록').
+            { value: 'history' as const, label: <History />, ariaLabel: t('alertTabHistory') },
+          ]}
         />
         <Suspense fallback={<div className="grid h-24 place-content-center"><Loader2 className="size-4 animate-spin text-fg-subtle" /></div>}>
           {tab === 'price' ? <PriceAlertPanel /> : tab === 'history' ? <AlertHistoryPanel /> : <AlertRulesPanel kind={tab} />}

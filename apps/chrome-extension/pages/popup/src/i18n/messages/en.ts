@@ -86,6 +86,9 @@ export const en: Record<MessageKey, string> = {
   designV1: 'Classic (v1)',
   designV2: 'New (v2)',
   favoritePin: 'Pin favorites to top',
+  favoriteAdded: 'Added {coin} to favorites',
+  favoriteRemoved: 'Removed {coin} from favorites',
+  undo: 'Undo',
   listingAlerts: 'New listing alerts (Upbit·Bithumb KRW)',
   greenUp: 'Green up · red down',
   redUp: 'Red up · blue down',
@@ -354,4 +357,5 @@ export const en: Record<MessageKey, string> = {
   historyNotYet: 'No record for that date yet',
   historyCollecting: 'Your total is recorded once a day to show period P&L.',
   chartMoveNoRelatedNews: 'No news about this coin around this time',
+  chartSummary: '{symbol} chart: last {last}, {change} over this range, high {high}, low {low}',
 };

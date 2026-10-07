@@ -456,6 +456,19 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
     }
   }, [activeChart, symbol, isOpen, cancel]);
 
+  const chartSummary = useMemo(() => {
+    if (!chartData.length) return undefined;
+    const first = chartData[0].open;
+    const last = chartData[chartData.length - 1].close;
+    const change = first ? ((last - first) / first) * 100 : 0;
+    return t('chartSummary')
+      .replace('{symbol}', symbol ?? '')
+      .replace('{last}', formatPrice(last))
+      .replace('{change}', `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`)
+      .replace('{high}', formatPrice(Math.max(...chartData.map(point => point.high))))
+      .replace('{low}', formatPrice(Math.min(...chartData.map(point => point.low))));
+  }, [chartData, symbol, t]);
+
   const tooltipContent = useMemo(
     () => (
       <div
@@ -466,6 +479,9 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
         style={position ? { left: `${position.left}px`, top: `${position.top}px` } : { display: 'none' }}>
         <div
           className="chart-container w-full h-full"
+          // 캔버스는 화면 낭독기가 읽지 못해 마지막 가격·구간 등락·고가·저가를 글로 함께 준다.
+          role="img"
+          aria-label={chartSummary}
           style={{ display: chartData.length && !loading && !error ? 'block' : 'none' }}
         />
         {chartData.length > 0 && !loading && !error && (
@@ -482,7 +498,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
                   setIndicators({ ...indicators, [key]: !indicators[key] });
                 }}
                 className={cn(
-                  'rounded px-1 text-[10px] leading-4 hover:cursor-pointer',
+                  'rounded px-1 text-cap leading-4 hover:cursor-pointer',
                   indicators[key]
                     ? 'bg-chart-fg text-chart'
                     : 'border border-(--como-chart-panel-border) bg-chart/70 text-chart-fg-muted',
@@ -494,7 +510,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
         )}
         {hoverMove && (
           <div
-            className="absolute inset-x-1 bottom-1 z-10 truncate rounded bg-chart/90 px-1.5 py-0.5 text-[10px] leading-4 text-chart-fg"
+            className="absolute inset-x-1 bottom-1 z-10 truncate rounded bg-chart/90 px-1.5 py-0.5 text-cap leading-4 text-chart-fg"
             data-testid="chart-move">
             <span className={hoverMove.move.change >= 0 ? 'text-up' : 'text-down'}>
               {hoverMove.move.change >= 0 ? '▲ +' : '▼ '}
@@ -538,7 +554,7 @@ const ChartToolTip: React.FC<ChartTooltipProps> = ({
         )}
       </div>
     ),
-    [position, chartData, loading, error, fetchData, wideSize, t, indicators, setIndicators, hoverMove],
+    [position, chartData, loading, error, fetchData, wideSize, t, indicators, setIndicators, hoverMove, chartSummary],
   );
 
   return (

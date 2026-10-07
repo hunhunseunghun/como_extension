@@ -43,12 +43,9 @@ import { UpdateNoteToggle } from '@/components/UpdateNoteToggle';
 import { WhatsNew } from '@/components/WhatsNew';
 import { PriceNotiPopover as PriceNotiPopoverBase } from '@/components/PriceNotiPopover';
 import { KimchiPremiumBadge } from '@/components/KimchiPremiumBadge';
-import { SettingsPopover as SettingsPopoverBase } from '@/components/SettingsPopover';
-import { isSidePanelView } from '@/lib/settings';
-import { PortfolioPopover as PortfolioPopoverBase } from '@/components/PortfolioPopover';
-import { InsightsPopover as InsightsPopoverBase } from '@/components/InsightsPopover';
-import { DexWatchlistPopover as DexWatchlistPopoverBase } from '@/components/DexWatchlistPopover';
+import { isFluidView } from '@/lib/settings';
 import { ReviewPrompt } from '@/components/ReviewPrompt';
+import { FavoriteUndo } from '@/components/FavoriteUndo';
 import { useI18n } from '@/i18n';
 import { FiatRates, MarketContext, MarketStats } from '@/lib/market';
 import { Search, Loader2 } from 'lucide-react';
@@ -63,11 +60,20 @@ import { WalletStatusContext, type WalletStatus } from '@/lib/walletStatusContex
 const Onboarding = lazy(() => import('@/components/Onboarding').then(m => ({ default: m.Onboarding })));
 
 // 툴바 팝오버는 시세와 상관없으므로 시세가 바뀔 때마다 App과 함께 다시 그리지 않는다.
-const InsightsPopover = memo(InsightsPopoverBase);
-const DexWatchlistPopover = memo(DexWatchlistPopoverBase);
-const PortfolioPopover = memo(PortfolioPopoverBase);
+// 큰 팝오버 넷은 첫 화면 번들에서 빼고 표를 그린 뒤 바로 불러온다(불러오는 동안 같은 크기의 빈 칸).
+const lazyPopover = <P extends object>(load: () => Promise<React.ComponentType<P>>) => {
+  const Lazy = lazy(() => load().then(component => ({ default: component })));
+  return memo((props: P) => (
+    <Suspense fallback={<span aria-hidden className="block w-6 h-6 rounded-md border border-stroke-weak" />}>
+      <Lazy {...props} />
+    </Suspense>
+  ));
+};
+const InsightsPopover = lazyPopover(() => import('@/components/InsightsPopover').then(m => m.InsightsPopover));
+const DexWatchlistPopover = lazyPopover(() => import('@/components/DexWatchlistPopover').then(m => m.DexWatchlistPopover));
+const PortfolioPopover = lazyPopover(() => import('@/components/PortfolioPopover').then(m => m.PortfolioPopover));
+const SettingsPopover = lazyPopover(() => import('@/components/SettingsPopover').then(m => m.SettingsPopover));
 const PriceNotiPopover = memo(PriceNotiPopoverBase);
-const SettingsPopover = memo(SettingsPopoverBase);
 
 type TickerTypes = UpbitTicker | BithumbTicker | BinanceTicker;
 const fallbackData: TickerTypes[] = [];
@@ -82,8 +88,8 @@ const App = () => {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'trade_price', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [storedWideSize, setWideSize] = useWideSize();
-  // 사이드 패널은 폭이 정해져 있지 않아 창 크기에 맞춰 그리고, 넓으면 와이드 컬럼을 쓴다.
-  const isSidePanel = useMemo(isSidePanelView, []);
+  // 사이드 패널(과 Firefox Android 전체 화면)은 폭이 정해져 있지 않아 창 크기에 맞춰 그리고, 넓으면 와이드 컬럼을 쓴다.
+  const isSidePanel = useMemo(isFluidView, []);
   const [panelSize, setPanelSize] = useState({ width: window.innerWidth, height: window.innerHeight });
   useEffect(() => {
     if (!isSidePanel) return;
@@ -92,6 +98,8 @@ const App = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [isSidePanel]);
   const wideSize = isSidePanel ? panelSize.width >= 700 : storedWideSize;
+  // 휴대폰 너비(Firefox Android·좁은 사이드 패널)는 차트 열을 빼고 가격·거래대금 칸에 자리를 준다(차트는 마우스 올리기라 터치에서 쓰기 어렵다).
+  const isCompact = isSidePanel && panelSize.width < 400;
   const [coinNameKR, setCoinNameKR] = useState<boolean>(true);
   const [exchangeRateUSD, setExchangeRateUSD] = useState<number>(0);
   const [exchangeMarketType, setExchangeMarketType] = useState<MarketType>('KRW');
@@ -294,9 +302,10 @@ const App = () => {
       lowest_24h_diff: wideSize,
       kimchi_premium: wideSize || kimchiInNarrow,
       ath_diff: wideSize,
+      candlestick_chart: !isCompact,
       acc_trade_price_24h: wideSize || !isKrwExchange(exchangePlatform) || !kimchiInNarrow,
     }),
-    [wideSize, kimchiInNarrow, exchangePlatform],
+    [wideSize, kimchiInNarrow, exchangePlatform, isCompact],
   );
 
   const table = useReactTable<TickerTypes>({
@@ -327,7 +336,7 @@ const App = () => {
 
   // 열 너비 계산
   const viewportWidth = isSidePanel ? panelSize.width : wideSize ? 800 : 420; // 뷰포트 너비
-  const chartColumnWidth = wideSize ? 62 : 48; // 차트 열 고정 너비
+  const chartColumnWidth = isCompact ? 0 : wideSize ? 62 : 48; // 차트 열 고정 너비
   const remainingWidth = viewportWidth - chartColumnWidth; // 나머지 열이 사용할 너비
   const nonChartColumns = table.getAllColumns().filter(col => col.id !== 'candlestick_chart');
   // 와이드·넓은 화면에서는 종목명 열을 조금 더 넓게 준다. 좁은 팝업에서 넓히면 가격 칸(예: ₩113,963,380)이 두 줄로 꺾인다.
@@ -596,6 +605,7 @@ const App = () => {
               ) : (
                 <ReviewPrompt />
               )}
+              <FavoriteUndo setFavoriteCoins={setFavoriteCoins} />
               <Suspense fallback={null}>
                 <Onboarding
                   exchangePlatform={exchangePlatform}

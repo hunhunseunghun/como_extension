@@ -83,6 +83,9 @@ export const hi: Partial<Record<MessageKey, string>> = {
   designV1: 'क्लासिक (v1)',
   designV2: 'नया (v2)',
   favoritePin: 'पसंदीदा को ऊपर पिन करें',
+  favoriteAdded: '{coin} पसंदीदा में जोड़ा गया',
+  favoriteRemoved: '{coin} पसंदीदा से हटाया गया',
+  undo: 'पूर्ववत करें',
   listingAlerts: 'नई लिस्टिंग अलर्ट (Upbit·Bithumb KRW)',
   greenUp: 'हरा ऊपर · लाल नीचे',
   redUp: 'लाल ऊपर · नीला नीचे',
@@ -351,4 +354,5 @@ export const hi: Partial<Record<MessageKey, string>> = {
   historyNotYet: 'उस तारीख का रिकॉर्ड अभी नहीं',
   historyCollecting: 'अवधि के हिसाब से लाभ/हानि दिखाने के लिए कुल मूल्य दिन में एक बार दर्ज होता है।',
   chartMoveNoRelatedNews: 'इस समय इस कॉइन की कोई खबर नहीं',
+  chartSummary: '{symbol} चार्ट: अंतिम {last}, इस अवधि में {change}, उच्चतम {high}, न्यूनतम {low}',
 };

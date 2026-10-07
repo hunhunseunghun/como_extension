@@ -1,5 +1,17 @@
 import type { MessageKey } from '@/i18n';
 import type { ExchangePlatform, GlobalExchange, KrwExchange, MarketType } from '@/types';
+// 거래소 로고는 확장에 넣어 둔다(외부 이미지 서버에 요청하지 않고, 오프라인·첫 실행에도 바로 보인다).
+import upbitLogo from '@/assets/exchanges/upbit.png';
+import bithumbLogo from '@/assets/exchanges/bithumb.png';
+import binanceLogo from '@/assets/exchanges/binance.png';
+import bybitLogo from '@/assets/exchanges/bybit.png';
+import coinbaseLogo from '@/assets/exchanges/coinbase.png';
+import okxLogo from '@/assets/exchanges/okx.png';
+import bitgetLogo from '@/assets/exchanges/bitget.png';
+import krakenLogo from '@/assets/exchanges/kraken.png';
+import coindcxLogo from '@/assets/exchanges/coindcx.png';
+import coinoneLogo from '@/assets/exchanges/coinone.png';
+import digitalxLogo from '@/assets/exchanges/digitalx.png';
 
 type ExchangeMeta = {
   key: ExchangePlatform;
@@ -11,57 +23,57 @@ export const EXCHANGES: Record<ExchangePlatform, ExchangeMeta> = {
   upbit: {
     key: 'upbit',
     labelKey: 'exchange_upbit',
-    logo: 'https://coin-images.coingecko.com/markets/images/117/large/upbit.png?1706864294',
+    logo: upbitLogo,
   },
   bithumb: {
     key: 'bithumb',
     labelKey: 'exchange_bithumb',
-    logo: 'https://coin-images.coingecko.com/markets/images/6/large/bithumb_BI.png?1706864248',
+    logo: bithumbLogo,
   },
   binance: {
     key: 'binance',
     labelKey: 'exchange_binance',
-    logo: 'https://coin-images.coingecko.com/markets/images/469/large/Binance.png?1706864454',
+    logo: binanceLogo,
   },
   bybit: {
     key: 'bybit',
     labelKey: 'exchange_bybit',
-    logo: 'https://coin-images.coingecko.com/markets/images/698/large/bybit_spot.png?1706864649',
+    logo: bybitLogo,
   },
   coinbase: {
     key: 'coinbase',
     labelKey: 'exchange_coinbase',
-    logo: 'https://coin-images.coingecko.com/markets/images/23/large/Coinbase_Coin_Primary.png?1706864258',
+    logo: coinbaseLogo,
   },
   okx: {
     key: 'okx',
     labelKey: 'exchange_okx',
-    logo: 'https://coin-images.coingecko.com/markets/images/96/large/WeChat_Image_20220117220452.png?1706864283',
+    logo: okxLogo,
   },
   bitget: {
     key: 'bitget',
     labelKey: 'exchange_bitget',
-    logo: 'https://coin-images.coingecko.com/markets/images/540/large/2023-07-25_21.47.43.jpg?1706864507',
+    logo: bitgetLogo,
   },
   kraken: {
     key: 'kraken',
     labelKey: 'exchange_kraken',
-    logo: 'https://coin-images.coingecko.com/markets/images/29/large/kraken.jpg?1706864265',
+    logo: krakenLogo,
   },
   coindcx: {
     key: 'coindcx',
     labelKey: 'exchange_coindcx',
-    logo: 'https://coin-images.coingecko.com/markets/images/520/large/coindcx.png?1706864493',
+    logo: coindcxLogo,
   },
   coinone: {
     key: 'coinone',
     labelKey: 'exchange_coinone',
-    logo: 'https://coin-images.coingecko.com/markets/images/20/large/coinone_circle_500x500.png?1706864256',
+    logo: coinoneLogo,
   },
   digitalx: {
     key: 'digitalx',
     labelKey: 'exchange_digitalx',
-    logo: 'https://coin-images.coingecko.com/markets/images/28/large/digital-x.png?1790061806',
+    logo: digitalxLogo,
   },
 };
 
