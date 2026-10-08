@@ -1,6 +1,6 @@
-COMO – Crypto Price Tracker & Bitcoin Ticker
+COMO – Bitcoin & Crypto Price Tracker with Kimchi Premium
 
-Live Bitcoin, Ethereum and crypto prices from 11 exchanges in one click — with price alerts, portfolio tracking, charts and a live price on your toolbar.
+Live Bitcoin, Ethereum and crypto prices from 11 exchanges — Binance, Coinbase, Bybit, OKX, Kraken, Upbit, Bithumb and more — in one click, with the kimchi premium for every coin, price alerts, portfolio tracking, charts and a live price on your toolbar.
 
 📈 Real-time prices from 11 exchanges
 COMO connects to eleven major global and Korean exchanges. Prices stream in live over WebSocket, so the table updates as trades happen. Switch exchanges and markets in a second.
@@ -35,7 +35,7 @@ The interface follows your browser language, and you can switch it any time in s
 🔒 Privacy
 By default COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required. Optional account sync uses a read-only API key that you enter; the key is stored only in your browser and is sent only to that exchange.
 
-What's new in 3.5.0
+What's new in 3.5.1
 • Alert history: see every alert again, including ones held during quiet hours
 • Chart indicators (moving averages, Bollinger Bands, RSI) and markers on big candles with news from that time
 • Economic calendar (FOMC, CPI and more) with an optional heads-up 30 minutes before each release

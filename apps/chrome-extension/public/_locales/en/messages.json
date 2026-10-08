@@ -1,9 +1,9 @@
 {
   "extName": {
-    "message": "COMO: Crypto Price Tracker & Bitcoin Ticker – Alerts, Portfolio"
+    "message": "COMO: Bitcoin & Crypto Price Tracker – Kimchi Premium, Price Alerts"
   },
   "extDescription": {
-    "message": "Live Bitcoin & crypto prices from 11 major exchanges, with price alerts, portfolio profit/loss, charts and a toolbar price badge."
+    "message": "Live crypto prices from 11 exchanges incl. Upbit, Bithumb and Binance, plus kimchi premium, price alerts, portfolio P/L and charts."
   },
   "commandToggle": {
     "message": "Quickly open or close the crypto price popup"

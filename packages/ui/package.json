@@ -1,6 +1,6 @@
 {
   "name": "@packages/ui",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "private": true,
   "exports": {
     "./button": "./src/button.tsx",

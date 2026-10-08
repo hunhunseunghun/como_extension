@@ -35,7 +35,7 @@ A interface segue o idioma do seu navegador, e você pode trocá-lo a qualquer m
 🔒 Privacidade
 Por padrão, o COMO lê apenas dados públicos de mercado das APIs das corretoras e de cotações. Ele não lê as páginas que você visita, e suas configurações, alertas e carteira ficam no seu navegador. Não é preciso criar conta nem fazer login. A sincronização de conta opcional usa uma chave de API somente leitura que você informa; a chave fica salva apenas no seu navegador e é enviada apenas para essa corretora.
 
-Novidades da versão 3.5.0
+Novidades da versão 3.5.1
 • Histórico de alertas: veja todos de novo, inclusive os retidos no horário silencioso
 • Indicadores no gráfico (médias móveis, Bollinger, RSI) e marcas em velas grandes com notícias do momento
 • Calendário econômico (FOMC, CPI e mais) com aviso opcional 30 minutos antes
