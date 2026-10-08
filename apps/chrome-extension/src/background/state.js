@@ -32,3 +32,21 @@ export const uiState = { quietMode: false };
  * @type {Map<string, { usd: number | null, change1h: number | null, change24h: number | null }>}
  */
 export const openInterest = new Map();
+
+// 한국 시각 기준 오늘(YYYYMMDD). 하루 한 번 알림 규칙과 고시 환율 조회 날짜에 쓴다.
+const getKSTDate = () =>
+  new Date()
+    .toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .replace(/\./g, '')
+    .replace(/ /g, '');
+
+export const today = { date: getKSTDate() };
+
+// 날짜가 바뀌었으면 today.date를 바꾸고 true를 돌려준다. 하루 한 번 규칙은 확인할 때마다 이걸 불러 자정 직후에도 바로 풀린다.
+/** @returns {boolean} */
+export function refreshCurrentDate() {
+  const date = getKSTDate();
+  if (date === today.date) return false;
+  today.date = date;
+  return true;
+}

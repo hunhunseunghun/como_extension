@@ -1,12 +1,27 @@
+// @ts-check
 // 거래소 연결(시세 스냅샷 + 실시간 웹소켓/폴링). index.js에서 나눔.
 // index.js에 있는 알림 확인·권한·미니 창 상태는 configureExchanges로 받는다(순환 import를 피한다).
 import { toGlobalSnapshot, toGlobalTick } from './lib/globalTicks.js';
 import { allExchangesTickers } from './state.js';
 import { fetchJson } from './net.js';
+import { checkPriceAlerts } from './notify.js';
+
+/** @typedef {ReturnType<typeof setTimeout>} Timer */
+/**
+ * 스냅샷 한 종목(setSnapshot이 받음). ticker는 팝업에 보내는 거래소 원본에 가까운 모양.
+ * @typedef {{ key: string, ticker: any, price: number, changeRate: number, volume?: number | string, koreanName?: string | null }} SnapshotEntry
+ */
+/**
+ * 실시간 갱신 한 건(applyUpdates가 받음). tick은 팝업에 보내는 모양.
+ * @typedef {{ key: string, tick: any, price: number, changeRate: number, volume?: number }} TickUpdate
+ */
+
+/**
+ * 시세를 보낼 화면 포트. 실제 chrome.runtime.Port와, 연결된 화면 모두에 보내는 index.js의 broadcastPort가 같은 모양이다.
+ * @typedef {{ name: string, postMessage: (message: any) => void, onDisconnect: { addListener: (callback: () => void) => void } }} ScreenPort
+ */
 
 const deps = {
-  /** @type {(exchange: string, ticker: string, price: number) => void} */
-  checkPriceAlerts: () => {},
   /** @type {(name: string) => Promise<boolean>} */
   hasExchangePermission: async () => true,
   /** @type {(name: string) => boolean} */
@@ -33,31 +48,48 @@ const START_RETRY_MAX_MS = 10 * 60_000;
 const GLOBAL_FORWARD_INTERVAL = 200;
 
 export class ExchangeData {
+  /**
+   * @param {string} name
+   * @param {string} apiUrl
+   * @param {string | null} wsUrl 웹소켓이 없는 거래소(폴링)는 null
+   * @param {{ isGlobal?: boolean }} [options]
+   */
   constructor(name, apiUrl, wsUrl, { isGlobal = false } = {}) {
     this.name = name;
     this.apiUrl = apiUrl;
     this.wsUrl = wsUrl;
     // 해외(USDT) 거래소는 팝업에서 바이낸스와 같은 필드 형태를 사용한다.
     this.isGlobal = isGlobal;
+    /** @type {WebSocket | null} */
     this.socket = null;
+    /** @type {ScreenPort | null} */
     this.port = null;
+    /** @type {string[]} */
     this.markets = [];
+    /** @type {Record<string, any>} 마켓 → 이름·경보 등 거래소 마켓 정보 */
     this.marketsInfo = {};
+    /** @type {Record<string, any> | null} 마켓 → 팝업에 보내는 시세 */
     this.tickers = null;
+    /** @type {any[] | null} 해외 거래소: fetchMarkets가 받은 시세를 첫 스냅샷까지 잠시 둔다 */
+    this.initialList = null;
     this.initialReconnectDelay = 2000;
     this.currentReconnectDelay = this.initialReconnectDelay;
     this.maxReconnectDelay = 10000;
     this.backoffFactor = 1.5;
     this.isPopupActive = false;
     this.isReconnecting = false;
-    this.heartbeatId = null;
+    /** @type {Timer | undefined} */
+    this.heartbeatId = undefined;
+    /** @type {Record<string, any>} */
     this.pendingTicks = {};
-    this.forwardTimer = null;
+    /** @type {Timer | undefined} */
+    this.forwardTimer = undefined;
     this.lastMessageAt = 0;
     // started: 마켓 목록과 첫 시세를 받았다. suspended: 화면이 닫혀 있고 쓰는 곳이 없어 연결을 끊어 뒀다.
     this.started = false;
     this.suspended = false;
-    this.startTimer = null;
+    /** @type {Timer | undefined} */
+    this.startTimer = undefined;
     this.startRetryDelay = START_RETRY_MIN_MS;
     // 구독 메시지 사이 간격. 일부 거래소(Bitget 등)는 초당 메시지 수를 제한한다.
     this.subscribeGap = 120;
@@ -65,16 +97,17 @@ export class ExchangeData {
     this.locked = false;
   }
 
+  /** @param {TickUpdate[]} updates */
   forwardTicks(updates) {
     // 원화 거래소 틱은 팝업이 하나씩 받는다(웹소켓은 메시지마다 하나, 폴링은 바뀐 종목 전부).
     if (!this.isGlobal) {
-      for (const { tick } of updates) this.port.postMessage({ type: `${this.name}WebsocketTicker`, data: tick });
+      for (const { tick } of updates) this.port?.postMessage({ type: `${this.name}WebsocketTicker`, data: tick });
       return;
     }
     for (const { key, tick } of updates) this.pendingTicks[key] = tick;
     if (this.forwardTimer) return;
     this.forwardTimer = setTimeout(() => {
-      this.forwardTimer = null;
+      this.forwardTimer = undefined;
       const ticks = Object.values(this.pendingTicks);
       this.pendingTicks = {};
       if (ticks.length && this.isPopupActive && this.port) {
@@ -83,13 +116,14 @@ export class ExchangeData {
     }, GLOBAL_FORWARD_INTERVAL);
   }
 
-  // entries: [{ key, ticker, price, changeRate, koreanName? }]
+  /** @param {SnapshotEntry[]} entries */
   setSnapshot(entries) {
+    /** @type {Record<string, any>} */
     const tickers = {};
     const store = allExchangesTickers[this.name];
     for (const { key, ticker, price, changeRate, volume = 0, koreanName = null } of entries) {
       if (!key) continue;
-      if (price) deps.checkPriceAlerts(this.name, key, price);
+      if (price) checkPriceAlerts(this.name, key, price);
       store[key] = {
         ...store[key],
         exchange: this.name,
@@ -119,7 +153,7 @@ export class ExchangeData {
         responses.push(await this.fetchTickerChunk(chunk));
       }
       this.setSnapshot(
-        responses.flat().map(ticker => ({
+        responses.flat().map((/** @type {any} */ ticker) => ({
           key: ticker.market,
           ticker: { ...ticker, ...this.marketsInfo[ticker.market] },
           price: ticker.trade_price,
@@ -133,6 +167,11 @@ export class ExchangeData {
     }
   }
 
+  /**
+   * @param {string[]} chunk
+   * @param {number} [attempt]
+   * @returns {Promise<any[]>}
+   */
   async fetchTickerChunk(chunk, attempt = 0) {
     const response = await fetch(`${this.apiUrl}/ticker?markets=${chunk.join(',')}`, {
       headers: { Accept: 'application/json' },
@@ -145,11 +184,22 @@ export class ExchangeData {
     return response.json();
   }
 
+  // 하위 클래스: 마켓 코드 목록. 실패하면 빈 목록(시작을 나중에 다시 시도한다).
+  /** @returns {Promise<string[]>} */
+  async fetchMarkets() {
+    return [];
+  }
+
   // 업비트·빗썸 공통 구독/파싱
+  /** @returns {string[]} */
   getSubscriptions() {
     return [JSON.stringify([{ ticket: 'como' }, { type: 'ticker', codes: this.markets }])];
   }
 
+  /**
+   * @param {any} message 웹소켓 메시지(JSON)
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     if (!message?.code) return [];
     return [
@@ -163,10 +213,12 @@ export class ExchangeData {
     ];
   }
 
+  /** @returns {string | null} 주기적으로 보낼 핑(없으면 null) */
   getHeartbeatMessage() {
     return null;
   }
 
+  /** @param {ScreenPort} port */
   connectPopup(port) {
     if (!port || port.name !== 'popup') return;
     this.port = port;
@@ -183,7 +235,7 @@ export class ExchangeData {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
     if (this.socket) this.dropSocket();
 
-    const socket = new WebSocket(this.wsUrl);
+    const socket = new WebSocket(/** @type {string} 폴링 거래소는 이 메서드를 덮어쓴다 */ (this.wsUrl));
     this.socket = socket;
 
     socket.onopen = () => {
@@ -227,19 +279,24 @@ export class ExchangeData {
   }
 
   // 실시간 갱신(웹소켓·폴링)을 전 거래소 시세에 반영하고, 알림을 확인하고, 팝업에 보낸다.
+  /** @param {TickUpdate[]} updates */
   applyUpdates(updates) {
     if (!updates.length) return;
     const store = allExchangesTickers[this.name];
     for (const { key, tick, price, changeRate, volume } of updates) {
       store[key] = { ...store[key], exchange: this.name, market: key, currentPrice: price, changeRate };
       if (volume) store[key].volume = volume;
-      deps.checkPriceAlerts(this.name, key, price);
+      checkPriceAlerts(this.name, key, price);
       this.mergeTicker(key, tick);
     }
     if (this.isPopupActive && this.port) this.forwardTicks(updates);
   }
 
   // 팝업을 다시 열 때 보내는 스냅샷이 최초 REST 응답에 머물지 않도록 웹소켓 갱신분을 병합한다.
+  /**
+   * @param {string} key
+   * @param {any} data
+   */
   mergeTicker(key, data) {
     const current = this.tickers?.[key];
     if (current) Object.assign(current, data);
@@ -353,6 +410,7 @@ export class ExchangeData {
     this.connectWebSocket();
   }
 
+  /** @param {boolean} active */
   setPopupActive(active) {
     this.isPopupActive = active;
     if (this.port && this.isPopupActive && this.tickers) {
@@ -362,6 +420,12 @@ export class ExchangeData {
 }
 
 // 해외 거래소 응답을 setSnapshot·applyUpdates가 받는 형태로 바꾼다(필드 변환은 lib/globalTicks.js).
+/** @typedef {{ last: any, open: any, high: any, low: any, quoteVolume: any }} GlobalFields */
+/**
+ * @param {string} symbol
+ * @param {GlobalFields} fields
+ * @returns {SnapshotEntry}
+ */
 const globalEntry = (symbol, fields) => {
   const ticker = toGlobalSnapshot(symbol, fields);
   return {
@@ -373,13 +437,19 @@ const globalEntry = (symbol, fields) => {
   };
 };
 
+/**
+ * @param {ExchangeData} exchange
+ * @param {string} symbol
+ * @param {GlobalFields} fields
+ * @returns {TickUpdate}
+ */
 const globalUpdate = (exchange, symbol, fields) => {
   const tick = toGlobalTick(symbol, fields, exchange.tickers?.[symbol]);
   return { key: symbol, tick, price: Number(tick.c), changeRate: Number(tick.P), volume: Number(tick.q) || undefined };
 };
 
 const GLOBAL_QUOTES = ['USDT', 'BTC'];
-const hasGlobalQuote = symbol => GLOBAL_QUOTES.some(quote => symbol.endsWith(quote));
+const hasGlobalQuote = /** @param {string} symbol */ symbol => GLOBAL_QUOTES.some(quote => symbol.endsWith(quote));
 
 //  거래소별 클래스
 export class UpbitData extends ExchangeData {
@@ -390,8 +460,8 @@ export class UpbitData extends ExchangeData {
   async fetchMarkets() {
     try {
       const response = await fetch(`${this.apiUrl}/market/all?isDetails=true`);
-      const tickers = await response.json();
-      this.marketsInfo = tickers.reduce((acc, ticker) => {
+      const tickers = /** @type {any[]} */ (await response.json());
+      this.marketsInfo = tickers.reduce((/** @type {any} */ acc, /** @type {any} */ ticker) => {
         // 팝업은 caution을 참·거짓으로 읽는다. 어떤 사유인지는 cautionReasons로 따로 넘겨 아이콘에 보여 준다.
         const reasons = Object.entries(ticker.market_event?.caution ?? {})
           .filter(([, value]) => value === true)
@@ -420,9 +490,9 @@ export class BithumbData extends ExchangeData {
     try {
       const response = await fetch(`${this.apiUrl}/market/all?isDetails=true`);
       const data = await response.json();
-      this.marketsInfo = Object.fromEntries(data.map(ticker => [ticker.market, { ...ticker }]));
+      this.marketsInfo = Object.fromEntries(data.map((/** @type {any} */ ticker) => [ticker.market, { ...ticker }]));
       resolveKrwNames();
-      return data.map(ticker => ticker.market);
+      return /** @type {any[]} */ (data).map(ticker => ticker.market);
     } catch (error) {
       console.warn(error);
       return [];
@@ -442,7 +512,7 @@ export class BinanceData extends ExchangeData {
   async fetchMarkets() {
     try {
       const response = await fetch(`${this.apiUrl}/ticker/24hr`, { headers: { Accept: 'application/json' } });
-      const tickersArray = await response.json();
+      const tickersArray = /** @type {any[]} */ (await response.json());
       this.initialList = tickersArray.filter(ticker => ticker.symbol && Number(ticker.lastPrice) !== 0);
       return this.initialList.map(ticker => ticker.symbol);
     } catch (error) {
@@ -468,6 +538,10 @@ export class BinanceData extends ExchangeData {
     return [];
   }
 
+  /**
+   * @param {any} message
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     if (!Array.isArray(message)) return [];
     return message.map(t => globalUpdate(this, t.s, { last: t.c, open: t.o, high: t.h, low: t.l, quoteVolume: t.q }));
@@ -479,6 +553,7 @@ export class BybitData extends ExchangeData {
     super('bybit', 'https://api.bybit.com/v5', 'wss://stream.bybit.com/v5/public/spot', { isGlobal: true });
   }
 
+  /** @param {any} t 거래소 시세 응답 한 건 */
   static fields(t) {
     return {
       last: t.lastPrice,
@@ -493,7 +568,7 @@ export class BybitData extends ExchangeData {
     try {
       const response = await fetch(`${this.apiUrl}/market/tickers?category=spot`);
       const { result } = await response.json();
-      this.initialList = result.list.filter(t => hasGlobalQuote(t.symbol) && Number(t.lastPrice) > 0);
+      this.initialList = /** @type {any[]} */ (result.list).filter(t => hasGlobalQuote(t.symbol) && Number(t.lastPrice) > 0);
       return this.initialList.map(t => t.symbol);
     } catch (error) {
       console.warn(error);
@@ -519,6 +594,10 @@ export class BybitData extends ExchangeData {
     return JSON.stringify({ op: 'ping' });
   }
 
+  /**
+   * @param {any} message
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     const t = message?.data;
     if (!message?.topic?.startsWith('tickers.') || !t?.symbol) return [];
@@ -530,13 +609,16 @@ export class OkxData extends ExchangeData {
   constructor() {
     super('okx', 'https://www.okx.com/api/v5', 'wss://ws.okx.com:8443/ws/v5/public', { isGlobal: true });
     // 팝업·알림에서는 BTCUSDT 형태를 쓰고, OKX API에는 BTC-USDT 형태를 쓴다.
+    /** @type {Record<string, string>} BTCUSDT → BTC-USDT */
     this.instIds = {};
   }
 
+  /** @param {string} instId */
   static symbol(instId) {
     return instId.replace('-', '');
   }
 
+  /** @param {any} t 거래소 시세 응답 한 건 */
   static fields(t) {
     return { last: t.last, open: t.open24h, high: t.high24h, low: t.low24h, quoteVolume: t.volCcy24h };
   }
@@ -545,7 +627,7 @@ export class OkxData extends ExchangeData {
     try {
       const response = await fetch(`${this.apiUrl}/market/tickers?instType=SPOT`);
       const { data } = await response.json();
-      this.initialList = data.filter(
+      this.initialList = /** @type {any[]} */ (data).filter(
         t => GLOBAL_QUOTES.some(quote => t.instId.endsWith(`-${quote}`)) && Number(t.last) > 0,
       );
       this.instIds = Object.fromEntries(this.initialList.map(t => [OkxData.symbol(t.instId), t.instId]));
@@ -580,9 +662,13 @@ export class OkxData extends ExchangeData {
     return 'ping';
   }
 
+  /**
+   * @param {any} message
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     if (message?.arg?.channel !== 'tickers' || !Array.isArray(message.data)) return [];
-    return message.data.map(t => globalUpdate(this, OkxData.symbol(t.instId), OkxData.fields(t)));
+    return message.data.map((/** @type {any} */ t) => globalUpdate(this, OkxData.symbol(t.instId), OkxData.fields(t)));
   }
 }
 
@@ -590,14 +676,20 @@ export class CoinbaseData extends ExchangeData {
   constructor() {
     super('coinbase', 'https://api.exchange.coinbase.com', 'wss://ws-feed.exchange.coinbase.com', { isGlobal: true });
     // 팝업·알림에서는 BTCUSD 형태를 쓰고, Coinbase API에는 BTC-USD 형태를 쓴다.
+    /** @type {Record<string, string>} BTCUSD → BTC-USD */
     this.productIds = {};
   }
 
+  /** @param {string} productId */
   static symbol(productId) {
     return productId.replace('-', '');
   }
 
   // Coinbase는 거래량을 기준 코인 수량으로 주므로 가격을 곱해 USD 거래대금으로 맞춘다.
+  /**
+   * @param {any} t
+   * @param {any} [last]
+   */
   static fields(t, last = t.last) {
     return {
       last,
@@ -614,10 +706,10 @@ export class CoinbaseData extends ExchangeData {
         fetchJson(`${this.apiUrl}/products`),
         fetchJson(`${this.apiUrl}/products/stats`),
       ]);
-      this.initialList = products
-        .filter(p => p.quote_currency === 'USD' && p.status === 'online' && !p.trading_disabled)
-        .map(p => ({ id: p.id, stats: stats[p.id]?.stats_24hour }))
-        .filter(p => Number(p.stats?.last) > 0);
+      this.initialList = /** @type {any[]} */ (products)
+        .filter((/** @type {any} */ p) => p.quote_currency === 'USD' && p.status === 'online' && !p.trading_disabled)
+        .map((/** @type {any} */ p) => ({ id: p.id, stats: stats[p.id]?.stats_24hour }))
+        .filter((/** @type {any} */ p) => Number(p.stats?.last) > 0);
       this.productIds = Object.fromEntries(this.initialList.map(p => [CoinbaseData.symbol(p.id), p.id]));
       return Object.keys(this.productIds);
     } catch (error) {
@@ -641,6 +733,10 @@ export class CoinbaseData extends ExchangeData {
     return [JSON.stringify({ type: 'subscribe', product_ids: Object.values(this.productIds), channels: ['ticker'] })];
   }
 
+  /**
+   * @param {any} message
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     if (message?.type !== 'ticker' || !message.product_id) return [];
     return [globalUpdate(this, CoinbaseData.symbol(message.product_id), CoinbaseData.fields(message, message.price))];
@@ -655,6 +751,7 @@ export class BitgetData extends ExchangeData {
     super('bitget', 'https://api.bitget.com/api/v2', 'wss://ws.bitget.com/v2/ws/public', { isGlobal: true });
   }
 
+  /** @param {any} t 거래소 시세 응답 한 건 */
   static fields(t) {
     return { last: t.lastPr, open: t.open ?? t.open24h, high: t.high24h, low: t.low24h, quoteVolume: t.quoteVolume };
   }
@@ -662,9 +759,9 @@ export class BitgetData extends ExchangeData {
   async fetchMarkets() {
     try {
       const { data } = await fetchJson(`${this.apiUrl}/spot/market/tickers`);
-      this.initialList = data
-        .filter(t => hasGlobalQuote(t.symbol) && Number(t.lastPr) > 0)
-        .sort((a, b) => Number(b.usdtVolume) - Number(a.usdtVolume))
+      this.initialList = /** @type {any[]} */ (data)
+        .filter((/** @type {any} */ t) => hasGlobalQuote(t.symbol) && Number(t.lastPr) > 0)
+        .sort((/** @type {any} */ a, /** @type {any} */ b) => Number(b.usdtVolume) - Number(a.usdtVolume))
         .slice(0, BITGET_MAX_MARKETS);
       return this.initialList.map(t => t.symbol);
     } catch (error) {
@@ -691,9 +788,13 @@ export class BitgetData extends ExchangeData {
     return 'ping';
   }
 
+  /**
+   * @param {any} message
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     if (message?.arg?.channel !== 'ticker' || !Array.isArray(message.data)) return [];
-    return message.data.map(t => globalUpdate(this, t.instId, BitgetData.fields(t)));
+    return message.data.map((/** @type {any} */ t) => globalUpdate(this, t.instId, BitgetData.fields(t)));
   }
 }
 
@@ -703,9 +804,11 @@ const NON_CRYPTO_BASES = new Set(['EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'JPY', 'USD
 export class KrakenData extends ExchangeData {
   constructor() {
     super('kraken', 'https://api.kraken.com/0/public', 'wss://ws.kraken.com/v2', { isGlobal: true });
+    /** @type {Record<string, string>} BTCUSD → BTC/USD */
     this.wsSymbols = {};
   }
 
+  /** @param {string} wsname */
   static symbol(wsname) {
     const [base, quote] = wsname.split('/');
     return `${base === 'XBT' ? 'BTC' : base === 'XDG' ? 'DOGE' : base}${quote}`;
@@ -761,9 +864,13 @@ export class KrakenData extends ExchangeData {
     return messages;
   }
 
+  /**
+   * @param {any} message
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     if (message?.channel !== 'ticker' || !Array.isArray(message.data)) return [];
-    return message.data.map(t =>
+    return message.data.map((/** @type {any} */ t) =>
       globalUpdate(this, KrakenData.symbol(t.symbol), {
         last: t.last,
         open: t.last - t.change,
@@ -781,12 +888,15 @@ const POLL_ACTIVE_INTERVAL = 3000;
 const POLL_IDLE_INTERVAL = 60_000;
 
 export class PollingExchangeData extends ExchangeData {
+  /** @param {ConstructorParameters<typeof ExchangeData>} args */
   constructor(...args) {
     super(...args);
-    this.pollTimer = null;
+    /** @type {Timer | undefined} */
+    this.pollTimer = undefined;
   }
 
   // 하위 클래스: applyUpdates가 받는 갱신 목록을 돌려준다.
+  /** @returns {Promise<TickUpdate[]>} */
   async fetchUpdates() {
     return [];
   }
@@ -816,15 +926,17 @@ export class PollingExchangeData extends ExchangeData {
   suspend() {
     super.suspend();
     clearTimeout(this.pollTimer);
-    this.pollTimer = null;
+    this.pollTimer = undefined;
   }
 
   // 팝업에서 이 거래소를 열면 바로 빠른 주기로 바꾼다.
+  /** @param {boolean} active */
   setPopupActive(active) {
     super.setPopupActive(active);
     if (active && this.pollTimer) this.poll();
   }
 
+  /** @param {ScreenPort} port */
   connectPopup(port) {
     super.connectPopup(port);
     if (this.isPopupActive && this.pollTimer) this.poll();
@@ -837,6 +949,7 @@ export class CoindcxData extends PollingExchangeData {
     super('coindcx', 'https://api.coindcx.com/exchange', null, { isGlobal: true });
   }
 
+  /** @param {any} t 거래소 시세 응답 한 건 */
   static fields(t) {
     const last = Number(t.last_price);
     const changeRate = Number(t.change_24_hour) || 0;
@@ -850,9 +963,10 @@ export class CoindcxData extends PollingExchangeData {
     };
   }
 
+  /** @returns {Promise<any[]>} */
   async fetchTickers() {
     const tickers = await fetchJson(`${this.apiUrl}/ticker`);
-    return tickers.filter(t => /(INR|USDT)$/.test(t.market) && Number(t.last_price) > 0);
+    return tickers.filter((/** @type {any} */ t) => /(INR|USDT)$/.test(t.market) && Number(t.last_price) > 0);
   }
 
   async fetchMarkets() {
@@ -871,18 +985,20 @@ export class CoindcxData extends PollingExchangeData {
   }
 
   async fetchUpdates() {
-    return (await this.fetchTickers()).map(t => globalUpdate(this, t.market, CoindcxData.fields(t)));
+    return (await this.fetchTickers()).map((/** @type {any} */ t) => globalUpdate(this, t.market, CoindcxData.fields(t)));
   }
 }
 
 // 코인원·디지털엑스(옛 코빗): 업비트와 같은 모양(KRW-BTC, trade_price 등)으로 바꿔 보내 팝업이 원화 거래소 표를 그대로 쓴다.
 // 두 거래소 API는 코인 이름을 영문으로만 주므로, 업비트·빗썸 마켓 정보에서 한글 이름을 빌려 온다.
-let resolveKrwNames;
+/** @type {(value?: unknown) => void} */
+let resolveKrwNames = () => {};
 const krwNamesReady = new Promise(resolve => {
   resolveKrwNames = resolve;
   setTimeout(resolve, 10_000);
 });
 
+/** @param {string} coin */
 const krwNameOf = coin => {
   const market = `KRW-${coin}`;
   const info = deps.exchanges.upbit.marketsInfo[market] ?? deps.exchanges.bithumb.marketsInfo[market];
@@ -890,6 +1006,11 @@ const krwNameOf = coin => {
 };
 
 // base: 등락 기준가(코인원은 24시간 전 가격, 디지털엑스는 전일 종가)
+/** @typedef {{ price: number, base: number, high: number, low: number, volume: number, timestamp: number }} KrwFields */
+/**
+ * @param {string} coin
+ * @param {KrwFields} fields
+ */
 const toKrwTicker = (coin, { price, base, high, low, volume, timestamp }) => {
   const change = base ? price - base : 0;
   return {
@@ -907,6 +1028,12 @@ const toKrwTicker = (coin, { price, base, high, low, volume, timestamp }) => {
   };
 };
 
+/**
+ * @param {ExchangeData} exchange
+ * @param {string} coin
+ * @param {KrwFields} fields
+ * @returns {SnapshotEntry}
+ */
 const krwEntry = (exchange, coin, fields) => {
   const ticker = { ...toKrwTicker(coin, fields), ...exchange.marketsInfo[`KRW-${coin}`] };
   return {
@@ -919,6 +1046,11 @@ const krwEntry = (exchange, coin, fields) => {
   };
 };
 
+/**
+ * @param {string} coin
+ * @param {KrwFields} fields
+ * @returns {TickUpdate}
+ */
 const krwUpdate = (coin, fields) => {
   const tick = toKrwTicker(coin, fields);
   return {
@@ -930,6 +1062,10 @@ const krwUpdate = (coin, fields) => {
   };
 };
 
+/**
+ * @param {ExchangeData} exchange
+ * @param {string[]} coins
+ */
 async function loadKrwNames(exchange, coins) {
   await krwNamesReady;
   exchange.marketsInfo = Object.fromEntries(coins.map(coin => [`KRW-${coin}`, { market: `KRW-${coin}`, ...krwNameOf(coin) }]));
@@ -942,6 +1078,7 @@ export class CoinoneData extends ExchangeData {
     this.subscribeGap = 10;
   }
 
+  /** @param {any} t 거래소 시세 응답 한 건 */
   static fields(t) {
     return {
       price: Number(t.last),
@@ -956,7 +1093,8 @@ export class CoinoneData extends ExchangeData {
   async fetchMarkets() {
     try {
       const { markets } = await fetchJson(`${this.apiUrl}/markets/KRW`);
-      const coins = markets.filter(m => m.trade_status === 1 && !m.maintenance_status).map(m => m.target_currency);
+      /** @type {string[]} */
+      const coins = markets.filter((/** @type {any} */ m) => m.trade_status === 1 && !m.maintenance_status).map((/** @type {any} */ m) => m.target_currency);
       await loadKrwNames(this, coins);
       return coins.map(coin => `KRW-${coin}`);
     } catch (error) {
@@ -971,8 +1109,8 @@ export class CoinoneData extends ExchangeData {
       const listed = new Set(this.markets);
       this.setSnapshot(
         tickers
-          .filter(t => listed.has(`KRW-${t.target_currency.toUpperCase()}`))
-          .map(t => krwEntry(this, t.target_currency.toUpperCase(), CoinoneData.fields(t))),
+          .filter((/** @type {any} */ t) => listed.has(`KRW-${t.target_currency.toUpperCase()}`))
+          .map((/** @type {any} */ t) => krwEntry(this, t.target_currency.toUpperCase(), CoinoneData.fields(t))),
       );
     } catch (error) {
       console.warn(error);
@@ -994,6 +1132,10 @@ export class CoinoneData extends ExchangeData {
     return JSON.stringify({ request_type: 'PING' });
   }
 
+  /**
+   * @param {any} message
+   * @returns {TickUpdate[]}
+   */
   parseMessage(message) {
     if (message?.response_type !== 'DATA' || message.channel !== 'TICKER') return [];
     const t = message.data;
@@ -1007,6 +1149,7 @@ export class DigitalxData extends PollingExchangeData {
     super('digitalx', 'https://api.digitalx.miraeasset.com/v2', null);
   }
 
+  /** @param {any} t 거래소 시세 응답 한 건 */
   static fields(t) {
     return {
       price: Number(t.close),
@@ -1019,6 +1162,7 @@ export class DigitalxData extends PollingExchangeData {
   }
 
   // btc_krw → BTC
+  /** @param {string} symbol */
   static coinOf(symbol) {
     return symbol.split('_')[0].toUpperCase();
   }
@@ -1026,7 +1170,8 @@ export class DigitalxData extends PollingExchangeData {
   async fetchMarkets() {
     try {
       const { data } = await fetchJson(`${this.apiUrl}/currencyPairs`);
-      const coins = data.filter(p => p.status === 'launched' && p.quoteCurrency === 'krw').map(p => DigitalxData.coinOf(p.symbol));
+      /** @type {string[]} */
+      const coins = data.filter((/** @type {any} */ p) => p.status === 'launched' && p.quoteCurrency === 'krw').map((/** @type {any} */ p) => DigitalxData.coinOf(p.symbol));
       await loadKrwNames(this, coins);
       return coins.map(coin => `KRW-${coin}`);
     } catch (error) {
@@ -1038,13 +1183,13 @@ export class DigitalxData extends PollingExchangeData {
   async fetchListedTickers() {
     const { data } = await fetchJson(`${this.apiUrl}/tickers`);
     const listed = new Set(this.markets);
-    return data.filter(t => listed.has(`KRW-${DigitalxData.coinOf(t.symbol)}`));
+    return data.filter((/** @type {any} */ t) => listed.has(`KRW-${DigitalxData.coinOf(t.symbol)}`));
   }
 
   async fetchInitialTickers() {
     try {
       this.setSnapshot(
-        (await this.fetchListedTickers()).map(t => krwEntry(this, DigitalxData.coinOf(t.symbol), DigitalxData.fields(t))),
+        (await this.fetchListedTickers()).map((/** @type {any} */ t) => krwEntry(this, DigitalxData.coinOf(t.symbol), DigitalxData.fields(t))),
       );
     } catch (error) {
       console.warn(error);
@@ -1055,7 +1200,7 @@ export class DigitalxData extends PollingExchangeData {
   async fetchUpdates() {
     const store = allExchangesTickers[this.name];
     return (await this.fetchListedTickers())
-      .map(t => krwUpdate(DigitalxData.coinOf(t.symbol), DigitalxData.fields(t)))
-      .filter(({ key, price, volume }) => store[key]?.currentPrice !== price || store[key]?.volume !== volume);
+      .map((/** @type {any} */ t) => krwUpdate(DigitalxData.coinOf(t.symbol), DigitalxData.fields(t)))
+      .filter((/** @type {TickUpdate} */ { key, price, volume }) => store[key]?.currentPrice !== price || store[key]?.volume !== volume);
   }
 }

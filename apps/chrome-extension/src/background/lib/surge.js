@@ -8,13 +8,13 @@
 export const SAMPLE_KEEP_MS = 16 * 60_000;
 
 /**
- * 표본을 더하고 오래된 것을 지운다. 같은 배열을 고쳐 돌려준다.
+ * 표본을 더하고 오래된 것을 지운다. 같은 배열을 고쳐 돌려준다. 가격이 없으면(아직 시세 전) 더하지 않는다.
  * @param {Sample[]} samples
  * @param {number} now
- * @param {number} price
+ * @param {number | undefined} price
  */
 export function addSample(samples, now, price) {
-  if (!(price > 0)) return samples;
+  if (price == null || !(price > 0)) return samples;
   samples.push({ t: now, p: price });
   const cutoff = now - SAMPLE_KEEP_MS;
   while (samples.length && samples[0].t < cutoff) samples.shift();

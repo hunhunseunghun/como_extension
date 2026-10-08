@@ -9,13 +9,10 @@ import { kstDate, portfolioAmounts, upsertSnapshot } from './lib/portfolioHistor
 import { allExchangesTickers } from './state.js';
 import { fetchJson } from './net.js';
 import { ensureAlarm } from './alarms.js';
+import { createNotification, getLanguage } from './notify.js';
 
 const deps = {
-  /** @type {(id: string, options: chrome.notifications.NotificationOptions<true>) => void} */
-  createNotification: () => {},
-  /** @type {() => string} */
-  getLanguage: () => 'en',
-  /** @type {Record<string, any>} */
+  /** 업비트 마켓 정보(시장경보 알림의 코인 이름)를 읽는다. @type {Record<string, import('./exchanges.js').ExchangeData>} */
   exchanges: {},
 };
 /** @param {Partial<typeof deps>} values */
@@ -49,11 +46,11 @@ async function checkUpbitNotices() {
         .filter(notice => notice.id > lastId)
         .slice(0, 5)
         .forEach(notice => {
-          deps.createNotification(`notice:upbit:${notice.id}`, {
+          createNotification(`notice:upbit:${notice.id}`, {
             type: 'basic',
             iconUrl: 'como-logo.png',
             title: notice.title,
-            message: `UPBIT · ${NOTICE_TEXT[deps.getLanguage()] ?? NOTICE_TEXT.en}`,
+            message: `UPBIT · ${NOTICE_TEXT[getLanguage()] ?? NOTICE_TEXT.en}`,
           });
         });
     }
@@ -94,11 +91,11 @@ async function checkBithumbNotices() {
     const notices = parseBithumbNotices(await fetchJson('https://feed-api.bithumb.com/v1/notices?count=20'));
     const { fresh, maxId } = pickNewNotices(notices, result[BITHUMB_NOTICE_LAST_ID_KEY]);
     fresh.forEach(notice =>
-      deps.createNotification(`notice:bithumb:${notice.id}`, {
+      createNotification(`notice:bithumb:${notice.id}`, {
         type: 'basic',
         iconUrl: 'como-logo.png',
         title: notice.title,
-        message: `BITHUMB · ${notice.category || alertText(deps.getLanguage(), 'exchangeNotice')}`,
+        message: `BITHUMB · ${notice.category || alertText(getLanguage(), 'exchangeNotice')}`,
       }),
     );
     if (maxId != null && maxId !== result[BITHUMB_NOTICE_LAST_ID_KEY]) await chrome.storage.local.set({ [BITHUMB_NOTICE_LAST_ID_KEY]: maxId });
@@ -133,12 +130,12 @@ async function checkMarketWarnings() {
     ]);
     const include = scope === 'all' ? undefined : /** @param {string} market */ market => watched.has(coin(market));
     const added = diffMarketEvents(result[MARKET_EVENTS_KEY], current, include);
-    const language = deps.getLanguage();
+    const language = getLanguage();
     // 한꺼번에 많으면 앞의 5개만 알린다.
     added.slice(0, 5).forEach(({ market, added: flags }) => {
       const info = deps.exchanges.upbit.marketsInfo[market];
       const name = (language === 'ko' ? info?.korean_name : info?.english_name) || market;
-      deps.createNotification(`upbit:${market}:warning-${flags.join('-')}`, {
+      createNotification(`upbit:${market}:warning-${flags.join('-')}`, {
         type: 'basic',
         iconUrl: 'como-logo.png',
         title: `${name} (${coin(market)}) · ${alertText(language, 'marketWarning')}`,
@@ -177,11 +174,11 @@ async function checkEconAlerts() {
   // 지난 일정의 알림 기록은 정리한다.
   const alerted = /** @type {string[]} */ (result[ECON_ALERTED_KEY] ?? []).filter(id => events.some(item => item.id === id && item.time > now - 86_400_000));
   const soon = upcomingEvents(events, now, ECON_LEAD_MS, alerted);
-  const language = deps.getLanguage();
+  const language = getLanguage();
   soon.forEach(item => {
     const minutes = Math.max(1, Math.round((item.time - now) / 60_000));
     const detail = [item.forecast && `F ${item.forecast}`, item.previous && `P ${item.previous}`].filter(Boolean).join(' · ');
-    deps.createNotification(`econ:${item.id}`, {
+    createNotification(`econ:${item.id}`, {
       type: 'basic',
       iconUrl: 'como-logo.png',
       title: `${alertText(language, 'econSoon', { n: minutes })} · ${item.title}`,

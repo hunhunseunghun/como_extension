@@ -8,17 +8,20 @@
 export const MAX_KIMCHI_PREMIUM = 50;
 export const MIN_BINANCE_VOLUME_USD = 100_000;
 
+/** @typedef {{ exchange: string, market: string, coin: string, premium: number, krwPrice: number, usdtPrice: number }} KimchiItem */
+
 // 원화 마켓이 있는 거래소
 export const KRW_EXCHANGES = ['upbit', 'bithumb', 'coinone', 'digitalx'];
 
 /**
  * @param {AllTickers} allTickers 거래소 → 마켓 → 시세
  * @param {number | null} usdRate USD/KRW 환율
+ * @returns {{ rate: number | null, items: Record<string, KimchiItem>, tether?: Record<string, number> }} items: '거래소:마켓' → 김프
  */
 export function computeKimchiPremium(allTickers, usdRate) {
   if (!usdRate) return { rate: usdRate, items: {} };
 
-  /** @type {Record<string, { exchange: string, market: string, coin: string, premium: number, krwPrice: number, usdtPrice: number }>} */
+  /** @type {Record<string, KimchiItem>} */
   const items = {};
   for (const krwExchange of KRW_EXCHANGES) {
     const krwTickers = allTickers[krwExchange];
