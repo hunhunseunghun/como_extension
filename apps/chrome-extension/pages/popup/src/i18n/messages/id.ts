@@ -172,6 +172,7 @@ export const id: Partial<Record<MessageKey, string>> = {
   // 공유 카드
   share: 'Bagikan',
   shareCard: 'Buat gambar untuk dibagikan (tanpa jumlah)',
+  shareFindText: 'Cari “COMO crypto” di Chrome Web Store',
   shareCopied: 'Disalin',
   shareDownloaded: 'Disimpan',
   sharePortfolioTitle: 'Imbal hasil portofolio saya',

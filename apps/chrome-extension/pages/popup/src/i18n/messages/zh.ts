@@ -172,6 +172,7 @@ export const zh: Partial<Record<MessageKey, string>> = {
   // 공유 카드
   share: '分享',
   shareCard: '生成分享图片（不含金额）',
+  shareFindText: '在 Chrome 应用商店搜索“COMO crypto”',
   shareCopied: '已复制',
   shareDownloaded: '已保存',
   sharePortfolioTitle: '我的持仓收益率',

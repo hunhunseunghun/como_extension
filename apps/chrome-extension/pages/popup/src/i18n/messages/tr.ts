@@ -172,6 +172,7 @@ export const tr: Partial<Record<MessageKey, string>> = {
   // 공유 카드
   share: 'Paylaş',
   shareCard: 'Paylaşım görseli oluştur (tutarlar hariç)',
+  shareFindText: 'Chrome Web Mağazası’nda “COMO crypto” arayın',
   shareCopied: 'Kopyalandı',
   shareDownloaded: 'Kaydedildi',
   sharePortfolioTitle: 'Portföy getirim',

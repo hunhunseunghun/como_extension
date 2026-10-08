@@ -10,7 +10,7 @@ export const ShareButton = ({ build, disabled }: { build: () => ShareCard; disab
   const [result, setResult] = useState<ShareResult | null>(null);
 
   const handleClick = async () => {
-    const outcome = await shareCard(build());
+    const outcome = await shareCard({ ...build(), findText: t('shareFindText') });
     setResult(outcome);
     setTimeout(() => setResult(null), 2000);
   };

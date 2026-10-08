@@ -173,6 +173,7 @@ export const ko = {
   // 공유 카드
   share: '공유',
   shareCard: '공유 이미지 만들기 (금액 제외)',
+  shareFindText: 'Chrome·웨일 스토어에서 ‘COMO 코인’ 검색',
   shareCopied: '복사됨',
   shareDownloaded: '저장됨',
   sharePortfolioTitle: '내 포트폴리오 수익률',

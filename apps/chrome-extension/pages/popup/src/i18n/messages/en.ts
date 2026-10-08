@@ -175,6 +175,7 @@ export const en: Record<MessageKey, string> = {
   // 공유 카드
   share: 'Share',
   shareCard: 'Create share image (no amounts)',
+  shareFindText: 'Search “COMO crypto” on the Chrome Web Store',
   shareCopied: 'Copied',
   shareDownloaded: 'Saved',
   sharePortfolioTitle: 'My portfolio return',

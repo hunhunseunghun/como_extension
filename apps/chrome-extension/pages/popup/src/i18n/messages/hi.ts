@@ -172,6 +172,7 @@ export const hi: Partial<Record<MessageKey, string>> = {
   // 공유 카드
   share: 'शेयर',
   shareCard: 'शेयर इमेज बनाएँ (राशि के बिना)',
+  shareFindText: 'Chrome Web Store पर “COMO crypto” खोजें',
   shareCopied: 'कॉपी हुआ',
   shareDownloaded: 'सेव हुआ',
   sharePortfolioTitle: 'मेरे पोर्टफोलियो का रिटर्न',

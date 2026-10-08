@@ -172,6 +172,7 @@ export const pt: Partial<Record<MessageKey, string>> = {
   // 공유 카드
   share: 'Compartilhar',
   shareCard: 'Criar imagem para compartilhar (sem valores)',
+  shareFindText: 'Pesquise “COMO crypto” na Chrome Web Store',
   shareCopied: 'Copiado',
   shareDownloaded: 'Salvo',
   sharePortfolioTitle: 'Retorno da minha carteira',

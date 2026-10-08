@@ -3,9 +3,9 @@ import { Star, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/iconButton';
 import { useI18n } from '@/i18n';
+import { dismissReview, recordOpen, shouldAskReview, type UsageStats } from '@/lib/reviewPrompt';
 
 const STORAGE_KEY = 'usageStats';
-const DAY = 24 * 60 * 60 * 1000;
 
 // 스토어마다 리뷰 페이지 주소가 다르다. 주소를 모르는 브라우저에서는 묻지 않는다.
 const getReviewUrl = () => {
@@ -17,9 +17,7 @@ const getReviewUrl = () => {
   return 'https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok/reviews';
 };
 
-type UsageStats = { firstOpenAt: number; opens: number; nextPromptAt?: number; reviewed?: boolean };
-
-// 충분히 써 본 사용자(10번 이상·3일 이상, 또는 지정가 알림을 받아 본 사용자)에게만 한 번씩 리뷰를 부탁한다.
+// 만족했을 순간(알림을 받은 뒤)이나 충분히 써 본 사용자에게 한 번씩 리뷰를 부탁한다. 조건은 lib/reviewPrompt.ts.
 export const ReviewPrompt = () => {
   const { t } = useI18n();
   const [isVisible, setIsVisible] = useState(false);
@@ -29,21 +27,17 @@ export const ReviewPrompt = () => {
     if (!reviewUrl) return;
     chrome.storage.local.get([STORAGE_KEY, 'alertFiredAt'], result => {
       const now = Date.now();
-      const stats: UsageStats = result?.[STORAGE_KEY] ?? { firstOpenAt: now, opens: 0 };
-      const next = { ...stats, opens: stats.opens + 1 };
+      const previous: UsageStats | undefined = result?.[STORAGE_KEY];
+      const next = recordOpen(previous, now);
       chrome.storage.local.set({ [STORAGE_KEY]: next });
-
-      if (next.reviewed || (next.nextPromptAt && now < next.nextPromptAt)) return;
-      const usedEnough = next.opens >= 10 && now - next.firstOpenAt >= 3 * DAY;
-      const gotAlert = !!result?.alertFiredAt && next.opens >= 3;
-      if (usedEnough || gotAlert) setIsVisible(true);
+      if (shouldAskReview(previous, next, result?.alertFiredAt, now)) setIsVisible(true);
     });
   }, [reviewUrl]);
 
-  const update = (patch: Partial<UsageStats>) => {
+  const update = (change: (stats: UsageStats) => UsageStats) => {
     setIsVisible(false);
     chrome.storage.local.get(STORAGE_KEY, result => {
-      chrome.storage.local.set({ [STORAGE_KEY]: { ...result?.[STORAGE_KEY], ...patch } });
+      chrome.storage.local.set({ [STORAGE_KEY]: change(result?.[STORAGE_KEY] ?? { firstOpenAt: Date.now(), opens: 1 }) });
     });
   };
 
@@ -59,11 +53,11 @@ export const ReviewPrompt = () => {
         className="h-control px-2 text-cap-s hover:cursor-pointer"
         onClick={() => {
           chrome.tabs.create({ url: reviewUrl });
-          update({ reviewed: true });
+          update(stats => ({ ...stats, reviewed: true }));
         }}>
         {t('reviewRate')}
       </Button>
-      <IconButton aria-label={t('reviewLater')} onClick={() => update({ nextPromptAt: Date.now() + 30 * DAY })}>
+      <IconButton aria-label={t('reviewLater')} onClick={() => update(stats => dismissReview(stats, Date.now()))}>
         <X />
       </IconButton>
     </div>

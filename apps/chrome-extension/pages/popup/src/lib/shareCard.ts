@@ -7,6 +7,8 @@ export type ShareCard = {
   headline: string;
   headlineTone?: 'up' | 'down' | 'neutral';
   lines: ShareLine[];
+  // 카드를 본 사람이 COMO를 찾을 수 있게 오른쪽 아래에 넣는 안내(예: 'Chrome·웨일 스토어에서 ‘COMO 코인’ 검색' — 이름이 바뀌어도 1위로 잡히는 검색어)
+  findText?: string;
 };
 
 const WIDTH = 1200;
@@ -56,7 +58,12 @@ export const renderShareCard = (card: ShareCard): HTMLCanvasElement => {
   ctx.textAlign = 'right';
   ctx.fillStyle = '#f3f4f5';
   ctx.font = `800 34px ${FONT}`;
-  ctx.fillText(STORE_TEXT, WIDTH - 80, HEIGHT - 60);
+  ctx.fillText(STORE_TEXT, WIDTH - 80, card.findText ? HEIGHT - 96 : HEIGHT - 60);
+  if (card.findText) {
+    ctx.fillStyle = '#b0b3ba';
+    ctx.font = `500 24px ${FONT}`;
+    ctx.fillText(card.findText, WIDTH - 80, HEIGHT - 56);
+  }
   return canvas;
 };
 

@@ -172,6 +172,7 @@ export const vi: Partial<Record<MessageKey, string>> = {
   // 공유 카드
   share: 'Chia sẻ',
   shareCard: 'Tạo ảnh chia sẻ (không hiện số tiền)',
+  shareFindText: 'Tìm “COMO crypto” trên Chrome Web Store',
   shareCopied: 'Đã sao chép',
   shareDownloaded: 'Đã lưu',
   sharePortfolioTitle: 'Lợi nhuận danh mục của tôi',

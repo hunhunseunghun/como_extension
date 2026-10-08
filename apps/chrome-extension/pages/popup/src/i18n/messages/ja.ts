@@ -172,6 +172,7 @@ export const ja: Partial<Record<MessageKey, string>> = {
   // 공유 카드
   share: '共有',
   shareCard: '共有画像を作成（金額なし）',
+  shareFindText: 'Chromeウェブストアで「COMO crypto」を検索',
   shareCopied: 'コピー済み',
   shareDownloaded: '保存済み',
   sharePortfolioTitle: 'ポートフォリオの収益率',

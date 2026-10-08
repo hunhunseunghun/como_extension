@@ -175,6 +175,42 @@ test.describe.serial('품질 개선', () => {
     await popup.close();
   });
 
+  test('공유 카드 오른쪽 아래에 스토어 검색 안내를 그린다', async ({ popup }) => {
+    await popup.evaluate(() => {
+      const texts: string[] = [];
+      (window as unknown as { __cardTexts: string[] }).__cardTexts = texts;
+      const original = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (text: string, ...rest: [number, number, number?]) {
+        texts.push(text);
+        return original.call(this, text, ...rest);
+      };
+    });
+    await popup.getByRole('button', { name: '시장 인사이트' }).click();
+    await popover(popup).getByTestId('share-card').click();
+    await expect(popover(popup).getByTestId('share-card')).toContainText(/복사됨|저장됨/);
+    const texts = await popup.evaluate(() => (window as unknown as { __cardTexts: string[] }).__cardTexts);
+    expect(texts).toContain('COMO · Crypto Price Tracker');
+    expect(texts).toContain('Chrome·웨일 스토어에서 ‘COMO 코인’ 검색');
+    await popup.keyboard.press('Escape');
+  });
+
+  test('지난번에 연 뒤로 알림을 받았으면 두 번째 열 때 리뷰를 부탁한다', async ({ popup }) => {
+    const now = Date.now();
+    await setStorage(popup, { usageStats: { firstOpenAt: now - 3600_000, opens: 1, lastOpenAt: now - 3600_000 }, alertFiredAt: now - 60_000 });
+    await popup.reload();
+    await expect(popup.getByTestId('review-prompt')).toBeVisible();
+    // '나중에'를 누르면 닫히고 14일 동안 다시 묻지 않는다.
+    await popup.getByRole('button', { name: '나중에' }).click();
+    await expect(popup.getByTestId('review-prompt')).toHaveCount(0);
+    const stats = await popup.evaluate(() => chrome.storage.local.get('usageStats').then(r => r.usageStats));
+    expect(stats.dismissals).toBe(1);
+    expect(stats.nextPromptAt).toBeGreaterThan(now + 13 * 86_400_000);
+    await popup.reload();
+    await expect(rows(popup).nth(3)).toBeVisible();
+    await expect(popup.getByTestId('review-prompt')).toHaveCount(0);
+    await setStorage(popup, { usageStats: { firstOpenAt: now, opens: 1, reviewed: true } });
+  });
+
   test('런타임 에러가 없다', async () => {
     expect(errors).toEqual([]);
   });
