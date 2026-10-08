@@ -273,7 +273,7 @@
 
 | 항목 | 반영 | 확인 |
 |---|---|---|
-| 모듈 분리 | index.js 1,147 → 459줄: rules.js·listings.js·toolbarBadge.js·alertStore.js·premium.js·exchangeRate.js, 오늘 날짜는 state.js. index.js는 연결만 남김 | 단위 56, E2E 72 |
+| 모듈 분리 | index.js 1,147 → 485줄(타입 주석 포함): rules.js·listings.js·toolbarBadge.js·alertStore.js·premium.js·exchangeRate.js, 오늘 날짜는 state.js. index.js는 연결만 남김 | 단위 56, E2E 72 |
 | 타입 검사 | 백그라운드 15개 파일 모두 @ts-check(빌드의 tsc가 검사). 화면 포트 ScreenPort 한 모양, ExchangeData 필드·기본 메서드 선언 | tsc 오류 0 |
 | 정리 | 임시 스토어 로그인 프로필(브라우저 세션) 삭제 | — |
 
