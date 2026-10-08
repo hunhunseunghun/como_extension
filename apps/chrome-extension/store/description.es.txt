@@ -41,3 +41,4 @@ Novedades de la versión 3.5.0
 • Calendario económico (FOMC, IPC y más) con aviso opcional 30 minutos antes
 • Calculadora de arbitraje de la prima kimchi con comisiones y costes de retiro
 • Resultado de la cartera a 1, 7 y 30 días, y estado de depósitos y retiros con cuenta coreana vinculada
+• Deshacer en favoritos, tabla adaptada a móviles y paneles laterales estrechos, y una primera pantalla más rápida

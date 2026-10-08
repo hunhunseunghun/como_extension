@@ -41,3 +41,4 @@ Novidades da versão 3.5.0
 • Calendário econômico (FOMC, CPI e mais) com aviso opcional 30 minutos antes
 • Calculadora de arbitragem do prêmio kimchi com taxas e custos de saque
 • Resultado da carteira em 1, 7 e 30 dias, e status de depósitos e saques com conta coreana vinculada
+• Desfazer nos favoritos, tabela que cabe em celulares e painéis laterais estreitos, e tela inicial mais rápida

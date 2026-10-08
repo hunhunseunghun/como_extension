@@ -41,3 +41,4 @@ COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piy
 • İsteğe bağlı 30 dakika önceden uyarılı ekonomik takvim (FOMC, TÜFE ve dahası)
 • Ücretler ve çekim maliyetleriyle kimchi primi arbitraj hesaplayıcı
 • Portföyde 1, 7 ve 30 günlük K/Z, bağlı Kore borsası hesabında yatırma/çekme durumu
+• Favorilerde geri alma, telefonlara ve dar yan panellere uyan tablo, daha hızlı açılış ekranı

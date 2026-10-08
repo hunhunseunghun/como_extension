@@ -41,3 +41,4 @@ What's new in 3.5.0
 • Economic calendar (FOMC, CPI and more) with an optional heads-up 30 minutes before each release
 • Kimchi premium arbitrage calculator with fees and withdrawal costs
 • Portfolio P&L over 1, 7 and 30 days, and deposit/withdrawal status for linked Korean exchange accounts
+• Undo for favorites, a table that fits phones and narrow side panels, and a faster first screen

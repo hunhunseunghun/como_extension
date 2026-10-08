@@ -41,3 +41,4 @@ Có gì mới trong phiên bản 3.5.0
 • Lịch kinh tế (FOMC, CPI…) với tùy chọn báo trước 30 phút
 • Máy tính chênh lệch kimchi premium có tính phí giao dịch và phí rút
 • Lãi/lỗ danh mục 1, 7, 30 ngày và trạng thái nạp/rút khi liên kết tài khoản sàn Hàn Quốc
+• Hoàn tác khi thêm hoặc bỏ yêu thích, bảng vừa màn hình điện thoại và bảng bên hẹp, màn hình đầu nhanh hơn

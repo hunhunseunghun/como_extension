@@ -41,3 +41,4 @@ Yang baru di versi 3.5.0
 • Kalender ekonomi (FOMC, CPI, dan lainnya) dengan pengingat opsional 30 menit sebelumnya
 • Kalkulator arbitrase kimchi premium dengan biaya transaksi dan penarikan
 • Untung/rugi portofolio 1, 7, dan 30 hari, serta status deposit/penarikan untuk akun bursa Korea yang terhubung
+• Urungkan untuk favorit, tabel yang pas di ponsel dan panel samping sempit, serta layar awal lebih cepat
