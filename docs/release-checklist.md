@@ -32,6 +32,7 @@
 - [ ] Microsoft Edge: `publish:store edge --submit --notes "<심사 메모>"`. 권한이 바뀌었으면 Partner Center의 사유도 갱신
 - [ ] Firefox(AMO): `publish:store firefox --submit` — 소스 zip(`git archive`)을 함께 올린다. 빌드 방법: 루트에서 `pnpm install && pnpm build && pnpm --filter chrome-extension package`
 - [ ] 네이버 웨일 스토어: 업로드 API가 없어 [개발자 센터](https://store.whale.naver.com/developer)에서 chrome zip을 직접 올린다
+- [ ] 사용자용 업데이트 노트에 새 버전 추가 — 확장의 「업데이트 노트」 버튼과 새 기능 안내가 여는 공개 Notion 페이지([COMO(코모) 확장 프로그램 업데이트 노트](https://trusted-surf-f62.notion.site/COMO-15f29bb357f98026be3dd2c062a18257), `UpdateNoteToggle.tsx`·`WhatsNew.tsx`). `store/release-notes.ko.txt`를 그 페이지 말투(「~추가했습니다」)로 맨 위에 넣는다. 다른 워크스페이스라 Notion 연결은 `notion-como`. 넣은 뒤 아래쪽 옛 기록 모양이 그대로인지 확인(편집 도구가 「1. …」로 시작하는 글머리를 번호 목록으로 바꾼 적이 있다)
 - [ ] 제출한 날짜와 각 스토어 상태를 `docs/qa/test-cases.md` 해당 버전 아래에 기록
 
 ## 5. 심사 뒤
