@@ -1,3 +1,4 @@
+// @ts-check
 // 주기 확인: 거래소 공지(업비트·빗썸), 업비트 시장경보, 경제 일정, 보유 자산 일별 기록. index.js에서 나눔.
 // 알림 띄우기·언어·거래소 객체는 index.js가 configureFeeds로 넘긴다. 알람·저장소 리스너는 import될 때 바로 건다(MV3는 시작 직후 동기 등록이 필요).
 import { parseBithumbNotices, pickNewNotices } from './lib/notices.js';
@@ -38,7 +39,7 @@ async function checkUpbitNotices() {
     if (!result[NOTICE_SETTING_KEY]) return;
     if (!(await chrome.permissions.contains({ origins: [UPBIT_NOTICE_ORIGIN] }))) return;
     const { data } = await fetchJson('https://api-manager.upbit.com/api/v1/announcements?os=web&page=1&per_page=20&category=trade');
-    const notices = data?.notices ?? [];
+    const notices = /** @type {{ id: number, title: string }[]} */ (data?.notices ?? []);
     if (!notices.length) return;
     const lastId = result[NOTICE_LAST_ID_KEY];
     const maxId = Math.max(...notices.map(notice => notice.id));
@@ -63,6 +64,7 @@ async function checkUpbitNotices() {
     noticeCheckRunning = false;
   }
 }
+/** @type {Record<string, string>} */
 const NOTICE_TEXT = {
   ko: '거래 공지',
   en: 'Trading notice',
@@ -122,12 +124,14 @@ async function checkMarketWarnings() {
     const current = summarizeMarketEvents(await fetchJson('https://api.upbit.com/v1/market/all?isDetails=true'));
     // 일시적으로 빈 응답이 오면 기준을 덮어쓰지 않는다.
     if (!Object.keys(current).length && Object.keys(result[MARKET_EVENTS_KEY] ?? {}).length > 3) return;
-    const coin = market => market.split('-')[1];
+    const coin = /** @param {string} market */ market => market.split('-')[1];
     const watched = new Set([
       ...Object.values(result.favoriteCoins ?? {}).flat().filter(market => typeof market === 'string' && market.startsWith('KRW-')).map(coin),
-      ...(result.portfolio ?? []).filter(holding => holding.market?.startsWith('KRW-')).map(holding => coin(holding.market)),
+      .../** @type {{ market?: string }[]} */ (result.portfolio ?? [])
+        .filter(holding => holding.market?.startsWith('KRW-'))
+        .map(holding => coin(holding.market ?? '')),
     ]);
-    const include = scope === 'all' ? undefined : market => watched.has(coin(market));
+    const include = scope === 'all' ? undefined : /** @param {string} market */ market => watched.has(coin(market));
     const added = diffMarketEvents(result[MARKET_EVENTS_KEY], current, include);
     const language = deps.getLanguage();
     // 한꺼번에 많으면 앞의 5개만 알린다.
@@ -138,7 +142,7 @@ async function checkMarketWarnings() {
         type: 'basic',
         iconUrl: 'como-logo.png',
         title: `${name} (${coin(market)}) · ${alertText(language, 'marketWarning')}`,
-        message: flags.map(flag => alertText(language, flag)).join(' · '),
+        message: flags.map(flag => alertText(language, /** @type {Parameters<typeof alertText>[1]} */ (flag))).join(' · '),
       });
     });
     await chrome.storage.local.set({ [MARKET_EVENTS_KEY]: current });
@@ -168,10 +172,10 @@ async function checkEconAlerts() {
   const result = await chrome.storage.local.get(['econAlerts', ECON_EVENTS_KEY, ECON_ALERTED_KEY]);
   if (!result.econAlerts) return;
   if (!(await chrome.permissions.contains({ origins: [ECON_ORIGIN] }))) return;
-  const events = result[ECON_EVENTS_KEY]?.events ?? [];
+  const events = /** @type {import('./lib/econ.js').EconEvent[]} */ (result[ECON_EVENTS_KEY]?.events ?? []);
   const now = Date.now();
   // 지난 일정의 알림 기록은 정리한다.
-  const alerted = (result[ECON_ALERTED_KEY] ?? []).filter(id => events.some(item => item.id === id && item.time > now - 86_400_000));
+  const alerted = /** @type {string[]} */ (result[ECON_ALERTED_KEY] ?? []).filter(id => events.some(item => item.id === id && item.time > now - 86_400_000));
   const soon = upcomingEvents(events, now, ECON_LEAD_MS, alerted);
   const language = deps.getLanguage();
   soon.forEach(item => {
@@ -210,7 +214,7 @@ chrome.permissions.onRemoved.addListener(permissions => {
 const PORTFOLIO_HISTORY_KEY = 'portfolioHistory';
 async function snapshotPortfolio() {
   const result = await chrome.storage.local.get(['portfolio', PORTFOLIO_HISTORY_KEY]);
-  const holdings = (result.portfolio ?? []).filter(holding => holding.quantity > 0);
+  const holdings = /** @type {any[]} */ (result.portfolio ?? []).filter(holding => holding.quantity > 0);
   const value = portfolioAmounts(holdings, (exchange, market) => allExchangesTickers[exchange]?.[market]?.currentPrice);
   if (!value) return;
   const history = upsertSnapshot(result[PORTFOLIO_HISTORY_KEY] ?? [], { d: kstDate(Date.now()), ...value });
