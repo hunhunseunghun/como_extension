@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMO – 김프·코인 실시간 시세 크롬 확장 프로그램 | 업비트·빗썸·바이낸스</title>
+<meta name="description" content="업비트·빗썸·바이낸스 등 거래소 11곳의 비트코인·코인 실시간 시세와 코인별 김프(김치 프리미엄)를 툴바에서. 지정가·급등락 알림, 보유 자산 손익, 차트. 무료·회원가입 없음.">
+<link rel="canonical" href="https://hunhunseunghun.github.io/como_extension/">
+<link rel="alternate" hreflang="ko" href="https://hunhunseunghun.github.io/como_extension/">
+<link rel="alternate" hreflang="en" href="https://hunhunseunghun.github.io/como_extension/en/">
+<link rel="alternate" hreflang="x-default" href="https://hunhunseunghun.github.io/como_extension/en/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="COMO – 김프·코인 실시간 시세 크롬 확장 프로그램 | 업비트·빗썸·바이낸스">
+<meta property="og:description" content="업비트·빗썸·바이낸스 등 거래소 11곳의 비트코인·코인 실시간 시세와 코인별 김프(김치 프리미엄)를 툴바에서. 지정가·급등락 알림, 보유 자산 손익, 차트. 무료·회원가입 없음.">
+<meta property="og:url" content="https://hunhunseunghun.github.io/como_extension/">
+<meta property="og:image" content="https://hunhunseunghun.github.io/como_extension/img/og-ko.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="img/logo.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"COMO","applicationCategory":"FinanceApplication","operatingSystem":"Chrome, Whale, Edge","description":"업비트·빗썸·바이낸스 등 거래소 11곳의 비트코인·코인 실시간 시세와 코인별 김프(김치 프리미엄)를 툴바에서. 지정가·급등락 알림, 보유 자산 손익, 차트. 무료·회원가입 없음.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"url":"https://hunhunseunghun.github.io/como_extension/","downloadUrl":"https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=como-site&utm_medium=web&utm_campaign=landing"}</script>
+<style>
+:root{--bg:#0f172a;--panel:#1e293b;--line:rgba(255,255,255,.1);--text:#f8fafc;--muted:#cbd5e1;--faint:#94a3b8;--accent:#a5b4fc;--cta:#6366f1}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',system-ui,sans-serif;line-height:1.6;word-break:keep-all}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:1px;text-decoration:none}
+.brand img{width:32px;height:32px;border-radius:8px}
+.lang{color:var(--faint);font-size:14px;text-decoration:none;border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+.hero{padding:56px 0 40px;background:radial-gradient(1000px 420px at 70% 0%,rgba(99,102,241,.35),transparent)}
+h1{font-size:clamp(32px,6vw,56px);line-height:1.15;margin:0 0 18px;letter-spacing:-.5px}
+.lead{font-size:clamp(16px,2.2vw,20px);color:var(--muted);max-width:640px;margin:0 0 28px}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:700;text-decoration:none;font-size:15px}
+.btn.primary{background:var(--cta);border-color:transparent}
+.btn.disabled{opacity:.5;pointer-events:none}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.badges li{font-size:13px;color:var(--accent);background:rgba(165,180,252,.12);padding:4px 10px;border-radius:999px}
+/* 스토어 스크린샷(1280×800)에서 팝업 부분(x 420~1230, y 96~705)만 잘라 보여 준다. 여백 %는 상자 너비 기준 */
+.crop{aspect-ratio:810/610;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:#fff}
+.crop img{display:block;width:158.02%;height:auto;margin-left:-51.85%;margin-top:-11.85%}
+.hero .crop{margin-top:40px;max-width:820px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+section{padding:56px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(24px,3.6vw,34px);margin:0 0 28px}
+.feature{display:grid;grid-template-columns:1fr 1.4fr;gap:32px;align-items:center;margin-bottom:48px}
+.feature:nth-child(even) .text{order:2}
+.feature h3{font-size:22px;margin:0 0 8px}
+.feature p{color:var(--muted);margin:0}
+
+.more{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0;list-style:none;margin:0}
+.more li{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--muted)}
+.privacy p,.faq dd{color:var(--muted)}
+.faq dt{font-weight:700;margin-top:18px}
+.faq dd{margin:6px 0 0}
+footer{border-top:1px solid var(--line);padding:28px 0 48px;color:var(--faint);font-size:14px;display:flex;flex-wrap:wrap;gap:18px}
+@media (max-width:720px){.feature{grid-template-columns:1fr;gap:14px}.feature:nth-child(even) .text{order:0}.more{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="wrap">
+    <header><a class="brand" href="./"><img src="img/logo.png" alt="">COMO</a><a class="lang" href="en/" hreflang="en">English</a></header>
+    <h1>김프·코인 실시간 시세를<br>브라우저 툴바에서</h1>
+    <p class="lead">업비트·빗썸·바이낸스 등 거래소 11곳의 시세와 코인별 김치 프리미엄, 지정가·급등락 알림을 한 화면에서. 무료이고 회원가입도 필요 없어요.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=como-site&utm_medium=web&utm_campaign=landing" rel="noopener">Chrome에 추가</a>
+      <a class="btn" href="https://store.whale.naver.com/detail/gbjlmpnhijdgcobpfpgeiepdfegdhkgl?utm_source=como-site&utm_medium=web&utm_campaign=landing" rel="noopener">웨일 스토어</a>
+      <a class="btn" href="https://microsoftedge.microsoft.com/addons/detail/nikdopfhkilmeedoblhlbbalkhiogmkd?utm_source=como-site&utm_medium=web&utm_campaign=landing" rel="noopener">Edge 부가 기능</a>
+      <span class="btn disabled" aria-disabled="true">Firefox (심사 중)</span>
+    </div>
+    <ul class="badges"><li>거래소 11곳</li><li>10개 언어</li><li>사용자 500+</li><li>평점 5.0</li></ul>
+    <div class="crop"><img src="img/1-prices.jpg" alt="김프까지 한눈에" width="1280" height="800"></div>
+  </div>
+</div>
+<main class="wrap">
+  <section>
+    <h2>이런 걸 할 수 있어요</h2>
+    <div class="feature"><div class="text"><h3>김프까지 한눈에</h3><p>업비트·빗썸·코인원·디지털엑스와 바이낸스·코인베이스·바이비트·OKX·비트겟·크라켄·CoinDCX 시세를 실시간으로. 원화 마켓은 코인마다 김치 프리미엄을 함께 보여 줘요.</p></div><div class="crop"><img src="img/1-prices.jpg" alt="김프까지 한눈에" width="1280" height="800" loading="lazy"></div></div>
+    <div class="feature"><div class="text"><h3>보조지표와 급등락 봉</h3><p>이동평균선·볼린저밴드·RSI를 켜고, 크게 움직인 봉에 마우스를 올리면 그 시각 뉴스를 보여 줘요.</p></div><div class="crop"><img src="img/2-chart.jpg" alt="보조지표와 급등락 봉" width="1280" height="800" loading="lazy"></div></div>
+    <div class="feature"><div class="text"><h3>놓치지 않는 알림</h3><p>지정가, 1·5·15분 급등락, 김프, 대량 체결, 선물 미결제약정, 거래 공지, 경제 일정 알림. 방해 금지 시간과 알림 기록함까지.</p></div><div class="crop"><img src="img/3-alerts.jpg" alt="놓치지 않는 알림" width="1280" height="800" loading="lazy"></div></div>
+    <div class="feature"><div class="text"><h3>보유 자산 손익</h3><p>코인·수량·평균가만 넣으면 평가금액과 1·7·30일 손익을 15개 통화로. 물타기·손익분기 계산기, 2027 과세 미리보기도 있어요.</p></div><div class="crop"><img src="img/4-portfolio.jpg" alt="보유 자산 손익" width="1280" height="800" loading="lazy"></div></div>
+    <div class="feature"><div class="text"><h3>시장 인사이트</h3><p>공포·탐욕 지수, BTC 도미넌스, 알트코인 시즌, 김프 추이, 수수료까지 넣은 김프 차익 계산기, 펀딩비·청산·롱숏 비율.</p></div><div class="crop"><img src="img/5-insights.jpg" alt="시장 인사이트" width="1280" height="800" loading="lazy"></div></div>
+  </section>
+  <section>
+    <h2>그 밖에</h2>
+    <ul class="more"><li>툴바 아이콘에 실시간 가격</li><li>사이드 패널·다른 창 위 미니 창</li><li>즐겨찾기 고정과 24시간 미니 차트</li><li>다크 모드·조용한 모드</li><li>DEX·밈코인 검색</li><li>설정 백업·복원</li></ul>
+  </section>
+  <section class="privacy">
+    <h2>개인정보는 브라우저 밖으로 나가지 않아요</h2>
+    <p>거래소의 공개 시세 API만 조회하고, 방문하는 웹페이지는 읽지 않아요. 설정·알림·보유 자산은 브라우저에만 저장돼요. 거래소 계정 연동은 선택이며 읽기 전용 키만 받아요.</p>
+  </section>
+  <section class="faq">
+    <h2>자주 묻는 질문</h2>
+    <dl><dt>무료인가요?</dt><dd>네, 모든 기능이 무료이고 광고도 없어요.</dd><dt>거래소 계정이 있어야 하나요?</dt><dd>아니요. 시세·알림·보유 자산은 계정 없이 써요. 보유 자산을 자동으로 불러오고 싶을 때만 읽기 전용 API 키를 연결하면 돼요.</dd><dt>김프는 어떻게 계산하나요?</dt><dd>원화 마켓 가격을 바이낸스 USDT 가격과 실시간 원·달러 환율로 비교해요. 거래가 적은 마켓은 계산에서 빼요.</dd><dt>어떤 브라우저에서 되나요?</dt><dd>Chrome, 네이버 웨일, Microsoft Edge에서 쓸 수 있어요. Firefox는 스토어 심사 중이에요.</dd></dl>
+    <p><a class="btn primary" href="https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=como-site&utm_medium=web&utm_campaign=landing" rel="noopener">Chrome에 추가</a></p>
+  </section>
+</main>
+<div class="wrap">
+  <footer><a href="https://trusted-surf-f62.notion.site/COMO-15f29bb357f98026be3dd2c062a18257">업데이트 노트</a><a href="https://github.com/hunhunseunghun/como_extension/issues">문의·제안</a><a href="https://github.com/hunhunseunghun/como_extension">소스 코드</a><span>© COMO</span></footer>
+</div>
+</body>
+</html>

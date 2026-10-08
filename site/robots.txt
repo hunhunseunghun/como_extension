@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://hunhunseunghun.github.io/como_extension/sitemap.xml
