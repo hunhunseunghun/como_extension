@@ -43,6 +43,24 @@ export const FavoriteStar = ({ pinned, onToggle, label }: { pinned: boolean; onT
   </button>
 );
 
+// 이름 칸 둘째 줄(예: BTC/KRW). 좁은 화면(차트 열이 빠진 휴대폰·좁은 사이드 패널)에서는 즐겨찾기 24시간 추이를 줄 끝에 작게 붙인다.
+export const SymbolLine = ({
+  text,
+  sparkline,
+}: {
+  text: string;
+  sparkline?: { symbol: string; exchange: ExchangePlatform } | null;
+}) => (
+  <span className="flex min-w-0 items-center gap-0.5 text-cap text-fg-subtle font-medium">
+    <span className="truncate">{text}</span>
+    {sparkline && (
+      <span className="shrink-0" data-testid="compact-sparkline">
+        <Sparkline symbol={sparkline.symbol} exchange={sparkline.exchange} width={28} height={12} />
+      </span>
+    )}
+  </span>
+);
+
 // 차트 열 머리: 봉 길이 고르기
 export const TimeframeHeader = ({
   timeframe,

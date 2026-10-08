@@ -261,6 +261,7 @@ const App = () => {
         fiatRates,
         kimchiRef,
         athRef,
+        compact: isCompact,
       }) as ColumnDef<TickerTypes>[];
     }
     return getGlobalColumns(
@@ -278,6 +279,7 @@ const App = () => {
       exchangeRateUSD,
       fiatRates,
       athRef,
+      isCompact,
     ) as ColumnDef<TickerTypes>[];
   }, [
     coinNameKR,
@@ -291,6 +293,9 @@ const App = () => {
     t,
     currency,
     fiatRates,
+    specificMarketType,
+    setFavoriteCoins,
+    isCompact,
   ]);
 
   // 좁은 화면은 칸이 모자라 52주 열을 숨긴다. 김프 열은 설정에 따라 거래대금 자리에 보여 준다.

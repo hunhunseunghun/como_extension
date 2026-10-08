@@ -21,7 +21,19 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true },
+        {
+          allowConstantExport: true,
+          // 컴포넌트 파일이 함께 내보내는 훅·변형·상수(shadcn 버튼 변형, 테마·번역 훅, 통화·봉 목록)
+          allowExportNames: [
+            'buttonVariants',
+            'toggleVariants',
+            'useTheme',
+            'useI18n',
+            'FIAT_CURRENCIES',
+            'TIMEFRAME_VALUES',
+            'getTimeframes',
+          ],
+        },
       ],
     },
   },

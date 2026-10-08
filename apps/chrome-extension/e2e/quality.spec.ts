@@ -142,7 +142,15 @@ test.describe.serial('품질 개선', () => {
     });
     await popup.setViewportSize({ width: 360, height: 740 });
     await popup.goto(`chrome-extension://${extensionId}/popup/index.html`);
+    // 즐겨찾기 하나를 두고 연다: 차트 열이 빠져도 이름 칸에 24시간 미니 차트가 붙어야 한다.
+    await setStorage(popup, { favoriteCoins: { upbit: ['KRW-BTC'] } });
+    await popup.reload();
     await expect(rows(popup).nth(5)).toBeVisible();
+    const pinned = rows(popup).first();
+    await expect(pinned.getByTestId('compact-sparkline').getByTestId('sparkline')).toBeVisible({ timeout: 20_000 });
+    await expect(rows(popup).nth(3).getByTestId('compact-sparkline')).toHaveCount(0);
+    // 행 높이는 그대로(표 가상 스크롤이 48px 행을 가정한다).
+    expect((await pinned.boundingBox())!.height).toBeLessThanOrEqual(50);
     const sizes = await popup.evaluate(() => ({ scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth }));
     expect(sizes.scroll).toBeLessThanOrEqual(sizes.client);
     // 가격·거래대금이 칸에 잘리지 않는다(좁은 화면은 차트 열을 빼고 자리를 준다). 말줄임(…)을 쓰는 이름 칸은 뺀다.
@@ -163,6 +171,7 @@ test.describe.serial('품질 개선', () => {
     await popup.keyboard.press('Escape');
     // 표가 화면 높이를 채운다(고정 430px 팝업 높이가 아님).
     expect((await popup.locator('main').boundingBox())!.height).toBeGreaterThan(600);
+    await setStorage(popup, { favoriteCoins: {} });
     await popup.close();
   });
 

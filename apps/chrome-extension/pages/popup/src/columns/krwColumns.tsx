@@ -4,7 +4,7 @@ import { ArrowRightLeft } from 'lucide-react';
 import { DisplayCurrency, MessageKey, Translate } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
 import { AthMap, FavoriteCoins, KimchiPremium, KrwExchange, MarketType, UpbitTicker } from '@/types';
-import { ChartCell, FavoriteStar, SortableHeader, TimeframeHeader } from './shared';
+import { ChartCell, FavoriteStar, SortableHeader, SymbolLine, TimeframeHeader } from './shared';
 import { athColumn } from './athColumn';
 import { toggleFavoriteCoin } from './favorites';
 import { WarningIcon, CautionIcon } from '@/components/ui/warningIcon';
@@ -53,6 +53,8 @@ type Options = {
   // 김프는 2초마다 바뀐다. 컬럼을 다시 만들지 않도록 ref로 최신 값을 읽는다.
   kimchiRef: MutableRefObject<KimchiPremium>;
   athRef: MutableRefObject<AthMap>;
+  // 차트 열이 빠진 좁은 화면: 즐겨찾기 미니 차트를 이름 칸에 붙인다.
+  compact?: boolean;
 };
 
 export const getKrwColumns = ({
@@ -72,6 +74,7 @@ export const getKrwColumns = ({
   fiatRates,
   kimchiRef,
   athRef,
+  compact = false,
 }: Options): ColumnDef<KrwRow>[] => {
   const columns: ColumnDef<KrwRow>[] = [
     {
@@ -119,7 +122,12 @@ export const getKrwColumns = ({
                   {(exchange === 'bithumb' || exchange === 'upbit') && <WalletStatusBadge exchange={exchange} coin={coin} />}
                 </div>
               </div>
-              <span className="block truncate text-cap text-fg-subtle font-medium">{`${coin}/${quote}`}</span>
+              {/* 미니 차트를 붙일 때는 기호만(BTC) 보여 자리를 준다. 마켓(KRW)은 위 마켓 선택에 있다. */}
+              {compact && row.getIsPinned() !== false ? (
+                <SymbolLine text={coin} sparkline={{ symbol: market, exchange }} />
+              ) : (
+                <SymbolLine text={`${coin}/${quote}`} />
+              )}
             </div>
           </div>
         );

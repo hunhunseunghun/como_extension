@@ -6,7 +6,7 @@ import { getGlobalTradeUrl, splitGlobalSymbol } from '@/constants/exchanges';
 import type { DisplayCurrency } from '@/i18n';
 import { convertFiat, FiatRates, formatFiat } from '@/lib/market';
 import { ArrowDownUp } from 'lucide-react';
-import { ChartCell, FavoriteStar, SortableHeader, TimeframeHeader } from './shared';
+import { ChartCell, FavoriteStar, SortableHeader, SymbolLine, TimeframeHeader } from './shared';
 import { athColumn } from './athColumn';
 import { toggleFavoriteCoin } from './favorites';
 import FlashCell from '@/components/FlashCell';
@@ -28,6 +28,8 @@ export const getGlobalColumns = (
   exchangeRateUSD: number,
   fiatRates: FiatRates,
   athRef: MutableRefObject<AthMap>,
+  // 차트 열이 빠진 좁은 화면: 즐겨찾기 미니 차트를 이름 칸에 붙인다.
+  compact = false,
 ): ColumnDef<BinanceTicker>[] => [
   {
     accessorFn: row => `${row.symbol}`,
@@ -62,7 +64,11 @@ export const getGlobalColumns = (
                 {removeMarket}
               </a>
             </div>
-            <span className="block truncate text-cap text-fg-subtle font-medium">{symbol}</span>
+            {compact && row.getIsPinned() !== false ? (
+              <SymbolLine text={removeMarket} sparkline={{ symbol, exchange }} />
+            ) : (
+              <SymbolLine text={symbol} />
+            )}
           </div>
         </div>
       );
