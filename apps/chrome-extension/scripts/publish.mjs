@@ -1,5 +1,6 @@
 // 스토어에 새 버전을 올린다. 먼저 `pnpm build && pnpm package`로 release/ zip을 만든다.
 //   node scripts/publish.mjs chrome|edge|firefox|all [--submit] [--notes "심사 메모"]
+//   node scripts/publish.mjs status — 세 스토어의 게시·심사 중 버전만 읽는다(아무것도 보내지 않음).
 // --submit 없이 실행하면 올릴 파일과 자격 증명만 확인하고 아무것도 보내지 않는다.
 // 네이버 웨일 스토어는 업로드 API가 없어 개발자 센터에서 직접 올린다(docs/release-checklist.md).
 //
@@ -10,6 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,11 +31,12 @@ const target = args.find(arg => !arg.startsWith('--')) ?? '';
 const submit = args.includes('--submit');
 const notesIndex = args.indexOf('--notes');
 const notes = notesIndex >= 0 ? args[notesIndex + 1] : '';
-const { version } = JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'manifest.json'), 'utf8'));
+const version = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'dist', 'manifest.json'), 'utf8')).version;
 
 const zipFor = store => {
-  const file = path.join(RELEASE, `como-${version}-${store === 'firefox' ? 'firefox' : 'chrome'}.zip`);
-  if (!fs.existsSync(file)) throw new Error(`${path.relative(ROOT, file)}가 없습니다. pnpm build && pnpm package를 먼저 실행하세요.`);
+  const file = path.join(RELEASE, `como-${version()}-${store === 'firefox' ? 'firefox' : 'chrome'}.zip`);
+  if (!fs.existsSync(file))
+    throw new Error(`${path.relative(ROOT, file)}가 없습니다. pnpm build && pnpm package를 먼저 실행하세요.`);
   return file;
 };
 const requireEnv = names => {
@@ -57,11 +60,8 @@ const safeJson = text => {
 };
 
 // Chrome Web Store API v2 (OAuth 새로 고침 토큰)
-const chrome = async () => {
-  const env = requireEnv(['CWS_CLIENT_ID', 'CWS_CLIENT_SECRET', 'CWS_REFRESH_TOKEN', 'CWS_PUBLISHER_ID', 'CWS_ITEM_ID']);
-  const zip = zipFor('chrome');
-  console.log(`[chrome] ${path.basename(zip)} → item ${env.CWS_ITEM_ID}`);
-  if (!submit) return;
+const CWS_ENV = ['CWS_CLIENT_ID', 'CWS_CLIENT_SECRET', 'CWS_REFRESH_TOKEN', 'CWS_PUBLISHER_ID', 'CWS_ITEM_ID'];
+const chromeAuth = async env => {
   const { body: token } = await request('https://oauth2.googleapis.com/token', {
     method: 'POST',
     body: new URLSearchParams({
@@ -71,7 +71,14 @@ const chrome = async () => {
       grant_type: 'refresh_token',
     }),
   });
-  const headers = { Authorization: `Bearer ${token.access_token}` };
+  return { Authorization: `Bearer ${token.access_token}` };
+};
+const chrome = async () => {
+  const env = requireEnv(CWS_ENV);
+  const zip = zipFor('chrome');
+  console.log(`[chrome] ${path.basename(zip)} → item ${env.CWS_ITEM_ID}`);
+  if (!submit) return;
+  const headers = await chromeAuth(env);
   const item = `publishers/${env.CWS_PUBLISHER_ID}/items/${env.CWS_ITEM_ID}`;
   const upload = await request(`https://chromewebstore.googleapis.com/upload/v2/${item}:upload`, {
     method: 'POST',
@@ -79,7 +86,10 @@ const chrome = async () => {
     body: fs.readFileSync(zip),
   });
   console.log('[chrome] 업로드', JSON.stringify(upload.body));
-  const publish = await request(`https://chromewebstore.googleapis.com/v2/${item}:publish`, { method: 'POST', headers });
+  const publish = await request(`https://chromewebstore.googleapis.com/v2/${item}:publish`, {
+    method: 'POST',
+    headers,
+  });
   console.log('[chrome] 심사 제출', JSON.stringify(publish.body));
 };
 
@@ -95,7 +105,8 @@ const edge = async () => {
     for (let i = 0; i < 60; i++) {
       const { body } = await request(url, { headers });
       if (body?.status && body.status !== 'InProgress') {
-        if (body.status !== 'Succeeded') throw new Error(`[edge] ${body.status}: ${JSON.stringify(body.errors ?? body.message)}`);
+        if (body.status !== 'Succeeded')
+          throw new Error(`[edge] ${body.status}: ${JSON.stringify(body.errors ?? body.message)}`);
         return body;
       }
       await sleep(5000);
@@ -112,7 +123,7 @@ const edge = async () => {
   const publish = await request(base, {
     method: 'POST',
     headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ notes: notes || `COMO ${version}` }),
+    body: JSON.stringify({ notes: notes || `COMO ${version()}` }),
   });
   await waitFor(`${base}/operations/${publish.response.headers.get('location')}`);
   console.log('[edge] 심사 제출 완료');
@@ -122,7 +133,7 @@ const edge = async () => {
 const firefox = async () => {
   const env = requireEnv(['AMO_JWT_ISSUER', 'AMO_JWT_SECRET']);
   const zip = zipFor('firefox');
-  const source = path.join(RELEASE, `como-${version}-source.zip`);
+  const source = path.join(RELEASE, `como-${version()}-source.zip`);
   console.log(`[firefox] ${path.basename(zip)} + ${path.basename(source)}`);
   execFileSync('git', ['archive', '--format=zip', '-o', source, 'HEAD'], { cwd: REPO, stdio: 'inherit' });
   if (!submit) return;
@@ -149,10 +160,44 @@ const firefox = async () => {
   }
 };
 
+// 심사 상태. Edge API에는 상태 조회가 없어 공개 목록의 버전을 본다.
+const status = async () => {
+  const env = requireEnv(CWS_ENV);
+  const item = `publishers/${env.CWS_PUBLISHER_ID}/items/${env.CWS_ITEM_ID}`;
+  const { body: cws } = await request(`https://chromewebstore.googleapis.com/v2/${item}:fetchStatus`, {
+    headers: await chromeAuth(env),
+  });
+  const revision = state => (state ? `${state.distributionChannels?.[0]?.crxVersion} ${state.state}` : '없음');
+  console.log(
+    `[chrome] 게시 ${revision(cws.publishedItemRevisionStatus)} · 제출 ${revision(cws.submittedItemRevisionStatus)}`,
+  );
+
+  const { body: edge } = await request(
+    'https://microsoftedge.microsoft.com/addons/getproductdetailsbycrxid/nikdopfhkilmeedoblhlbbalkhiogmkd',
+  );
+  console.log(`[edge] 게시 ${edge.version} (${new Date(edge.lastUpdateDate * 1000).toISOString().slice(0, 10)})`);
+
+  const amo = requireEnv(['AMO_JWT_ISSUER', 'AMO_JWT_SECRET']);
+  const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ iss: amo.AMO_JWT_ISSUER, jti: crypto.randomUUID(), iat: now, exp: now + 60 })}`;
+  const signature = crypto.createHmac('sha256', amo.AMO_JWT_SECRET).update(unsigned).digest('base64url');
+  const { body: versions } = await request(
+    'https://addons.mozilla.org/api/v5/addons/addon/como-crypto-price-tracker/versions/?filter=all_with_unlisted',
+    { headers: { Authorization: `JWT ${unsigned}.${signature}` } },
+  );
+  console.log(`[firefox] ${versions.results.map(v => `${v.version} ${v.file?.status}`).join(' · ')}`);
+  console.log('[whale] API 없음 — 개발자 센터에서 확인');
+};
+
 const STORES = { chrome, edge, firefox };
+if (target === 'status') {
+  await status();
+  process.exit(0);
+}
 const targets = target === 'all' ? Object.keys(STORES) : [target];
 if (!targets.every(name => name in STORES)) {
-  console.error('사용법: node scripts/publish.mjs chrome|edge|firefox|all [--submit] [--notes "..."]');
+  console.error('사용법: node scripts/publish.mjs chrome|edge|firefox|all|status [--submit] [--notes "..."]');
   process.exit(1);
 }
 if (!submit) console.log('확인만 합니다(--submit을 붙이면 실제로 올립니다).');

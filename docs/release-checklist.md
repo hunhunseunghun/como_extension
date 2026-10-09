@@ -37,7 +37,7 @@
 
 ## 5. 심사 뒤
 
-- [ ] 네 스토어 모두 게시됐는지 확인(목록 페이지의 버전)
+- [ ] 네 스토어 모두 게시됐는지 확인 — `pnpm --filter chrome-extension publish:store status`(Chrome·Edge·Firefox, 웨일은 개발자 센터)
 - [ ] 리뷰·오류 신고 확인
 
 ## 권한 사유
