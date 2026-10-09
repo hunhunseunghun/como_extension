@@ -314,6 +314,16 @@
 | 공개 업데이트 노트 | 맨 위에 「3.5.2」(설치 직후 연 팝업에도 첫 실행 안내, 스토어 소개 문구 정리) 추가. 2.4.0의 「1. …」 줄이 또 번호 목록으로 바뀌어 되돌림. Notion COMO·COMO TODO 페이지도 3.5.2 상태로 갱신 |
 | 방법 | 이 PC는 Claude in Chrome이 연결되지 않고 Playwright가 띄운 Chrome은 Windows 패스키 로그인이 실패해, 일반 Chrome을 작업용 프로필·`--remote-debugging-port`로 띄워 사용자가 로그인한 뒤 Playwright `connectOverCDP`로 조작 |
 
+## 3.5.2 Edge·Firefox 제출 (2026-10-09)
+
+| 항목 | 결과 |
+|---|---|
+| 판단 | Edge·Firefox 3.4.0이 10-06 제출 뒤 심사 중. 3.4.0 통과 → 3.5.2 재심사로 두 번 기다리는 대신 바로 3.5.2로 |
+| 패키지 | 루트 `pnpm build` 뒤 다시 만든 zip이 Chrome·웨일에 올린 3.5.2 zip과 내용 동일(diff 없음). Firefox web-ext lint 오류 0, 경고 3(React DOM innerHTML 2, sidePanel.open 1 — 3.4.0과 같음). 소스 zip은 `git archive` HEAD(df1f43f) |
+| Edge | 3.4.0 제출 취소(초안으로 돌아오는 데 몇 분) → 3.5.2 패키지 교체 → 10개 언어 설명을 store/description.*.txt로 교체(다시 열어 10개 모두 일치) → 호스트 권한 사유에 nfs.faireconomy.media 추가 → 속성의 웹사이트 = 소개 페이지, 지원 = GitHub 이슈 → 제출, 심사 중(7영업일). 이름은 패키지에서 와서 거래소 나열 없음(지금 공개된 2.5.0 이름엔 «업비트 빗썸 바이낸스»가 있음 — 3.5.2 게시로 바뀜). 「테스터에게 필요한 정보 없음」을 고르면 인증 메모 칸이 비워지고 선택 사항이 된다 |
+| Firefox | 3.4.0은 그대로 두고 3.5.2 새 버전 업로드(검증 오류 0) + 소스 zip → 목록 버전 3.5.2, 심사 대기. 버전 노트(영어)·심사자 메모(빌드 방법, 경고 설명, 새 선택 권한) 입력. 상품 페이지: en-US·es-ES·ja·ko·pt-BR·tr·vi·zh-CN 8개 언어 이름·요약·설명(AMO는 힌디어·인도네시아어 미지원). 이름은 AMO 50자 제한이라 « – » 앞부분만(영어 «COMO: Bitcoin & Crypto Price Tracker»), 요약은 매니페스트 설명. 일본어 요약 «9取引所»·한국어 옛 이름 바로잡음. 지원 URL = GitHub 이슈 |
+| 방법 | 같은 스토어 브라우저(포트 9333)에서 사용자가 Microsoft·Mozilla 로그인(2단계 인증 포함) 뒤 Playwright `connectOverCDP` |
+
 ## 남은 개선 제안
 
 - 업비트 입출금 상태(계정 연동 사용자)는 실제 키가 있어야 확인 가능
