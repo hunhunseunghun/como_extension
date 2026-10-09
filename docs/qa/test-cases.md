@@ -324,7 +324,7 @@
 | Firefox | 3.4.0은 그대로 두고 3.5.2 새 버전 업로드(검증 오류 0) + 소스 zip → 목록 버전 3.5.2, 심사 대기. 버전 노트(영어)·심사자 메모(빌드 방법, 경고 설명, 새 선택 권한) 입력. 상품 페이지: en-US·es-ES·ja·ko·pt-BR·tr·vi·zh-CN 8개 언어 이름·요약·설명(AMO는 힌디어·인도네시아어 미지원). 이름은 AMO 50자 제한이라 « – » 앞부분만(영어 «COMO: Bitcoin & Crypto Price Tracker»), 요약은 매니페스트 설명. 일본어 요약 «9取引所»·한국어 옛 이름 바로잡음. 지원 URL = GitHub 이슈 |
 | 다음 버전에 담길 것 | 리뷰 요청이 Firefox에서도 뜨고 AMO 목록(`addons.mozilla.org/firefox/addon/como-crypto-price-tracker/`)으로 보냄 — 슬러그로 주소가 정해져서. 3.5.2에는 없음(Firefox 3.5.2는 묻지 않음). popup lint, 단위 62, E2E 74 통과(-g로 리뷰 테스트만 골라 돌릴 때 한 번 실패, 단독·전체 실행은 통과) |
 | 방법 | 같은 스토어 브라우저(포트 9333)에서 사용자가 Microsoft·Mozilla 로그인(2단계 인증 포함) 뒤 Playwright `connectOverCDP` |
-| 심사 결과 (같은 날 확인) | **Edge 3.5.2 게시**(공개 목록 API `getproductdetailsbycrxid` 기준 03:11 UTC, 이름 «COMO: Bitcoin & Crypto Price Tracker – Kimchi Premium, Price Alerts» — 거래소 나열 사라짐). Firefox 3.5.2 Awaiting Review(3.4.0은 «Disabled by Mozilla»로 표시). Chrome 공개 목록은 아직 3.4.0. 웨일은 로그인이 풀려 확인 못 함 |
+| 심사 결과 (같은 날 확인) | **Edge 3.5.2 게시**(공개 목록 API `getproductdetailsbycrxid` 기준 03:11 UTC, 이름 «COMO: Bitcoin & Crypto Price Tracker – Kimchi Premium, Price Alerts» — 거래소 나열 사라짐). Firefox 3.5.2 Awaiting Review(3.4.0은 «Disabled by Mozilla»로 표시). Chrome 공개 목록은 아직 3.4.0. 웨일 3.5.2 심사 중(게시 3.4.0, 사용자 384명 — 사용자 재로그인 뒤 개발자 센터에서 확인) |
 | 스토어 API 자격 증명 | 사용자가 Notion에 올린 값을 `apps/chrome-extension/.env.store`(gitignore)로. 읽기 전용 호출로 셋 다 인증 확인: Chrome `fetchStatus` 200(게시 3.4.0 · 제출 3.5.2 PENDING_REVIEW), AMO JWT로 버전 목록 200(3.5.2 unreviewed · 3.4.0 disabled), Edge는 상태 조회 API가 없어 없는 작업 ID로 404(엉터리 키는 401). `publish:store status`를 추가해 이제 브라우저 로그인 없이 심사 상태를 본다 |
 
 ## 남은 개선 제안
