@@ -322,6 +322,7 @@
 | 패키지 | 루트 `pnpm build` 뒤 다시 만든 zip이 Chrome·웨일에 올린 3.5.2 zip과 내용 동일(diff 없음). Firefox web-ext lint 오류 0, 경고 3(React DOM innerHTML 2, sidePanel.open 1 — 3.4.0과 같음). 소스 zip은 `git archive` HEAD(df1f43f) |
 | Edge | 3.4.0 제출 취소(초안으로 돌아오는 데 몇 분) → 3.5.2 패키지 교체 → 10개 언어 설명을 store/description.*.txt로 교체(다시 열어 10개 모두 일치) → 호스트 권한 사유에 nfs.faireconomy.media 추가 → 속성의 웹사이트 = 소개 페이지, 지원 = GitHub 이슈 → 제출, 심사 중(7영업일). 이름은 패키지에서 와서 거래소 나열 없음(지금 공개된 2.5.0 이름엔 «업비트 빗썸 바이낸스»가 있음 — 3.5.2 게시로 바뀜). 「테스터에게 필요한 정보 없음」을 고르면 인증 메모 칸이 비워지고 선택 사항이 된다 |
 | Firefox | 3.4.0은 그대로 두고 3.5.2 새 버전 업로드(검증 오류 0) + 소스 zip → 목록 버전 3.5.2, 심사 대기. 버전 노트(영어)·심사자 메모(빌드 방법, 경고 설명, 새 선택 권한) 입력. 상품 페이지: en-US·es-ES·ja·ko·pt-BR·tr·vi·zh-CN 8개 언어 이름·요약·설명(AMO는 힌디어·인도네시아어 미지원). 이름은 AMO 50자 제한이라 « – » 앞부분만(영어 «COMO: Bitcoin & Crypto Price Tracker»), 요약은 매니페스트 설명. 일본어 요약 «9取引所»·한국어 옛 이름 바로잡음. 지원 URL = GitHub 이슈 |
+| 다음 버전에 담길 것 | 리뷰 요청이 Firefox에서도 뜨고 AMO 목록(`addons.mozilla.org/firefox/addon/como-crypto-price-tracker/`)으로 보냄 — 슬러그로 주소가 정해져서. 3.5.2에는 없음(Firefox 3.5.2는 묻지 않음). popup lint, 단위 62, E2E 74 통과(-g로 리뷰 테스트만 골라 돌릴 때 한 번 실패, 단독·전체 실행은 통과) |
 | 방법 | 같은 스토어 브라우저(포트 9333)에서 사용자가 Microsoft·Mozilla 로그인(2단계 인증 포함) 뒤 Playwright `connectOverCDP` |
 
 ## 남은 개선 제안

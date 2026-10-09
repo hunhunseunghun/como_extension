@@ -7,13 +7,13 @@ import { dismissReview, recordOpen, shouldAskReview, type UsageStats } from '@/l
 
 const STORAGE_KEY = 'usageStats';
 
-// 스토어마다 리뷰 페이지 주소가 다르다. 주소를 모르는 브라우저에서는 묻지 않는다.
+// 스토어마다 리뷰 페이지 주소가 다르다.
 const getReviewUrl = () => {
   const userAgent = navigator.userAgent;
   if (userAgent.includes('Whale')) return 'https://store.whale.naver.com/detail/gbjlmpnhijdgcobpfpgeiepdfegdhkgl';
   if (userAgent.includes('Edg/')) return 'https://microsoftedge.microsoft.com/addons/detail/nikdopfhkilmeedoblhlbbalkhiogmkd';
-  // Firefox(AMO)는 신규 등록 심사 중이라 목록 주소가 정해지면 넣는다. 그 전에는 묻지 않는다(크롬 웹스토어로 보내지 않게).
-  if (userAgent.includes('Firefox/')) return null;
+  // AMO 목록 주소는 상품 페이지 슬러그로 정해진다(첫 등록 심사가 끝나야 열린다).
+  if (userAgent.includes('Firefox/')) return 'https://addons.mozilla.org/firefox/addon/como-crypto-price-tracker/';
   return 'https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok/reviews';
 };
 
@@ -24,7 +24,6 @@ export const ReviewPrompt = () => {
   const reviewUrl = getReviewUrl();
 
   useEffect(() => {
-    if (!reviewUrl) return;
     chrome.storage.local.get([STORAGE_KEY, 'alertFiredAt'], result => {
       const now = Date.now();
       const previous: UsageStats | undefined = result?.[STORAGE_KEY];
@@ -32,7 +31,7 @@ export const ReviewPrompt = () => {
       chrome.storage.local.set({ [STORAGE_KEY]: next });
       if (shouldAskReview(previous, next, result?.alertFiredAt, now)) setIsVisible(true);
     });
-  }, [reviewUrl]);
+  }, []);
 
   const update = (change: (stats: UsageStats) => UsageStats) => {
     setIsVisible(false);
@@ -41,7 +40,7 @@ export const ReviewPrompt = () => {
     });
   };
 
-  if (!isVisible || !reviewUrl) return null;
+  if (!isVisible) return null;
 
   return (
     <div
