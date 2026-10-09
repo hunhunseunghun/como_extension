@@ -51,7 +51,7 @@ const T = {
       ['김프는 어떻게 계산하나요?', '원화 마켓 가격을 바이낸스 USDT 가격과 실시간 원·달러 환율로 비교해요. 거래가 적은 마켓은 계산에서 빼요.'],
       ['어떤 브라우저에서 되나요?', 'Chrome, 네이버 웨일, Microsoft Edge에서 쓸 수 있어요. Firefox는 스토어 심사 중이에요.'],
     ],
-    footer: { notes: '업데이트 노트', issues: '문의·제안', source: '소스 코드' },
+    footer: { notes: '업데이트 노트', issues: '문의·제안', source: '소스 코드', privacy: '개인정보처리방침' },
   },
   en: {
     lang: 'en',
@@ -82,7 +82,7 @@ const T = {
       ['What is the kimchi premium?', 'How much more a coin costs on Korean won markets than on global USDT markets. COMO compares Korean prices with Binance USDT prices at the live USD/KRW rate.'],
       ['Which browsers are supported?', 'Chrome, Naver Whale and Microsoft Edge. Firefox is in store review.'],
     ],
-    footer: { notes: 'Release notes', issues: 'Feedback', source: 'Source code' },
+    footer: { notes: 'Release notes', issues: 'Feedback', source: 'Source code', privacy: 'Privacy policy' },
   },
 };
 
@@ -202,7 +202,7 @@ footer{border-top:1px solid var(--line);padding:28px 0 48px;color:var(--faint);f
   </section>
 </main>
 <div class="wrap">
-  <footer><a href="${LINKS.notes}">${esc(t.footer.notes)}</a><a href="${LINKS.issues}">${esc(t.footer.issues)}</a><a href="${LINKS.source}">${esc(t.footer.source)}</a><span>© COMO</span></footer>
+  <footer><a href="${LINKS.notes}">${esc(t.footer.notes)}</a><a href="${LINKS.issues}">${esc(t.footer.issues)}</a><a href="${LINKS.source}">${esc(t.footer.source)}</a><a href="${t.path ? '../' : ''}privacy/">${esc(t.footer.privacy)}</a><span>© COMO</span></footer>
 </div>
 </body>
 </html>
@@ -212,10 +212,78 @@ footer{border-top:1px solid var(--line);padding:28px 0 48px;color:var(--faint);f
 fs.writeFileSync(path.join(SITE, 'index.html'), render(T.ko));
 fs.mkdirSync(path.join(SITE, 'en'), { recursive: true });
 fs.writeFileSync(path.join(SITE, 'en', 'index.html'), render(T.en));
+
+const PRIVACY = {
+  ko: {
+    lang: 'ko',
+    title: 'COMO 개인정보처리방침',
+    updated: '시행일: 2026-10-09',
+    items: [
+      ['수집하는 정보', 'COMO는 개인정보를 수집하거나 개발자의 서버로 전송하지 않습니다. 회원가입이 없고, 광고·분석 도구도 쓰지 않습니다.'],
+      ['브라우저에 저장되는 정보', '설정, 즐겨찾기, 알림 규칙, 보유 자산 정보는 사용자의 브라우저(chrome.storage)에만 저장되며 외부로 전송되지 않습니다.'],
+      ['외부 서비스 호출', '시세·환율·지수·뉴스 등 공개 데이터를 가져오기 위해 업비트, 빗썸, 바이낸스 등 거래소와 데이터 제공처의 공개 API를 호출합니다. 방문하는 웹페이지의 내용은 읽지 않습니다.'],
+      ['거래소 계정 연동(선택)', '사용자가 직접 입력한 읽기 전용 API 키는 브라우저에만 저장되며 해당 거래소에만 전송됩니다. 거래 권한이 있는 키는 거부합니다.'],
+      ['제3자 제공', '개발자는 사용자 정보를 제3자에게 제공하거나 판매하지 않습니다.'],
+      ['문의', 'GitHub 이슈(' + LINKS.issues + ') 또는 hunhunseunghun@gmail.com'],
+    ],
+    note: '이 방침이 바뀌면 이 페이지에 게시합니다.',
+    back: '← COMO 소개',
+    other: { href: 'en/', label: 'English' },
+    backHref: '../',
+  },
+  en: {
+    lang: 'en',
+    title: 'COMO Privacy Policy',
+    updated: 'Effective: 2026-10-09',
+    items: [
+      ['Information we collect', 'COMO does not collect personal information or send it to the developer\'s servers. There is no sign-up, and no ads or analytics tools are used.'],
+      ['Information stored in your browser', 'Settings, favorites, alert rules and portfolio entries are stored only in your browser (chrome.storage) and are never sent elsewhere.'],
+      ['Calls to external services', 'To fetch public data such as prices, exchange rates, indices and news, COMO calls the public APIs of exchanges (Upbit, Bithumb, Binance, etc.) and data providers. It does not read the content of the web pages you visit.'],
+      ['Exchange account connection (optional)', 'A read-only API key you enter yourself is stored only in your browser and sent only to the corresponding exchange. Keys with trading permission are rejected.'],
+      ['Sharing with third parties', 'The developer does not share or sell user information to third parties.'],
+      ['Contact', 'GitHub issues (' + LINKS.issues + ') or hunhunseunghun@gmail.com'],
+    ],
+    note: 'If this policy changes, the new version will be posted on this page.',
+    back: '← About COMO',
+    other: { href: '../', label: '한국어' },
+    backHref: '../../',
+  },
+};
+const renderPrivacy = t => `<!doctype html>
+<html lang="${t.lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(t.title)}</title>
+<meta name="robots" content="index,follow">
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1b1f24;--faint:#667085;--line:#e4e7ec}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--fg:#e6e8eb;--faint:#98a2b3;--line:#2a2f37}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:26px;margin:16px 0 4px}h2{font-size:17px;margin:28px 0 4px}
+p{margin:0}.faint{color:var(--faint);font-size:14px}a{color:inherit}
+nav{display:flex;justify-content:space-between;font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="${t.backHref}">${esc(t.back)}</a><a href="${t.other.href}">${esc(t.other.label)}</a></nav>
+  <h1>${esc(t.title)}</h1>
+  <p class="faint">${esc(t.updated)}</p>
+  ${t.items.map(([h, b], i) => `<h2>${i + 1}. ${esc(h)}</h2><p>${esc(b)}</p>`).join('\n  ')}
+  <p class="faint" style="margin-top:32px">${esc(t.note)}</p>
+</main>
+</body>
+</html>
+`;
+fs.mkdirSync(path.join(SITE, 'privacy', 'en'), { recursive: true });
+fs.writeFileSync(path.join(SITE, 'privacy', 'index.html'), renderPrivacy(PRIVACY.ko));
+fs.writeFileSync(path.join(SITE, 'privacy', 'en', 'index.html'), renderPrivacy(PRIVACY.en));
 fs.writeFileSync(path.join(SITE, '.nojekyll'), '');
 fs.writeFileSync(path.join(SITE, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${BASE_URL}sitemap.xml\n`);
 fs.writeFileSync(
   path.join(SITE, 'sitemap.xml'),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${BASE_URL}</loc></url>\n  <url><loc>${BASE_URL}en/</loc></url>\n</urlset>\n`,
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${BASE_URL}</loc></url>\n  <url><loc>${BASE_URL}en/</loc></url>\n  <url><loc>${BASE_URL}privacy/</loc></url>\n  <url><loc>${BASE_URL}privacy/en/</loc></url>\n</urlset>\n`,
 );
 console.log('site built: index.html, en/index.html, robots.txt, sitemap.xml');
