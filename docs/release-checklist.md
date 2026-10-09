@@ -28,7 +28,7 @@
 자격 증명은 `apps/chrome-extension/.env.store`(저장소에 올리지 않음). 변수 이름은 `scripts/publish.mjs` 머리말 참고.
 
 - [ ] 확인만: `pnpm --filter chrome-extension publish:store all`
-- [ ] Chrome 웹스토어: `publish:store chrome --submit` (API v2). 권한이 바뀌었으면 대시보드 '개인정보 보호' 탭의 호스트 권한 사유를 아래 표대로 갱신
+- [ ] Chrome 웹스토어: `publish:store chrome --submit` (API v2). 이전 버전이 심사 중이면 업로드가 거부된다 — 대시보드나 API `:cancelSubmission`으로 취소한 뒤 올린다(심사 대기 순서는 처음부터). 권한이 바뀌었으면 대시보드 '개인정보 보호' 탭의 호스트 권한 사유를 아래 표대로 갱신
 - [ ] Microsoft Edge: `publish:store edge --submit --notes "<심사 메모>"`. 권한이 바뀌었으면 Partner Center의 사유도 갱신
 - [ ] Firefox(AMO): `publish:store firefox --submit` — 소스 zip(`git archive`)을 함께 올린다. 빌드 방법: 루트에서 `pnpm install && pnpm build && pnpm --filter chrome-extension package`. 상품 페이지 이름은 50자 제한(넘으면 잘림 — « – » 앞부분만), 힌디어·인도네시아어는 AMO에 없어 8개 언어. 웹으로 올릴 때 버전 노트·심사자 메모(빌드 방법)를 빠뜨렸으면 제출 뒤 버전 편집에서 채울 수 있다
 - [ ] 네이버 웨일 스토어: 업로드 API가 없어 [개발자 센터](https://store.whale.naver.com/developer)에서 chrome zip을 직접 올린다

@@ -139,7 +139,10 @@ const firefox = async () => {
   if (!submit) return;
   const dir = fs.mkdtempSync(path.join(RELEASE, 'firefox-'));
   try {
-    execFileSync('tar', ['-xf', zip, '-C', dir], { stdio: 'inherit' });
+    // Windows에서는 Git Bash의 GNU tar가 먼저 잡히면 zip을 못 풀고 «C:»를 원격 주소로 읽는다. 시스템 tar(bsdtar)를 쓴다.
+    const tar =
+      process.platform === 'win32' ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+    execFileSync(tar, ['-xf', zip, '-C', dir], { stdio: 'inherit' });
     execFileSync(
       process.platform === 'win32' ? 'npx.cmd' : 'npx',
       [
@@ -150,10 +153,15 @@ const firefox = async () => {
         `--source-dir=${dir}`,
         `--artifacts-dir=${RELEASE}`,
         `--upload-source-code=${source}`,
-        `--api-key=${env.AMO_JWT_ISSUER}`,
-        `--api-secret=${env.AMO_JWT_SECRET}`,
+        // 목록 버전은 심사에 며칠 걸린다. 올리고 나면 승인을 기다리지 않는다(기다리면 시간 초과로 실패처럼 보인다).
+        '--approval-timeout=0',
       ],
-      { stdio: 'inherit', shell: process.platform === 'win32' },
+      // 자격 증명은 명령줄 대신 환경 변수로 넘긴다. 실패하면 명령줄이 오류 메시지에 그대로 찍힌다.
+      {
+        stdio: 'inherit',
+        shell: process.platform === 'win32',
+        env: { ...process.env, WEB_EXT_API_KEY: env.AMO_JWT_ISSUER, WEB_EXT_API_SECRET: env.AMO_JWT_SECRET },
+      },
     );
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

@@ -342,6 +342,9 @@
 | 작은 수정 | 실시간 환율을 30분 넘게 못 받으면 옛 값 대신 고시 환율로 김프 계산 · 환율이 없으면 «0 KRW» 대신 «- KRW» · 알람 4개(updateDate·noticeCheck·listingCheck·kimchiHistory)를 없을 때만 만들어 깨어날 때마다 일정이 밀리지 않게 |
 | 함께 나감 | Firefox 리뷰 요청이 AMO 목록으로(`f1402e8`) |
 | 검증 | 단위 62 · 두 lint 0 · 루트 `pnpm build` · 패키지 460KB · web-ext lint 오류 0(경고 3, 이전과 같음) · E2E 78 통과(새 4개 포함) |
+| 제출 (2026-10-10) | 처음으로 업로드 스크립트(`publish:store`)로 제출. **Edge**: API로 업로드·제출(3.5.2 게시본 위). **Firefox**: `web-ext sign` 업로드 → 3.5.3 심사 대기, 3.5.2는 자동 비활성. 버전 노트·심사자 메모(빌드 방법, 커밋 b0f4dec, 경고 설명, 환영 페이지)는 API PATCH, 상품 설명 8개 언어도 API로 새 단축키 반영(AMO가 «&»를 «&amp;»로 저장). **Chrome**: 심사 중이면 업로드 거부(«You may not edit or publish an item that is in review») → API `cancelSubmission`으로 3.5.2 심사 취소 → 3.5.3 업로드·제출, PENDING_REVIEW. **웨일**: 개발자 센터에서 리뷰 요청 취소 → 패키지 업로드 → 상세 설명(단축키)·새로운 기능 10개 언어 → 리뷰 요청, 심사 중 |
+| 남은 것 | Chrome·Edge 스토어 설명의 단축키 줄이 아직 «Ctrl + Space»(Chrome은 심사 중 수정 불가, Edge는 이미 제출) — 다음 제출 때 store/description.*.txt로 교체. 공개 업데이트 노트(다른 Notion 워크스페이스)에 3.5.3 추가 필요 |
+| 스크립트 수정 | Windows에서 Git Bash의 GNU tar가 zip을 못 풀던 것 → 시스템 tar.exe. `web-ext sign`이 승인을 기다리다 시간 초과로 실패처럼 보이던 것 → `--approval-timeout=0`. AMO 자격 증명을 명령줄 대신 환경 변수로(실패 시 오류 메시지에 찍히던 것) |
 
 ## 남은 개선 제안
 
