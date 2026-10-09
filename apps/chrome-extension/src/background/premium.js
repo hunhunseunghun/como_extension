@@ -1,5 +1,6 @@
 // @ts-check
 // 김치 프리미엄(실시간 환율)·김프 추이 기록·거래소 간 가격 차이. index.js에서 나눔.
+import { ensureAlarm } from './alarms.js';
 import { computeKimchiPremium as computeKimchiPremiumFrom } from './lib/kimchi.js';
 import { allExchangesTickers } from './state.js';
 import { fetchJson } from './net.js';
@@ -19,8 +20,12 @@ export function configurePremium(values) {
 // 김프는 장중 실시간 환율로 계산한다. 수출입은행 고시 환율은 하루 한 번(고시 전에는 전날 값)이라 장중에 0.5~1%p 어긋난다.
 // 표시용 환율(exchangeRateUSD)은 화면 안내대로 고시 환율을 그대로 쓴다.
 const LIVE_FX_INTERVAL = 5 * 60_000;
+// 실시간 환율을 30분 넘게 못 받으면 옛 값 대신 고시 환율로 계산한다(옛 값이면 김프가 틀어진다).
+const LIVE_FX_MAX_AGE = 30 * 60_000;
 /** @type {number | null} */
-let liveUsdKrw = null;
+let liveRate = null;
+let liveRateAt = 0;
+const liveUsdKrw = () => (Date.now() - liveRateAt < LIVE_FX_MAX_AGE ? liveRate : null);
 async function refreshLiveUsdKrw() {
   try {
     const response = await fetch(
@@ -29,7 +34,10 @@ async function refreshLiveUsdKrw() {
     );
     const json = await response.json();
     const rate = Number(json?.result?.calcPrice ?? String(json?.result?.closePrice ?? '').replace(/,/g, ''));
-    if (Number.isFinite(rate) && rate > 0) liveUsdKrw = rate;
+    if (Number.isFinite(rate) && rate > 0) {
+      liveRate = rate;
+      liveRateAt = Date.now();
+    }
   } catch (error) {
     console.warn(error);
   }
@@ -44,8 +52,8 @@ const KIMCHI_HISTORY_MAX = 7 * 24 * 6;
 
 async function recordKimchiHistory() {
   try {
-    if (!liveUsdKrw) await refreshLiveUsdKrw();
-    const usdRate = liveUsdKrw || deps.officialUsdKrw();
+    if (!liveUsdKrw()) await refreshLiveUsdKrw();
+    const usdRate = liveUsdKrw() || deps.officialUsdKrw();
     if (!usdRate) return;
     const [upbit, bithumb, binance] = await Promise.all([
       fetchJson('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-USDT'),
@@ -74,7 +82,7 @@ async function recordKimchiHistory() {
     console.warn(error);
   }
 }
-chrome.alarms.create('kimchiHistory', { periodInMinutes: 10 });
+ensureAlarm('kimchiHistory', { periodInMinutes: 10 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'kimchiHistory') recordKimchiHistory();
 });
@@ -86,7 +94,7 @@ chrome.storage.local.get(KIMCHI_HISTORY_KEY).then(result => {
 });
 
 export function computeKimchiPremium() {
-  return computeKimchiPremiumFrom(allExchangesTickers, liveUsdKrw || deps.officialUsdKrw());
+  return computeKimchiPremiumFrom(allExchangesTickers, liveUsdKrw() || deps.officialUsdKrw());
 }
 
 // 거래소 간 가격 차이: 같은 코인을 USD로 환산해 가장 싼 곳과 비싼 곳의 차이를 구한다.

@@ -25,7 +25,7 @@ Biểu đồ nến từ 1 phút đến 1 tháng cho mọi sàn, ngay trong cửa
 ⚡ Tối ưu cho tốc độ
 • Giá trực tiếp trên huy hiệu thanh công cụ (chọn bất kỳ coin nào)
 • Chế độ bảng bên giúp giá luôn hiển thị khi bạn lướt web
-• Phím tắt: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
+• Phím tắt: Alt + Shift + C (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Ghim coin yêu thích lên đầu, chế độ tối, bố cục gọn và rộng
 • Kiểu màu xanh là tăng hoặc đỏ là tăng
 
@@ -35,10 +35,11 @@ Giao diện tự động theo ngôn ngữ của trình duyệt, và bạn có th
 🔒 Quyền riêng tư
 Theo mặc định, COMO chỉ đọc dữ liệu thị trường công khai từ API của các sàn và API giá. Tiện ích không đọc các trang bạn truy cập, còn cài đặt, cảnh báo và danh mục của bạn được lưu ngay trong trình duyệt. Không cần tài khoản hay đăng nhập. Tính năng đồng bộ tài khoản (tùy chọn) dùng khóa API chỉ đọc do bạn nhập; khóa chỉ được lưu trong trình duyệt của bạn và chỉ được gửi đến sàn đó.
 
-Có gì mới trong phiên bản 3.5.2
+Có gì mới trong phiên bản 3.5.3
 • Lịch sử cảnh báo: xem lại mọi cảnh báo, kể cả cảnh báo được giữ trong giờ yên lặng
 • Chỉ báo biểu đồ (đường trung bình, Bollinger, RSI) và đánh dấu nến biến động mạnh kèm tin tức lúc đó
 • Lịch kinh tế (FOMC, CPI…) với tùy chọn báo trước 30 phút
 • Máy tính chênh lệch kimchi premium có tính phí giao dịch và phí rút
 • Lãi/lỗ danh mục 1, 7, 30 ngày và trạng thái nạp/rút khi liên kết tài khoản sàn Hàn Quốc
 • Hoàn tác khi thêm hoặc bỏ yêu thích, bảng vừa màn hình điện thoại và bảng bên hẹp, màn hình đầu nhanh hơn
+• Ít tốn tài nguyên khi chạy nền, hướng dẫn khi sàn không phản hồi và phím tắt mặc định mới Alt+Shift+C

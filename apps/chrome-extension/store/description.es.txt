@@ -25,7 +25,7 @@ Gráficos de velas de 1 minuto a 1 mes para cada exchange, directamente en la ve
 ⚡ Pensado para la velocidad
 • Precio en vivo en el ícono de la barra de herramientas (elige cualquier moneda)
 • El modo de panel lateral mantiene los precios visibles mientras navegas
-• Atajo de teclado: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
+• Atajo de teclado: Alt + Shift + C (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favoritos fijados arriba, modo oscuro, diseños compacto y amplio
 • Estilo de color: verde al alza o rojo al alza
 
@@ -35,10 +35,11 @@ La interfaz usa el idioma de tu navegador, y puedes cambiarlo cuando quieras en 
 🔒 Privacidad
 De forma predeterminada, COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión. La sincronización de cuenta opcional usa una clave API de solo lectura que tú introduces; la clave se guarda solo en tu navegador y solo se envía a ese exchange.
 
-Novedades de la versión 3.5.2
+Novedades de la versión 3.5.3
 • Historial de alertas: vuelve a ver todas, incluidas las retenidas en horas silenciosas
 • Indicadores en el gráfico (medias móviles, Bollinger, RSI) y marcas en velas grandes con noticias de ese momento
 • Calendario económico (FOMC, IPC y más) con aviso opcional 30 minutos antes
 • Calculadora de arbitraje de la prima kimchi con comisiones y costes de retiro
 • Resultado de la cartera a 1, 7 y 30 días, y estado de depósitos y retiros con cuenta coreana vinculada
 • Deshacer en favoritos, tabla adaptada a móviles y paneles laterales estrechos, y una primera pantalla más rápida
+• Menor consumo en segundo plano, aviso cuando un exchange no responde y nuevo atajo predeterminado Alt+Shift+C

@@ -25,7 +25,7 @@ Grafik candlestick dari 1 menit hingga 1 bulan untuk setiap exchange, langsung d
 ⚡ Dirancang untuk kecepatan
 • Harga live di badge toolbar (pilih koin apa saja)
 • Mode panel samping membuat harga tetap terlihat saat Anda browsing
-• Pintasan keyboard: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
+• Pintasan keyboard: Alt + Shift + C (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favorit disematkan di atas, mode gelap, tata letak ringkas dan lebar
 • Gaya warna hijau-naik atau merah-naik
 
@@ -35,10 +35,11 @@ Tampilan mengikuti bahasa browser Anda, dan Anda dapat mengubahnya kapan saja di
 🔒 Privasi
 Secara bawaan, COMO hanya membaca data pasar publik dari API exchange dan API harga. COMO tidak membaca halaman yang Anda kunjungi, serta pengaturan, alert, dan portofolio Anda tetap tersimpan di browser Anda. Tidak perlu akun atau login. Sinkronisasi akun opsional memakai API key baca-saja yang Anda masukkan; key hanya disimpan di browser Anda dan hanya dikirim ke exchange tersebut.
 
-Yang baru di versi 3.5.2
+Yang baru di versi 3.5.3
 • Riwayat peringatan: lihat lagi semua peringatan, termasuk yang ditahan saat jam tenang
 • Indikator grafik (rata-rata bergerak, Bollinger, RSI) dan penanda candle besar dengan berita saat itu
 • Kalender ekonomi (FOMC, CPI, dan lainnya) dengan pengingat opsional 30 menit sebelumnya
 • Kalkulator arbitrase kimchi premium dengan biaya transaksi dan penarikan
 • Untung/rugi portofolio 1, 7, dan 30 hari, serta status deposit/penarikan untuk akun bursa Korea yang terhubung
 • Urungkan untuk favorit, tabel yang pas di ponsel dan panel samping sempit, serta layar awal lebih cepat
+• Lebih hemat sumber daya di latar belakang, panduan saat bursa tidak merespons, dan pintasan bawaan baru Alt+Shift+C

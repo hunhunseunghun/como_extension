@@ -1,6 +1,6 @@
 {
   "name": "@packages/typescript-config",
-  "version": "3.5.1",
+  "version": "3.5.3",
   "private": true,
   "description": "chrome extension - tsconfig",
   "main": "app.json"

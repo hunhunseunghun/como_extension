@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "3.5.2",
+  "version": "3.5.3",
   "default_locale": "en",
   "description": "__MSG_extDescription__",
   "permissions": ["storage", "notifications", "alarms", "sidePanel"],
@@ -51,7 +51,7 @@
   "commands": {
     "_execute_action": {
       "suggested_key": {
-        "default": "Ctrl+Space",
+        "default": "Alt+Shift+C",
         "mac": "Command+Shift+Space"
       },
       "description": "__MSG_commandToggle__"

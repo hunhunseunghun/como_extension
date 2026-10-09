@@ -280,6 +280,81 @@ nav{display:flex;justify-content:space-between;font-size:14px}
 fs.mkdirSync(path.join(SITE, 'privacy', 'en'), { recursive: true });
 fs.writeFileSync(path.join(SITE, 'privacy', 'index.html'), renderPrivacy(PRIVACY.ko));
 fs.writeFileSync(path.join(SITE, 'privacy', 'en', 'index.html'), renderPrivacy(PRIVACY.en));
+// 설치 직후 확장이 여는 환영 페이지(검색에는 내보내지 않는다). 확장은 기본으로 툴바에 고정되지 않아 아이콘을 못 찾고 지우는 사용자가 있다.
+const WELCOME = {
+  ko: {
+    lang: 'ko',
+    title: 'COMO 설치 완료',
+    heading: 'COMO를 설치했어요 🎉',
+    lead: '툴바에 고정해 두면 클릭 한 번으로 시세를 볼 수 있어요.',
+    steps: [
+      '주소창 오른쪽의 퍼즐 모양 「확장 프로그램」 아이콘을 누르세요.',
+      '목록에서 COMO 옆의 핀(📌) 아이콘을 누르세요. Edge는 눈 모양 「도구 모음에 표시」예요.',
+      '툴바에 생긴 COMO 아이콘을 누르면 첫 실행 안내가 나와요. 거래소·관심 코인·툴바 가격을 고르면 끝!',
+    ],
+    tipTitle: '알아 두면 좋아요',
+    tips: ['단축키 Alt+Shift+C(Mac은 ⌘+Shift+Space)로 창을 열고 닫아요.', '설정 → 사이드 패널로 열면 창을 띄워 둔 채 볼 수 있어요.', '불편한 점은 아래 문의·제안으로 알려 주세요. 바로 고칠게요.'],
+    links: { about: 'COMO 소개', issues: '문의·제안' },
+    other: { href: 'en/', label: 'English' },
+    home: '../',
+  },
+  en: {
+    lang: 'en',
+    title: 'COMO installed',
+    heading: 'COMO is installed 🎉',
+    lead: 'Pin it to your toolbar to see prices in one click.',
+    steps: [
+      'Click the puzzle-shaped “Extensions” icon to the right of the address bar.',
+      'Click the pin (📌) next to COMO. In Edge, click the eye icon, “Show in toolbar”.',
+      'Click the COMO icon on your toolbar — a short setup lets you pick an exchange, favorite coins and the toolbar price.',
+    ],
+    tipTitle: 'Good to know',
+    tips: ['Press Alt+Shift+C (⌘+Shift+Space on Mac) to open and close COMO.', 'Settings → Side panel keeps COMO open next to the page.', 'Something not right? Tell us via Feedback below — we fix things fast.'],
+    links: { about: 'About COMO', issues: 'Feedback' },
+    other: { href: '../', label: '한국어' },
+    home: '../../en/',
+  },
+};
+const renderWelcome = t => `<!doctype html>
+<html lang="${t.lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(t.title)}</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="${t.lang === 'ko' ? '../' : '../../'}img/logo.png">
+<style>
+:root{--bg:#0f172a;--panel:#1e293b;--line:rgba(255,255,255,.1);--text:#f8fafc;--muted:#cbd5e1;--faint:#94a3b8;--accent:#a5b4fc}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',system-ui,sans-serif;line-height:1.6;word-break:keep-all}
+main{max-width:640px;margin:0 auto;padding:40px 16px 64px}
+nav{display:flex;justify-content:flex-end;font-size:14px}nav a{color:var(--faint)}
+h1{font-size:clamp(26px,5vw,36px);margin:24px 0 8px}
+.lead{color:var(--muted);margin:0 0 28px}
+ol{list-style:none;counter-reset:step;padding:0;margin:0 0 36px}
+ol li{counter-increment:step;position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 56px;margin-bottom:10px}
+ol li::before{content:counter(step);position:absolute;left:16px;top:13px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--bg);font-weight:800;display:grid;place-items:center}
+h2{font-size:18px;margin:0 0 8px}
+ul{color:var(--muted);padding-left:20px;margin:0 0 32px}
+footer{display:flex;gap:18px;font-size:14px;color:var(--faint)}a{color:inherit}
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="${t.other.href}">${esc(t.other.label)}</a></nav>
+  <h1>${esc(t.heading)}</h1>
+  <p class="lead">${esc(t.lead)}</p>
+  <ol>${t.steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>
+  <h2>${esc(t.tipTitle)}</h2>
+  <ul>${t.tips.map(tip => `<li>${esc(tip)}</li>`).join('')}</ul>
+  <footer><a href="${t.home}">${esc(t.links.about)}</a><a href="${LINKS.issues}">${esc(t.links.issues)}</a></footer>
+</main>
+</body>
+</html>
+`;
+fs.mkdirSync(path.join(SITE, 'welcome', 'en'), { recursive: true });
+fs.writeFileSync(path.join(SITE, 'welcome', 'index.html'), renderWelcome(WELCOME.ko));
+fs.writeFileSync(path.join(SITE, 'welcome', 'en', 'index.html'), renderWelcome(WELCOME.en));
 fs.writeFileSync(path.join(SITE, '.nojekyll'), '');
 fs.writeFileSync(path.join(SITE, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${BASE_URL}sitemap.xml\n`);
 fs.writeFileSync(

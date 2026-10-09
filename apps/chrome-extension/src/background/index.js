@@ -1,4 +1,5 @@
 // @ts-check
+import { ensureAlarm } from './alarms.js';
 import { KRW_EXCHANGES } from './lib/kimchi.js';
 import { allExchangesTickers, refreshCurrentDate } from './state.js';
 import { ExchangeRateManager } from './exchangeRate.js';
@@ -9,6 +10,8 @@ import {
   configureMarket,
   connectLiquidations,
   derivatives,
+  disconnectLiquidations,
+  liquidationsConnected,
   longShort,
   polledData,
   summarizeLiquidations,
@@ -19,6 +22,7 @@ import {
   alertsReady,
   alertTargetUrl,
   clearAlertHistory,
+  getLanguage,
   languageReady,
 } from './notify.js';
 import { computeKimchiPremium, computeSpreads, configurePremium } from './premium.js';
@@ -43,7 +47,7 @@ import {
 // 초기 설정 및 전역 변수
 const maxChangeRate = { exchange: '', market: '', changeRate: 0 };
 
-chrome.alarms.create('updateDate', { periodInMinutes: 30 });
+ensureAlarm('updateDate', { periodInMinutes: 30 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'updateDate' && refreshCurrentDate()) {
     // 서비스 워커가 날짜를 넘겨 살아 있으면 환율이 갱신되지 않으므로 날짜가 바뀔 때 다시 조회한다.
@@ -79,11 +83,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === 'getKimchiPremium') {
     sendResponse(computeKimchiPremium());
   }
+  // 쉬다가 깨어난 직후면 새 값을 받을 때까지 기다린다.
   if (message.action === 'getDerivatives') {
-    sendResponse({ funding: derivatives.value, liquidations: summarizeLiquidations(), longShort: longShort.value });
+    Promise.all([derivatives.pending, longShort.pending]).then(() =>
+      sendResponse({ funding: derivatives.value, liquidations: summarizeLiquidations(), longShort: longShort.value }),
+    );
+    return true;
   }
   if (message.action === 'getTrending') {
-    sendResponse(trending.value ?? []);
+    Promise.resolve(trending.pending).then(() => sendResponse(trending.value ?? []));
+    return true;
   }
   if (message.action === 'getWhaleFeed') {
     sendResponse(whaleFeed);
@@ -106,6 +115,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     syncExchangeAccount(message.exchange).then(sendResponse);
     return true;
   }
+  // 화면이 시세를 기다리다 '다시 시도'를 눌렀다. 기다리는 재시도 간격을 건너뛰고 바로 다시 받는다.
+  if (message.action === 'retryExchange') {
+    const exchange = exchanges[message.exchange];
+    if (exchange && !exchange.suspended && !exchange.locked) {
+      clearTimeout(exchange.startTimer);
+      const retry = exchange.started
+        ? exchange.fetchInitialTickers().then(() => {
+            exchange.dropSocket();
+            exchange.connectWebSocket();
+          })
+        : exchange.start();
+      retry
+        .catch(console.warn)
+        .finally(() => activePort && activeExchange === message.exchange && exchange.connectPopup(activePort));
+    }
+  }
   // 거래소별 연결 상태(점검·E2E용)
   if (message.action === 'getConnectionStatus') {
     sendResponse(
@@ -121,6 +146,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       ),
     );
   }
+  // 화면용 시장 데이터를 쉬고 있는지(점검·E2E용)
+  if (message.action === 'getMarketDataStatus') {
+    sendResponse({
+      liquidations: liquidationsConnected(),
+      derivatives: !derivatives.paused,
+      trending: !trending.paused,
+      longShort: !longShort.paused,
+    });
+  }
   if (message.action === 'getAllExchangesTickers') {
     sendResponse(Object.values(allExchangesTickers).flatMap(tickers => Object.values(tickers)));
   }
@@ -132,11 +166,14 @@ let updatedVersion = '';
 chrome.storage.local.get('updatedFromVersion').then(result => {
   updatedVersion ||= result.updatedFromVersion || '';
 });
-chrome.runtime.onInstalled.addListener(details => {
+chrome.runtime.onInstalled.addListener(async details => {
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
-    chrome.runtime.setUninstallURL('https://walla.my/v/a6J0FV5gUKCyzupMaG71');
     // 새로 설치한 사용자에게만 첫 실행 안내(Onboarding)를 보여 준다. 업데이트한 사용자는 이미 설정을 마쳤다.
-    chrome.storage.local.set({ onboardingPending: true });
+    await chrome.storage.local.set({ onboardingPending: true, [INSTALLED_AT_KEY]: Date.now() });
+    updateUninstallUrl();
+    // 확장은 툴바에 고정되지 않은 채 설치돼 아이콘을 못 찾는 사용자가 있다. 고정하는 법을 한 번 보여 준다.
+    await languageReady;
+    chrome.tabs.create({ url: `${WELCOME_URL}${getLanguage() === 'ko' ? '' : 'en/'}` }).catch(console.warn);
   }
   if (details.reason === 'update') {
     updatedVersion = details?.previousVersion || null;
@@ -145,6 +182,23 @@ chrome.runtime.onInstalled.addListener(details => {
 });
 
 chrome.alarms.clear('keepAlive');
+
+const WELCOME_URL = 'https://hunhunseunghun.github.io/como_extension/welcome/';
+const UNINSTALL_SURVEY_URL = 'https://walla.my/v/a6J0FV5gUKCyzupMaG71';
+const INSTALLED_AT_KEY = 'installedAt';
+// 제거 설문에 버전·언어·사용 일수·거래소를 붙여 제거 이유를 나눠 본다. 서비스 워커가 시작할 때와 거래소를 바꿀 때 다시 정한다.
+async function updateUninstallUrl() {
+  const stored = await chrome.storage.local.get([INSTALLED_AT_KEY, 'usageStats']);
+  // 설치일을 모르는 기존 사용자는 처음 연 날(리뷰 요청 통계)로 센다.
+  const since = stored[INSTALLED_AT_KEY] ?? stored.usageStats?.firstOpenAt;
+  const params = new URLSearchParams({
+    v: chrome.runtime.getManifest().version,
+    lang: getLanguage(),
+    days: since ? String(Math.floor((Date.now() - since) / 86_400_000)) : '',
+    exchange: activeExchange ?? '',
+  });
+  chrome.runtime.setUninstallURL(`${UNINSTALL_SURVEY_URL}?${params}`, () => void chrome.runtime.lastError);
+}
 
 // 선택 권한 거래소: 기존 사용자에게 업데이트 때 새 권한 확인 창이 뜨지 않도록, 거래소를 처음 고를 때 허락받는다.
 /** @type {Record<string, string[]>} */
@@ -203,11 +257,14 @@ let activeExchange = null;
 async function saveActiveExchange(exchange) {
   await chrome.storage.local.set({ [STORAGE_KEY]: exchange });
   activeExchange = exchange;
+  updateUninstallUrl();
 }
 
 async function loadActiveExchange() {
   const { [STORAGE_KEY]: state } = await chrome.storage.local.get(STORAGE_KEY);
-  return exchanges[state] ? state : 'upbit';
+  // 처음 쓰는 사용자는 배지(toolbarBadge.js)와 같이 한국어면 업비트, 그 밖의 언어면 바이낸스로 시작한다.
+  if (exchanges[state]) return state;
+  return getLanguage() === 'ko' ? 'upbit' : 'binance';
 }
 
 /** @param {string | null} name */
@@ -310,6 +367,21 @@ function exchangesNeededWhenIdle() {
   return needed;
 }
 
+// 화면에서만 보는 시장 데이터(펀딩비·청산·트렌딩)는 쉬는 동안 받지 않는다. 롱숏 요청이 함께 받는 미결제약정은 OI 알림 규칙이 쓴다.
+/** @param {boolean} idle */
+function setMarketDataIdle(idle) {
+  if (!idle) {
+    [derivatives, longShort, trending].forEach(data => data.resume());
+    connectLiquidations();
+    return;
+  }
+  derivatives.pause();
+  trending.pause();
+  if (ruleCache.rules.some(rule => rule.type === 'oi')) longShort.resume();
+  else longShort.pause();
+  disconnectLiquidations();
+}
+
 function applyIdleConnections() {
   idleTimer = undefined;
   if (popupPorts.size) return;
@@ -317,6 +389,7 @@ function applyIdleConnections() {
   Object.entries(exchanges).forEach(([name, exchange]) =>
     needed.has(name) ? exchange.resume().catch(console.warn) : exchange.suspend(),
   );
+  setMarketDataIdle(true);
 }
 
 function scheduleIdleConnections(delay = IDLE_SUSPEND_DELAY) {
@@ -328,6 +401,7 @@ function resumeAllExchanges() {
   clearTimeout(idleTimer);
   idleTimer = undefined;
   Object.values(exchanges).forEach(exchange => exchange.resume().catch(console.warn));
+  setMarketDataIdle(false);
 }
 
 // 화면이 닫혀 있는 동안 배지·알림 설정이 바뀌면 필요한 거래소를 다시 고른다.
@@ -342,10 +416,12 @@ setInterval(() => Object.values(exchanges).forEach(exchange => exchange.refreshM
 async function initialize() {
   await Promise.all([alertsReady, rulesReady, badgeReady, languageReady]);
   activeExchange = await loadActiveExchange();
+  updateUninstallUrl();
+  // 화면 없이 깨어났으면(알람 등) 화면용 시장 데이터는 받지 않는다. 화면이 먼저 연결됐으면 이미 받기 시작했다.
+  if (!popupPorts.size) setMarketDataIdle(true);
   derivatives.start();
   longShort.start();
   trending.start();
-  connectLiquidations();
   const initial = getExchangeInstance(activeExchange);
   if (initial) initial.setPopupActive(true);
   // 서비스 워커가 깨어나는 중에 화면이 먼저 연결됐으면, 활성 거래소를 이제 알려 주고 시세를 이어 준다.

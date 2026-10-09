@@ -437,9 +437,13 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
       .toBeGreaterThan(0);
     const idle = await status();
     if (badge.enabled) expect(idle[badge.exchange]).toMatchObject({ suspended: false, connected: true });
+    // 화면에서만 보는 펀딩비·청산·트렌딩도 쉰다(청산 소켓이 열려 있으면 서비스 워커가 잠들지 못한다).
+    const marketStatus = () => popup.evaluate(() => chrome.runtime.sendMessage({ action: 'getMarketDataStatus' }));
+    expect(await marketStatus()).toMatchObject({ liquidations: false, derivatives: false, trending: false });
 
     await popup.goto(`chrome-extension://${extensionId}/popup/index.html`);
     await expect.poll(async () => Object.values(await status()).every(s => !s.suspended)).toBe(true);
+    expect(await marketStatus()).toEqual({ liquidations: true, derivatives: true, trending: true, longShort: true });
     await expect(rows(popup).nth(5)).toBeVisible();
   });
 

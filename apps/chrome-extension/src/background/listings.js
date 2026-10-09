@@ -1,5 +1,6 @@
 // @ts-check
 // 신규 상장 알림(업비트·빗썸 원화 마켓). index.js에서 나눔. 알람·타이머는 import될 때 건다.
+import { ensureAlarm } from './alarms.js';
 import { createNotification, getLanguage, languageReady } from './notify.js';
 
 // 신규 상장 알림: 업비트·빗썸의 KRW 마켓 목록을 주기적으로 비교해 새로 생긴 마켓을 알린다.
@@ -78,7 +79,7 @@ async function checkNewListingsOnce() {
   chrome.storage.local.set({ [KNOWN_MARKETS_KEY]: next });
 }
 
-chrome.alarms.create('listingCheck', { periodInMinutes: 5 });
+ensureAlarm('listingCheck', { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'listingCheck') checkNewListings();
 });

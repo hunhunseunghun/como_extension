@@ -222,7 +222,7 @@ chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'portfolioSnapshot') snapshotPortfolio().catch(console.warn);
 });
 
-chrome.alarms.create('noticeCheck', { periodInMinutes: 2 });
+ensureAlarm('noticeCheck', { periodInMinutes: 2 });
 chrome.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === 'noticeCheck') {
     checkUpbitNotices();

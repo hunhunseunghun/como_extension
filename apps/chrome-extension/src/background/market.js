@@ -31,18 +31,33 @@ export class PolledData {
     this.value = null;
     /** @type {ReturnType<typeof setTimeout> | null} */
     this.retryTimer = null;
+    // 화면이 닫혀 쉬는 동안에는 주기 요청을 건너뛴다(pause/resume).
+    this.paused = false;
+    this.loadedAt = 0;
+    /** @type {Promise<void> | null} */
+    this.pending = null;
   }
 
-  async refresh() {
-    try {
-      const value = await this.load();
-      if (value) {
-        this.value = value;
-        this.post(deps.getPort());
-        return;
-      }
-    } catch (error) {
-      console.warn(error);
+  refresh() {
+    this.pending ??= this.load()
+      .then(value => this.receive(value), error => this.receive(null, error))
+      .finally(() => {
+        this.pending = null;
+      });
+    return this.pending;
+  }
+
+  /**
+   * @param {any} value
+   * @param {unknown} [error]
+   */
+  receive(value, error) {
+    if (error) console.warn(error);
+    if (value) {
+      this.value = value;
+      this.loadedAt = Date.now();
+      this.post(deps.getPort());
+      return;
     }
     // 아직 한 번도 받지 못했는데 실패하면(요청 한도 429 등) 다음 주기(최대 1시간)까지 비워 두지 않고 2분 뒤 다시 받는다.
     if (!this.value && this.intervalMs > POLL_RETRY_MS && !this.retryTimer) {
@@ -54,8 +69,20 @@ export class PolledData {
   }
 
   start() {
-    this.refresh();
-    setInterval(() => this.refresh(), this.intervalMs);
+    if (!this.paused) this.refresh();
+    setInterval(() => {
+      if (!this.paused) this.refresh();
+    }, this.intervalMs);
+  }
+
+  pause() {
+    this.paused = true;
+  }
+
+  // 다시 쓰기 시작할 때 값이 한 주기보다 오래됐으면 바로 받는다.
+  resume() {
+    this.paused = false;
+    return Date.now() - this.loadedAt >= this.intervalMs ? this.refresh() : Promise.resolve();
   }
 
   /** @param {Port | null} port */
@@ -221,16 +248,26 @@ export const longShort = new PolledData('longShort', 5 * 60 * 1000, async () => 
 longShort.post = () => {};
 
 const LIQUIDATION_WINDOW = 60 * 60 * 1000;
+const LIQUIDATION_RETRY_MAX = 5 * 60_000;
 /** @type {{ symbol: string, side: 'long' | 'short', usd: number, price: number, time: number }[]} */
 export const liquidations = [];
 /** @type {WebSocket | null} */
 let liquidationSocket = null;
+/** @type {ReturnType<typeof setTimeout> | undefined} */
+let liquidationRetryTimer;
+let liquidationRetryDelay = 5000;
+// 청산은 화면이 열려 있을 때만 모은다. 소켓이 열려 있으면 서비스 워커가 잠들지 못한다.
+let collectingSince = Date.now();
 export function connectLiquidations() {
+  clearTimeout(liquidationRetryTimer);
+  if (liquidationSocket) return;
   // 심볼마다 1초에 최대 1건(가장 큰 청산)만 오는 스냅샷 스트림이라 가볍다.
   // 예전 /ws 경로는 연결은 되지만 메시지를 보내지 않는다. 시장 데이터 스트림은 /market/ws를 쓴다.
   const socket = new WebSocket('wss://fstream.binance.com/market/ws/!forceOrder@arr');
   liquidationSocket = socket;
+  if (!liquidations.length) collectingSince = Date.now();
   socket.onmessage = event => {
+    liquidationRetryDelay = 5000;
     try {
       const order = JSON.parse(event.data)?.o;
       if (!order) return;
@@ -245,11 +282,27 @@ export function connectLiquidations() {
       console.warn(error);
     }
   };
-  socket.onclose = () => setTimeout(connectLiquidations, 5000);
-  socket.onerror = () => liquidationSocket?.close();
+  socket.onclose = () => {
+    if (liquidationSocket !== socket) return;
+    liquidationSocket = null;
+    // 바이낸스 선물이 막힌 지역에서는 계속 끊기므로 다시 붙는 간격을 늘린다(최대 5분).
+    liquidationRetryTimer = setTimeout(connectLiquidations, liquidationRetryDelay);
+    liquidationRetryDelay = Math.min(liquidationRetryDelay * 2, LIQUIDATION_RETRY_MAX);
+  };
+  socket.onerror = () => socket.close();
 }
 
-const startedAt = Date.now();
+export const liquidationsConnected = () => !!liquidationSocket;
+
+export function disconnectLiquidations() {
+  clearTimeout(liquidationRetryTimer);
+  const socket = liquidationSocket;
+  liquidationSocket = null;
+  socket?.close();
+  // 끊긴 동안의 청산은 모르므로 다시 모을 때 처음부터 센다.
+  liquidations.length = 0;
+}
+
 export function summarizeLiquidations() {
   const cutoff = Date.now() - LIQUIDATION_WINDOW;
   const recent = liquidations.filter(item => item.time >= cutoff);
@@ -259,8 +312,8 @@ export function summarizeLiquidations() {
     shortUsd: sum('short'),
     count: recent.length,
     largest: [...recent].sort((a, b) => b.usd - a.usd).slice(0, 5),
-    // 서비스 워커가 시작한 지 1시간이 안 됐으면 그만큼만 모은 값이다.
-    windowMs: Math.min(LIQUIDATION_WINDOW, Date.now() - startedAt),
+    // 모으기 시작한 지 1시간이 안 됐으면 그만큼만 모은 값이다.
+    windowMs: Math.min(LIQUIDATION_WINDOW, Date.now() - collectingSince),
   };
 }
 

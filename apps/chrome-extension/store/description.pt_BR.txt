@@ -25,7 +25,7 @@ Gráficos de candlestick de 1 minuto a 1 mês para todas as corretoras, direto n
 ⚡ Feito para ser rápido
 • Cotação ao vivo no ícone da barra de ferramentas (escolha qualquer moeda)
 • O modo painel lateral mantém os preços visíveis enquanto você navega
-• Atalho de teclado: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
+• Atalho de teclado: Alt + Shift + C (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favoritos fixados no topo, modo escuro, layouts compacto e amplo
 • Estilo de cores: verde para alta ou vermelho para alta
 
@@ -35,10 +35,11 @@ A interface segue o idioma do seu navegador, e você pode trocá-lo a qualquer m
 🔒 Privacidade
 Por padrão, o COMO lê apenas dados públicos de mercado das APIs das corretoras e de cotações. Ele não lê as páginas que você visita, e suas configurações, alertas e carteira ficam no seu navegador. Não é preciso criar conta nem fazer login. A sincronização de conta opcional usa uma chave de API somente leitura que você informa; a chave fica salva apenas no seu navegador e é enviada apenas para essa corretora.
 
-Novidades da versão 3.5.2
+Novidades da versão 3.5.3
 • Histórico de alertas: veja todos de novo, inclusive os retidos no horário silencioso
 • Indicadores no gráfico (médias móveis, Bollinger, RSI) e marcas em velas grandes com notícias do momento
 • Calendário econômico (FOMC, CPI e mais) com aviso opcional 30 minutos antes
 • Calculadora de arbitragem do prêmio kimchi com taxas e custos de saque
 • Resultado da carteira em 1, 7 e 30 dias, e status de depósitos e saques com conta coreana vinculada
 • Desfazer nos favoritos, tabela que cabe em celulares e painéis laterais estreitos, e tela inicial mais rápida
+• Menos consumo em segundo plano, aviso quando uma corretora não responde e novo atalho padrão Alt+Shift+C

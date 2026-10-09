@@ -32,6 +32,7 @@ import { getKrwColumns } from '@/columns/krwColumns';
 import { getGlobalColumns } from '@/columns/globalColumns';
 import { EXCHANGES, isGlobalExchange, isKrwExchange, MARKET_TYPES } from '@/constants/exchanges';
 import { ExchangePermissionGate } from '@/components/ExchangePermissionGate';
+import { ExchangeLoading } from '@/components/ExchangeLoading';
 import { useExchangePermission } from '@/lib/exchangePermission';
 import { KIMCHI_COLUMN_KEY, QUIET_MODE_KEY, useStoredFlag } from '@/hooks/useStoredFlag';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -48,7 +49,7 @@ import { ReviewPrompt } from '@/components/ReviewPrompt';
 import { FavoriteUndo } from '@/components/FavoriteUndo';
 import { useI18n } from '@/i18n';
 import { FiatRates, MarketContext, MarketStats } from '@/lib/market';
-import { Search, Loader2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { ChartProvider } from './components/ChartToolTip';
 
 import fireLogo from '@/assets/icons/fire.svg';
@@ -415,7 +416,7 @@ const App = () => {
                   {/* 400px보다 좁은 사이드 패널에서는 검색창 자리를 위해 환율을 숨긴다. */}
                   <div className="relative flex justify-center items-center h-6 min-w-16 whitespace-nowrap text-cap-s gap-1 border-transparent border-1 rounded-md group hover:cursor-default max-[400px]:hidden">
                     <span className="num">
-                      {exchangeRateUSD}
+                      {exchangeRateUSD || '-'}
                       <span className="text-fg-faint"> KRW</span>
                     </span>
                     <HoverHint>
@@ -506,9 +507,11 @@ const App = () => {
                       ) : isLoading || !Object.keys(tickers).length ? (
                         <tr>
                           <td colSpan={table.getVisibleLeafColumns().length}>
-                            <div className={`${wideSize ? 'h-[500px]' : 'h-[330px]'} grid place-content-center`}>
-                              <Loader2 className={'w-5 h-5 animate-spin text-fg-subtle hover:bg-transparent'} />
-                            </div>
+                            <ExchangeLoading
+                              exchange={exchangePlatform}
+                              onSelect={selectExchange}
+                              className={wideSize ? 'h-[500px]' : 'h-[330px]'}
+                            />
                           </td>
                         </tr>
                       ) : !table.getRowModel().rows.length && columnFilters.length ? (

@@ -25,7 +25,7 @@ Her borsa için 1 dakikadan 1 aya kadar mum grafikleri, doğrudan açılır penc
 ⚡ Hız için tasarlandı
 • Araç çubuğu rozetinde canlı fiyat (istediğiniz coini seçin)
 • Yan panel modu, gezinirken fiyatları görünür tutar
-• Klavye kısayolu: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
+• Klavye kısayolu: Alt + Shift + C (Windows, Linux) / Cmd + Shift + Space (Mac)
 • En üste sabitlenen favoriler, karanlık mod, kompakt ve geniş düzenler
 • Yükselişte yeşil veya yükselişte kırmızı renk stili
 
@@ -35,10 +35,11 @@ Arayüz tarayıcınızın dilini kullanır ve dili istediğiniz zaman ayarlardan
 🔒 Gizlilik
 COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piyasa verilerini okur. Ziyaret ettiğiniz sayfaları okumaz; ayarlarınız, alarmlarınız ve portföyünüz tarayıcınızda kalır. Hesap veya giriş gerekmez. İsteğe bağlı hesap senkronizasyonu, girdiğiniz salt okunur API anahtarını kullanır; anahtar yalnızca tarayıcınızda saklanır ve yalnızca ilgili borsaya gönderilir.
 
-3.5.2 sürümündeki yenilikler
+3.5.3 sürümündeki yenilikler
 • Uyarı geçmişi: sessiz saatlerde bekletilenler dahil tüm uyarıları yeniden görün
 • Grafik göstergeleri (hareketli ortalama, Bollinger, RSI) ve o anın haberleriyle büyük mum işaretleri
 • İsteğe bağlı 30 dakika önceden uyarılı ekonomik takvim (FOMC, TÜFE ve dahası)
 • Ücretler ve çekim maliyetleriyle kimchi primi arbitraj hesaplayıcı
 • Portföyde 1, 7 ve 30 günlük K/Z, bağlı Kore borsası hesabında yatırma/çekme durumu
 • Favorilerde geri alma, telefonlara ve dar yan panellere uyan tablo, daha hızlı açılış ekranı
+• Arka planda daha az kaynak kullanımı, borsa yanıt vermediğinde yönlendirme ve yeni varsayılan kısayol Alt+Shift+C

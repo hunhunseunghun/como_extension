@@ -25,7 +25,7 @@ Candlestick charts from 1 minute to 1 month for every exchange, right inside the
 ⚡ Built for speed
 • Live price on the toolbar badge (choose any coin)
 • Side panel mode keeps prices visible while you browse
-• Keyboard shortcut: Ctrl + Space (Windows, Linux) / Cmd + Shift + Space (Mac)
+• Keyboard shortcut: Alt + Shift + C (Windows, Linux) / Cmd + Shift + Space (Mac)
 • Favorites pinned to the top, dark mode, compact and wide layouts
 • Green-up or red-up color style
 
@@ -35,10 +35,11 @@ The interface follows your browser language, and you can switch it any time in s
 🔒 Privacy
 By default COMO only reads public market data from exchange and price APIs. It does not read the pages you visit, and your settings, alerts and portfolio stay in your browser. No account or login is required. Optional account sync uses a read-only API key that you enter; the key is stored only in your browser and is sent only to that exchange.
 
-What's new in 3.5.2
+What's new in 3.5.3
 • Alert history: see every alert again, including ones held during quiet hours
 • Chart indicators (moving averages, Bollinger Bands, RSI) and markers on big candles with news from that time
 • Economic calendar (FOMC, CPI and more) with an optional heads-up 30 minutes before each release
 • Kimchi premium arbitrage calculator with fees and withdrawal costs
 • Portfolio P&L over 1, 7 and 30 days, and deposit/withdrawal status for linked Korean exchange accounts
 • Undo for favorites, a table that fits phones and narrow side panels, and a faster first screen
+• Uses less battery in the background, shows what to do when an exchange doesn't respond, and a new default shortcut Alt+Shift+C
