@@ -35,7 +35,7 @@ Tampilan mengikuti bahasa browser Anda, dan Anda dapat mengubahnya kapan saja di
 🔒 Privasi
 Secara bawaan, COMO hanya membaca data pasar publik dari API exchange dan API harga. COMO tidak membaca halaman yang Anda kunjungi, serta pengaturan, alert, dan portofolio Anda tetap tersimpan di browser Anda. Tidak perlu akun atau login. Sinkronisasi akun opsional memakai API key baca-saja yang Anda masukkan; key hanya disimpan di browser Anda dan hanya dikirim ke exchange tersebut.
 
-Yang baru di versi 3.5.1
+Yang baru di versi 3.5.2
 • Riwayat peringatan: lihat lagi semua peringatan, termasuk yang ditahan saat jam tenang
 • Indikator grafik (rata-rata bergerak, Bollinger, RSI) dan penanda candle besar dengan berita saat itu
 • Kalender ekonomi (FOMC, CPI, dan lainnya) dengan pengingat opsional 30 menit sebelumnya

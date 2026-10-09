@@ -35,7 +35,7 @@ La interfaz usa el idioma de tu navegador, y puedes cambiarlo cuando quieras en 
 🔒 Privacidad
 De forma predeterminada, COMO solo lee datos públicos de mercado de las API de los exchanges y de precios. No lee las páginas que visitas, y tu configuración, tus alertas y tu portafolio se quedan en tu navegador. No se requiere cuenta ni inicio de sesión. La sincronización de cuenta opcional usa una clave API de solo lectura que tú introduces; la clave se guarda solo en tu navegador y solo se envía a ese exchange.
 
-Novedades de la versión 3.5.1
+Novedades de la versión 3.5.2
 • Historial de alertas: vuelve a ver todas, incluidas las retenidas en horas silenciosas
 • Indicadores en el gráfico (medias móviles, Bollinger, RSI) y marcas en velas grandes con noticias de ese momento
 • Calendario económico (FOMC, IPC y más) con aviso opcional 30 minutos antes

@@ -35,7 +35,7 @@ Arayüz tarayıcınızın dilini kullanır ve dili istediğiniz zaman ayarlardan
 🔒 Gizlilik
 COMO varsayılan olarak yalnızca borsa ve fiyat API'lerinden herkese açık piyasa verilerini okur. Ziyaret ettiğiniz sayfaları okumaz; ayarlarınız, alarmlarınız ve portföyünüz tarayıcınızda kalır. Hesap veya giriş gerekmez. İsteğe bağlı hesap senkronizasyonu, girdiğiniz salt okunur API anahtarını kullanır; anahtar yalnızca tarayıcınızda saklanır ve yalnızca ilgili borsaya gönderilir.
 
-3.5.1 sürümündeki yenilikler
+3.5.2 sürümündeki yenilikler
 • Uyarı geçmişi: sessiz saatlerde bekletilenler dahil tüm uyarıları yeniden görün
 • Grafik göstergeleri (hareketli ortalama, Bollinger, RSI) ve o anın haberleriyle büyük mum işaretleri
 • İsteğe bağlı 30 dakika önceden uyarılı ekonomik takvim (FOMC, TÜFE ve dahası)
