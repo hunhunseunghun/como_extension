@@ -113,6 +113,19 @@ if (!fs.existsSync(path.join(DIST, 'manifest.json'))) {
   process.exit(1);
 }
 
+// 이 폴더의 `pnpm build`는 백그라운드만 만든다. 팝업 소스가 dist/popup보다 새로우면 옛 팝업이 들어간다(3.5.2 첫 업로드 사고).
+const newestMtime = dir =>
+  fs.readdirSync(dir, { withFileTypes: true }).reduce((max, entry) => {
+    const full = path.join(dir, entry.name);
+    return Math.max(max, entry.isDirectory() ? newestMtime(full) : fs.statSync(full).mtimeMs);
+  }, 0);
+const popupHtml = path.join(DIST, 'popup', 'index.html');
+const popupSources = [path.join(ROOT, 'pages', 'popup', 'src')];
+if (!fs.existsSync(popupHtml) || Math.max(...popupSources.map(newestMtime)) > fs.statSync(popupHtml).mtimeMs) {
+  console.error('dist/popup이 팝업 소스보다 오래됐습니다. 저장소 루트에서 pnpm build를 실행하세요.');
+  process.exit(1);
+}
+
 const manifest = JSON.parse(fs.readFileSync(path.join(DIST, 'manifest.json'), 'utf8'));
 const entries = pruneStaleAssets(collect(DIST));
 fs.mkdirSync(RELEASE, { recursive: true });

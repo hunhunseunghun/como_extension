@@ -32,6 +32,12 @@ export const Onboarding = ({ exchangePlatform, setExchangePlatform, setFavoriteC
 
   useEffect(() => {
     chrome.storage.local.get(PENDING_KEY, result => setIsVisible(result?.[PENDING_KEY] === true));
+    // 설치 직후 팝업이 onInstalled보다 먼저 열리면 처음 읽을 때는 값이 없다. 나중에 켜지는 것도 받는다.
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'local' && changes[PENDING_KEY]?.newValue === true) setIsVisible(true);
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
   }, []);
 
   if (!isVisible) return null;
