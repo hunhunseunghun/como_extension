@@ -9,6 +9,7 @@
 - [ ] `store/release-notes.ko.txt` 맨 위에 `🔹 x.y.z` 블록 ☑
 - [ ] `store/description.*.txt` 10개 언어에 새 버전 소개 블록 ☑
 - [ ] 새 권한이 생겼으면 아래 [권한 사유](#권한-사유) 표에 한 줄 추가 ☑ (표에 없는 호스트가 manifest에 있으면 검사가 실패한다)
+- [ ] 필수 권한(`permissions`·`host_permissions`)은 늘리지 않는다 — 늘리면 Chrome이 업데이트 뒤 확장을 끄고 승인을 요구한다(3.0.0 때 «사용 중지됨» 22 → 57, 닷새 동안 제거 28). 새 호스트는 `optional_host_permissions`로
 
 ## 2. 검증
 
