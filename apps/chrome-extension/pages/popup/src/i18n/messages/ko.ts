@@ -157,6 +157,8 @@ export const ko = {
   alertWhenDown: '내리면 알림',
   alertVsCurrent: '현재가 대비 {p}',
   deadbandHint: '범위를 벗어났다 돌아와야 다시 알려요 · 0%는 매번',
+  alertOnce: '1회',
+  alertOnceHint: '한 번 울리면 알림을 지워요',
   noSearchResults: '검색 결과가 없어요',
   exchangeNoResponse: '이 거래소가 아직 응답하지 않아요',
   retryConnect: '다시 시도',

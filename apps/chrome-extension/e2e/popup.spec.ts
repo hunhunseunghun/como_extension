@@ -118,6 +118,30 @@ test.describe.serial('COMO 팝업 (실시간 거래소 API)', () => {
     await popup.keyboard.press('Escape');
   });
 
+  test('지정가 알림을 「1회」로 걸면 한 번 울린 뒤 지우는 알림으로 저장하고, 백그라운드가 지우면 목록에서도 사라진다', async ({ popup, extContext }) => {
+    await popup.locator('button:has(svg.lucide-bell)').click();
+    const content = popup.locator('[data-radix-popper-content-wrapper]');
+    await expect(content).toContainText('KRW-BTC');
+    await content.getByRole('button', { name: '1회', exact: true }).click();
+    await expect(content).toContainText('한 번 울리면 알림을 지워요');
+    await content.getByRole('button', { name: '+5%' }).click();
+    await content.getByRole('button', { name: '알림 추가' }).click();
+    const row = content.getByTestId('price-alert-row').filter({ hasText: '한 번 울리면 알림을 지워요' });
+    await expect(row).toHaveCount(1);
+
+    const [worker] = extContext.serviceWorkers();
+    const stored = await worker.evaluate(async () => (await chrome.storage.local.get('priceAlerts')).priceAlerts?.upbit?.['KRW-BTC']);
+    expect(stored).toEqual(expect.arrayContaining([expect.objectContaining({ once: true, deadband: 0 })]));
+    // 울린 뒤 백그라운드가 지운 상황: 열려 있는 목록도 따라 사라진다.
+    await worker.evaluate(async () => {
+      const { priceAlerts } = await chrome.storage.local.get('priceAlerts');
+      priceAlerts.upbit['KRW-BTC'] = priceAlerts.upbit['KRW-BTC'].filter((pair: { once?: boolean }) => !pair.once);
+      await chrome.storage.local.set({ priceAlerts });
+    });
+    await expect(row).toHaveCount(0);
+    await popup.keyboard.press('Escape');
+  });
+
   test('보유 자산을 등록하면 평가금액과 손익을 계산한다', async ({ popup }) => {
     await popup.getByRole('button', { name: '보유 자산' }).click();
     const content = popup.locator('[data-radix-popper-content-wrapper]');

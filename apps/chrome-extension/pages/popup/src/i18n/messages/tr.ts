@@ -156,6 +156,8 @@ export const tr: Partial<Record<MessageKey, string>> = {
   alertWhenDown: 'Düşünce uyar',
   alertVsCurrent: 'Şimdiye göre {p}',
   deadbandHint: 'Aralıktan çıkıp dönünce uyarır · %0 = her sefer',
+  alertOnce: 'Bir kez',
+  alertOnceHint: 'Bir kez uyarır, sonra kendini siler',
   noSearchResults: 'Sonuç yok',
   exchangeNoResponse: 'Bu borsa henüz yanıt vermedi',
   retryConnect: 'Tekrar dene',

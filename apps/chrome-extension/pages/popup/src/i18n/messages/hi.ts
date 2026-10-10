@@ -156,6 +156,8 @@ export const hi: Partial<Record<MessageKey, string>> = {
   alertWhenDown: 'घटने पर अलर्ट',
   alertVsCurrent: 'अभी से {p}',
   deadbandHint: 'सीमा से बाहर जाकर लौटने पर फिर अलर्ट · 0% = हर बार',
+  alertOnce: 'एक बार',
+  alertOnceHint: 'एक बार सूचना देकर अपने आप हट जाता है',
   noSearchResults: 'कोई नतीजा नहीं',
   exchangeNoResponse: 'यह एक्सचेंज अभी जवाब नहीं दे रहा',
   retryConnect: 'फिर कोशिश करें',

@@ -156,6 +156,8 @@ export const pt: Partial<Record<MessageKey, string>> = {
   alertWhenDown: 'Avisar quando cair',
   alertVsCurrent: '{p} vs. atual',
   deadbandHint: 'Realerta após sair da faixa · 0% = sempre',
+  alertOnce: 'Uma vez',
+  alertOnceHint: 'Avisa uma vez e depois é removido',
   noSearchResults: 'Nenhum resultado',
   exchangeNoResponse: 'Esta corretora ainda não respondeu',
   retryConnect: 'Tentar de novo',

@@ -12,13 +12,14 @@ import { useAllTickers, type TickerPrice } from '@/hooks/useAllTickers';
 import { useI18n } from '@/i18n';
 import type { ExchangePlatform } from '@/types';
 
-// 백그라운드(setPriceAlert·deletePriceAlert)와 같은 저장 형식: priceAlerts[exchange][market] = [{ price, deadband }]
-type PricePair = { price: number; deadband: number };
+// 백그라운드(setPriceAlert·deletePriceAlert)와 같은 저장 형식: priceAlerts[exchange][market] = [{ price, deadband, once? }]
+// once: 한 번 울리면 백그라운드가 지운다.
+type PricePair = { price: number; deadband: number; once?: boolean };
 type PriceAlerts = Record<string, Record<string, PricePair[]>>;
 
 const MAX_RESULTS = 80;
 const QUICK_STEPS = [-5, -1, 0, 1, 5] as const;
-const DEADBAND_PRESETS = ['0', '1', '3', '5', '10'] as const;
+const DEADBAND_PRESETS = ['once', '0', '1', '3', '5', '10'] as const;
 type DeadbandPreset = (typeof DEADBAND_PRESETS)[number];
 
 // 가격 크기에 맞춰 자릿수를 정한다: 큰 값은 소수 2자리, 1 미만은 유효숫자 6자리.
@@ -97,8 +98,14 @@ export const PriceAlertPanel = () => {
   const currentPrice = selected?.currentPrice ?? 0;
   const isLoading = Object.keys(prices).length === 0;
 
+  // 백그라운드가 바꾼 목록(한 번 울린 알림 삭제 등)도 열려 있는 동안 따라간다.
   useEffect(() => {
     chrome.storage.local.get('priceAlerts', result => setAlerts((result?.priceAlerts as PriceAlerts) ?? {}));
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'local' && changes.priceAlerts) setAlerts((changes.priceAlerts.newValue as PriceAlerts) ?? {});
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
   }, []);
 
   // 종목을 처음 받거나 바꾸면 목표가를 현재가로 채운다.
@@ -156,7 +163,8 @@ export const PriceAlertPanel = () => {
       return;
     }
     setErrorMessage('');
-    const pair = { price: target, deadband: Number(deadband) / 100 };
+    const pair: PricePair =
+      deadband === 'once' ? { price: target, deadband: 0, once: true } : { price: target, deadband: Number(deadband) / 100 };
     // 먼저 화면에 반영하고, 저장이 끝나면 저장된 값으로 맞춘다.
     setAlerts(prev => ({
       ...prev,
@@ -312,11 +320,11 @@ export const PriceAlertPanel = () => {
           <Segmented
             value={deadband}
             onChange={setDeadband}
-            options={DEADBAND_PRESETS.map(value => ({ value, label: `${value}%` }))}
+            options={DEADBAND_PRESETS.map(value => ({ value, label: value === 'once' ? t('alertOnce') : `${value}%` }))}
             itemClassName="num px-1.5 text-cap-s"
           />
         </div>
-        <p className="mt-1 px-0.5 text-cap-s text-fg-faint">{t('deadbandHint')}</p>
+        <p className="mt-1 px-0.5 text-cap-s text-fg-faint">{t(deadband === 'once' ? 'alertOnceHint' : 'deadbandHint')}</p>
       </section>
 
       {errorMessage && <div className="px-0.5 text-cap-s text-fg-critical">{errorMessage}</div>}
@@ -349,7 +357,7 @@ export const PriceAlertPanel = () => {
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{row.market}</div>
                     <div className="num text-cap-s text-fg-subtle">
-                      {t('deadband')} ±{(row.deadband * 100).toFixed(0)}%
+                      {row.once ? t('alertOnceHint') : `${t('deadband')} ±${(row.deadband * 100).toFixed(0)}%`}
                     </div>
                   </div>
                   <div className="num text-right">

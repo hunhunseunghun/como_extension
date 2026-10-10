@@ -4,7 +4,7 @@ import { alertCache } from './notify.js';
 
 // 저장·삭제를 한 번에 하나씩 처리한다. 빠르게 두 번 추가하거나 팝업·사이드 패널에서 동시에 추가하면
 // 둘 다 같은 옛 값을 읽고 덮어써 하나가 사라진다.
-/** @typedef {{ price: number, deadband: number | null }} PricePair */
+/** @typedef {{ price: number, deadband: number | null, once?: boolean }} PricePair 한 번(once) 울리면 notify.js가 지운다 */
 /** @typedef {(result: { success: boolean, prices: PricePair[] }) => void} Respond */
 
 /** @type {Promise<void>} */
@@ -70,9 +70,9 @@ function savePriceAlertNow(exchange, ticker, priceDeadbandPairs, response) {
 
     /** @type {PricePair[]} */
     const existingPrices = alerts[exchange][ticker] || [];
-    priceDeadbandPairs.forEach(({ price, deadband }) => {
+    priceDeadbandPairs.forEach(({ price, deadband, once }) => {
       if (!existingPrices.some(p => p.price === price)) {
-        existingPrices.push({ price, deadband });
+        existingPrices.push(once ? { price, deadband, once: true } : { price, deadband });
         if (deadband !== null) {
           deadbandSettings[exchange][ticker][price] = deadband;
         }

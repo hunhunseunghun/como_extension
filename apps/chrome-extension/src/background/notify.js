@@ -1,5 +1,6 @@
 // @ts-check
 // 알림 공통: 방해 금지 시간·알림 기록함·지정가 알림 확인·알림 문구 언어·알림을 눌렀을 때 열 주소. index.js에서 나눔.
+import { deletePriceAlert } from './alertStore.js';
 import { evaluatePriceAlert } from './lib/priceAlert.js';
 import { isInQuietHours } from './lib/quietHours.js';
 import { alertText } from './lib/texts.js';
@@ -125,12 +126,16 @@ export function checkPriceAlerts(exchange, ticker, currentPrice) {
   const tickerTriggered = triggered[exchange][ticker];
   let changed = false;
 
-  /** @type {{ price?: number, deadband?: number }[]} */ (alertPrices).forEach(({ price: alertPrice, deadband: alertDeadband }) => {
+  /** @type {{ price?: number, deadband?: number, once?: boolean }[]} */ (alertPrices).forEach(({ price: alertPrice, deadband: alertDeadband, once }) => {
     if (alertPrice === undefined) return;
     const deadband = deadbandSettings[exchange]?.[ticker]?.[alertPrice] ?? alertDeadband ?? 0;
     const wasTriggered = !!tickerTriggered[alertPrice];
     const result = evaluatePriceAlert({ lastPrice, currentPrice, alertPrice, deadband, triggered: wasTriggered });
-    if (result.notify) sendNotification(exchange, ticker, alertPrice, result.crossedUp);
+    if (result.notify) {
+      sendNotification(exchange, ticker, alertPrice, result.crossedUp);
+      // 한 번만 울리는 알림은 울린 뒤 지운다(팝업 목록은 저장소 변경으로 따라온다).
+      if (once) deletePriceAlert(exchange, ticker, alertPrice, () => {});
+    }
     if (result.triggered !== wasTriggered) {
       tickerTriggered[alertPrice] = result.triggered;
       changed = true;

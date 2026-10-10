@@ -156,6 +156,8 @@ export const ja: Partial<Record<MessageKey, string>> = {
   alertWhenDown: '下がったら通知',
   alertVsCurrent: '現在値比 {p}',
   deadbandHint: '範囲外に出て戻ると再通知 · 0%は毎回',
+  alertOnce: '1回',
+  alertOnceHint: '一度通知したら自動で削除します',
   noSearchResults: '該当する銘柄がありません',
   exchangeNoResponse: 'この取引所からまだ応答がありません',
   retryConnect: '再試行',

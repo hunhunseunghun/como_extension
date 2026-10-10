@@ -156,6 +156,8 @@ export const vi: Partial<Record<MessageKey, string>> = {
   alertWhenDown: 'Báo khi giảm tới',
   alertVsCurrent: '{p} so với hiện tại',
   deadbandHint: 'Báo lại khi ra khỏi khoảng rồi quay lại · 0% = mỗi lần',
+  alertOnce: 'Một lần',
+  alertOnceHint: 'Báo một lần rồi tự xoá',
   noSearchResults: 'Không có kết quả',
   exchangeNoResponse: 'Sàn này chưa phản hồi',
   retryConnect: 'Thử lại',

@@ -156,6 +156,8 @@ export const id: Partial<Record<MessageKey, string>> = {
   alertWhenDown: 'Beri tahu saat turun',
   alertVsCurrent: '{p} vs. sekarang',
   deadbandHint: 'Diulang setelah keluar rentang · 0% = selalu',
+  alertOnce: 'Sekali',
+  alertOnceHint: 'Memberi tahu sekali lalu terhapus',
   noSearchResults: 'Tidak ada hasil',
   exchangeNoResponse: 'Bursa ini belum merespons',
   retryConnect: 'Coba lagi',

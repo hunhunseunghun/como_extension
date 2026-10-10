@@ -156,6 +156,8 @@ export const zh: Partial<Record<MessageKey, string>> = {
   alertWhenDown: '下跌到达时提醒',
   alertVsCurrent: '较现价 {p}',
   deadbandHint: '离开范围后再回来才提醒 · 0% 为每次',
+  alertOnce: '一次',
+  alertOnceHint: '提醒一次后自动删除',
   noSearchResults: '没有结果',
   exchangeNoResponse: '该交易所暂无响应',
   retryConnect: '重试',

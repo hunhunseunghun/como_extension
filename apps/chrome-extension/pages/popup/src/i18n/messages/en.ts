@@ -159,6 +159,8 @@ export const en: Record<MessageKey, string> = {
   alertWhenDown: 'Alert when it falls',
   alertVsCurrent: '{p} vs. now',
   deadbandHint: 'Re-alerts after leaving this range · 0% = every time',
+  alertOnce: 'Once',
+  alertOnceHint: 'Alerts once, then removes itself',
   noSearchResults: 'No results',
   exchangeNoResponse: 'No response from this exchange yet',
   retryConnect: 'Retry',
