@@ -15,7 +15,6 @@ Chrome 웹스토어 대시보드 → 항목 → **통계(분석)**에서 노출�
 | 블로그 | `blog` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=blog&utm_medium=content&utm_campaign=kimp-guide |
 | 유튜브 소개 영상 | `youtube` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=youtube&utm_medium=video&utm_campaign=intro |
 | 텔레그램 | `telegram` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=telegram&utm_medium=community&utm_campaign=launch-3-5 |
-| Reddit 등 영어권 | `reddit` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=reddit&utm_medium=community&utm_campaign=launch-3-5 |
 
 - 웨일 스토어 링크는 https://store.whale.naver.com/detail/gbjlmpnhijdgcobpfpgeiepdfegdhkgl (UTM 집계 없음)
 - 소개 페이지: https://hunhunseunghun.github.io/como_extension/ (영어 `/en/`)
@@ -59,8 +58,8 @@ Chrome 웹스토어 대시보드 → 항목 → **통계(분석)**에서 노출�
 
 - **코인판**: 이용 규칙 2조 5항 — 운영진 사전 동의 없는 광고·홍보 금지(자유게시판 등에 올리면 최대 회원 자격 정지). 올리려면 먼저 운영진에게 허락을 받는다
 - **디시 비트코인 갤러리**: 회사 네트워크에서 차단돼 규칙을 확인하지 못했다
-- **Reddit**: r/chrome_extensions는 «Self Promotion» 플레어로 올린다
-- 2026-10-12 진행: 네이버 블로그(rnfkd, 카테고리 낙서장, 전체공개, 태그 8개) 본문·사진 3장 입력 → 발행은 사용자가. Reddit은 로그인 대기
+- **Reddit**: 진행하지 않는다(2026-10-12 결정)
+- 2026-10-12 진행: 네이버 블로그(rnfkd, 카테고리 낙서장, 전체공개, 태그 8개) 본문·사진 3장 입력, 사용자가 발행을 누름 — 같은 날 공개 목록에서는 아직 보이지 않아 확인 필요
 
 ### 코인판·디시(짧게)
 
@@ -84,11 +83,6 @@ Chrome 웹스토어 대시보드 → 항목 → **통계(분석)**에서 노출�
 - 블로그 검색어: 김프, 김치프리미엄, 김프 확인, 업비트 시세 확장, 코인 시세 크롬 확장
 - 스크린샷: `apps/chrome-extension/store/screenshots/ko/`
 
-### 영어(Reddit 등)
-
-> Title: I built a free Chrome extension that shows live prices from 11 exchanges (incl. Korean ones) with the kimchi premium
->
-> Dev here. COMO puts Binance, Coinbase, Bybit, OKX, Kraken, Upbit and Bithumb prices in one popup, shows the kimchi premium per coin, and has price/surge/whale alerts and a toolbar price badge. No ads, no account, only public exchange APIs. Feedback welcome.
 
 ## 5. 스토어 자산
 
