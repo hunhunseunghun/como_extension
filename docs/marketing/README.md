@@ -13,6 +13,7 @@ Chrome 웹스토어 대시보드 → 항목 → **통계(분석)**에서 노출�
 | 디시 비트코인 갤러리 | `dcinside` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=dcinside&utm_medium=community&utm_campaign=launch-3-5 |
 | 네이버 카페 | `naver-cafe` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=naver-cafe&utm_medium=community&utm_campaign=launch-3-5 |
 | 블로그 | `blog` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=blog&utm_medium=content&utm_campaign=kimp-guide |
+| 유튜브 소개 영상 | `youtube` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=youtube&utm_medium=video&utm_campaign=intro |
 | 텔레그램 | `telegram` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=telegram&utm_medium=community&utm_campaign=launch-3-5 |
 | Reddit 등 영어권 | `reddit` | https://chromewebstore.google.com/detail/camiahnljjgndaficdcpboimdbdphnok?utm_source=reddit&utm_medium=community&utm_campaign=launch-3-5 |
 
@@ -54,7 +55,11 @@ Chrome 웹스토어 대시보드 → 항목 → **통계(분석)**에서 노출�
 
 ## 4. 커뮤니티 소개 글 초안
 
-각 커뮤니티의 홍보 규칙을 먼저 확인하고(홍보 게시판·요일 제한 등), 개발자라는 사실을 밝힌다. 같은 글을 여러 곳에 한꺼번에 올리지 않는다.
+각 커뮤니티의 홍보 규칙을 먼저 확인하고(홍보 게시판·요일 제한 등), 개발자라는 사실을 밝힌다. 같은 글을 여러 곳에 한꺼번에 올리지 않는다. 2026-10 글은 [posts-2026-10.md](posts-2026-10.md).
+
+- **코인판**: 이용 규칙 2조 5항 — 운영진 사전 동의 없는 광고·홍보 금지(자유게시판 등에 올리면 최대 회원 자격 정지). 올리려면 먼저 운영진에게 허락을 받는다
+- **디시 비트코인 갤러리**: 회사 네트워크에서 차단돼 규칙을 확인하지 못했다
+- **Reddit**: r/chrome_extensions는 «Self Promotion» 플레어로 올린다
 
 ### 코인판·디시(짧게)
 
@@ -92,4 +97,4 @@ Chrome 웹스토어 대시보드 → 항목 → **통계(분석)**에서 노출�
 - 프로모션 타일 440×280·1400×560(한·영): `node scripts/store-promo.mjs` → `store/promo/`. Chrome에는 언어 공통 한 벌만 올라가서 영어를 썼다
 - Chrome 홈페이지 URL은 소개 페이지, 지원 URL은 GitHub 이슈
 - 소개 페이지: `node site-src/build.mjs` → `site/` (push하면 Pages 워크플로가 올린다)
-- 소개 영상(약 35초, 한·영, 800×600 webm): `node scripts/store-video.mjs ko en` → `store/video/como-<lang>.webm`(저장소에 올리지 않음). 실제 팝업을 녹화하고 자막을 얹는다 — 시작 화면 → 시세·김프 → 차트 보조지표 → 알림 기록함 → 보유 자산 → 시장 인사이트 → 끝 화면. 시세는 거래소 실제 서버 값이라 만들 때마다 숫자가 다르다. 유튜브에 올린 뒤 Chrome 항목 페이지의 «YouTube 동영상» 칸에 넣는다(심사 중에는 고칠 수 없다)
+- 소개 영상(약 35초, 한·영, 800×600 webm): `node scripts/store-video.mjs ko en` → `store/video/como-<lang>.webm`(저장소에 올리지 않음). 실제 팝업을 녹화하고 자막을 얹는다 — 시작 화면 → 시세·김프 → 차트 보조지표 → 알림 기록함 → 보유 자산 → 시장 인사이트 → 끝 화면. 시세는 거래소 실제 서버 값이라 만들 때마다 숫자가 다르다. 유튜브(채널 «키두», 일부 공개, 2026-10-12): 한국어 https://youtu.be/clxkVr6g0OQ · 영어 https://youtu.be/M82DXXddfO4 — 다음 제출 때 Chrome 항목 페이지의 «YouTube 동영상» 칸에 넣는다(심사 중에는 고칠 수 없다)
