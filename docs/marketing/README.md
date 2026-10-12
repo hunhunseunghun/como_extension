@@ -92,4 +92,4 @@ Chrome 웹스토어 대시보드 → 항목 → **통계(분석)**에서 노출�
 - 프로모션 타일 440×280·1400×560(한·영): `node scripts/store-promo.mjs` → `store/promo/`. Chrome에는 언어 공통 한 벌만 올라가서 영어를 썼다
 - Chrome 홈페이지 URL은 소개 페이지, 지원 URL은 GitHub 이슈
 - 소개 페이지: `node site-src/build.mjs` → `site/` (push하면 Pages 워크플로가 올린다)
-- 30초 소개 영상은 아직 없다(유튜브 계정에 올려야 등록할 수 있다)
+- 소개 영상(약 35초, 한·영, 800×600 webm): `node scripts/store-video.mjs ko en` → `store/video/como-<lang>.webm`(저장소에 올리지 않음). 실제 팝업을 녹화하고 자막을 얹는다 — 시작 화면 → 시세·김프 → 차트 보조지표 → 알림 기록함 → 보유 자산 → 시장 인사이트 → 끝 화면. 시세는 거래소 실제 서버 값이라 만들 때마다 숫자가 다르다. 유튜브에 올린 뒤 Chrome 항목 페이지의 «YouTube 동영상» 칸에 넣는다(심사 중에는 고칠 수 없다)

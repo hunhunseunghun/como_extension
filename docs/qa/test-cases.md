@@ -345,6 +345,7 @@
 | 제출 (2026-10-10) | 처음으로 업로드 스크립트(`publish:store`)로 제출. **Edge**: API로 업로드·제출(3.5.2 게시본 위). **Firefox**: `web-ext sign` 업로드 → 3.5.3 심사 대기, 3.5.2는 자동 비활성. 버전 노트·심사자 메모(빌드 방법, 커밋 b0f4dec, 경고 설명, 환영 페이지)는 API PATCH, 상품 설명 8개 언어도 API로 새 단축키 반영(AMO가 «&»를 «&amp;»로 저장). **Chrome**: 심사 중이면 업로드 거부(«You may not edit or publish an item that is in review») → API `cancelSubmission`으로 3.5.2 심사 취소 → 3.5.3 업로드·제출, PENDING_REVIEW. **웨일**: 개발자 센터에서 리뷰 요청 취소 → 패키지 업로드 → 상세 설명(단축키)·새로운 기능 10개 언어 → 리뷰 요청, 심사 중 |
 | 남은 것 | Chrome·Edge 스토어 설명의 단축키 줄이 아직 «Ctrl + Space»(Chrome은 심사 중 수정 불가, Edge는 이미 제출) — 다음 제출 때 store/description.*.txt로 교체. ~~공개 업데이트 노트에 3.5.3 추가~~ 2026-10-12 완료 |
 | 게시 확인 (2026-10-12) | `publish:store status`: **Edge 3.5.3 게시**, Chrome 3.5.3 PENDING_REVIEW(공개 3.4.0), Firefox 3.5.3 unreviewed. 웨일은 개발자 센터에서 확인 필요. `.env.store`가 없어져 Notion(COMO › .env.store)에서 다시 만듦 |
+| 웨일·리뷰 확인 (2026-10-12) | 웨일 개발자 센터(`store.whale.naver.com/developers/dashboard`): 3.5.3 심사 중, 게시 3.4.0, 사용자 379명(384 → 379), 댓글 0. 리뷰: Chrome 평점 6개(모두 5점, 마지막 리뷰 2026-04-14 — «실시간 시세가 잘 안 됨·보유 자산 손익»은 이미 답글, 둘 다 반영됨), Edge 리뷰 0·사용자 1, Firefox는 승인된 버전이 없어 공개 페이지 없음 |
 | 공개 업데이트 노트 (2026-10-12) | 맨 위에 「3.5.3」 6줄 추가. 2.4.0의 「1. …」 줄이 또 번호 목록으로 바뀌어 `1\.`로 이스케이프해 되돌림 |
 | 스크립트 수정 | Windows에서 Git Bash의 GNU tar가 zip을 못 풀던 것 → 시스템 tar.exe. `web-ext sign`이 승인을 기다리다 시간 초과로 실패처럼 보이던 것 → `--approval-timeout=0`. AMO 자격 증명을 명령줄 대신 환경 변수로(실패 시 오류 메시지에 찍히던 것) |
 
