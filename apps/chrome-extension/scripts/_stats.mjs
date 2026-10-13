@@ -1,0 +1,10 @@
+import { chromium } from '@playwright/test';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9334');
+const ctx = browser.contexts()[0];
+const amo = ctx.pages().find(p => p.url().includes('addons.mozilla.org'));
+await amo.setViewportSize({ width: 1280, height: 900 });
+await amo.goto('https://addons.mozilla.org/ko/firefox/addon/como-crypto-price-tracker/statistics/');
+await amo.waitForTimeout(5000);
+console.log(amo.url());
+console.log((await amo.innerText('body')).slice(0, 1500));
+process.exit(0);
